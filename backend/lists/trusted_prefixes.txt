@@ -1,0 +1,3 @@
+# URL prefixes (no scheme) that are safe even though the host is in shared_hosts.txt.
+# Only list paths that show the signed-in user's own app UI, never paths that serve user-uploaded content.
+drive.google.com/drive/

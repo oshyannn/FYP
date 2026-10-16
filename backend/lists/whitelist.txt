@@ -1,0 +1,6 @@
+# Manual whitelist: one REGISTERED domain per line (no http://, no paths).
+# Only add domains you have personally verified.
+tarc.edu.my
+maybank2u.com.my
+shopee.com.my
+lazada.com.my

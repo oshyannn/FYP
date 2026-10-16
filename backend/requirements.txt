@@ -1,0 +1,11 @@
+flask
+requests
+tldextract
+scikit-learn
+pandas
+joblib
+python-dotenv
+psycopg[binary,pool]
+argon2-cffi
+email-validator
+Flask-Limiter

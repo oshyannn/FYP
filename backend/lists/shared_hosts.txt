@@ -1,0 +1,20 @@
+# Platforms where ANYONE can publish a page. These domains are never whitelisted
+# as a whole, and PhishTank "domain-level" matches are skipped for them.
+# Do NOT put youtube.com or google.com here.
+github.io
+blogspot.com
+weebly.com
+wixsite.com
+notion.site
+sites.google.com
+docs.google.com
+drive.google.com
+forms.gle
+firebaseapp.com
+web.app
+netlify.app
+vercel.app
+pages.dev
+herokuapp.com
+glitch.me
+000webhostapp.com

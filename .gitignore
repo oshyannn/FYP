@@ -1,0 +1,14 @@
+backend/.env
+backend/PhiUSIIL_Phishing_URL_Dataset.csv
+backend/model.joblib
+backend/data/
+backend/__pycache__/
+backend/controllers/__pycache__/
+backend/data/__pycache__/
+backend/models/__pycache__/
+backend/scripts/__pycache__/
+backend/PhiUSIIL_Phishing_URL_Dataset.csv
+.venv/
+progress.txt
+__pycache__/
+*.pyc

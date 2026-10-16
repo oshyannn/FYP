@@ -1,0 +1,3 @@
+# Manual blacklist: one domain per line. Anything here is reported as Malicious (100).
+# Example (remove the # to use it):
+# services-consignes-instructions.com
