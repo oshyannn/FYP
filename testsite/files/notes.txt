@@ -1,0 +1,1 @@
+Plain text: should download with NO warning.

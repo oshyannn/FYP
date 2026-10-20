@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Model check</title>
+<style>
+:root{--bg:#fff;--fg:#1b1b1f;--mut:#667;--card:#f5f6f8;--line:#d8dbe0;--acc:#2457d6;--bad:#c62828;--ok:#2e7d32;--warn:#b26a00;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#15161a;--fg:#e8e8ec;--mut:#9aa0ac;--card:#1e2026;--line:#33363f;--acc:#7aa2ff;--bad:#ff6b6b;--ok:#6fcf7a;--warn:#f0b04a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px}h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:22px 0 8px}
+.mut{color:var(--mut);font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}
+nav{display:flex;gap:6px;margin:14px 0}nav button{flex:0 0 auto}button,input,textarea{font:inherit;color:inherit}
+button{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer}
+button.on,button.go{background:var(--acc);color:#fff;border-color:var(--acc)}input[type=text],textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea{height:170px;font:13px ui-monospace,Consolas,monospace}table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left}.wrap{overflow-x:auto}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.big{font-size:28px;font-weight:600}.bad{color:var(--bad)}.ok{color:var(--ok)}.warn{color:var(--warn)}.tab{display:none}.tab.on{display:block}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:80px}.bar i{display:block;height:100%;background:var(--acc)}
+pre{white-space:pre-wrap;font-size:12px;overflow-x:auto}label{font-size:13px}input[type=number]{width:70px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px}
+</style></head><body><main>
+<h1>URL detector: model check</h1>
+<div class="mut" id="status">connecting to local server...</div>
+<nav><button class="on" data-t="one">Check a URL</button><button data-t="batch">Test set</button><button data-t="train">Training metrics</button></nav>
+
+<section class="tab on" id="one">
+ <div class="row"><input type="text" id="u" placeholder="https://example.com/login" style="flex:1;min-width:240px"><button class="go" id="b1">Check</button></div>
+ <div id="r1"></div>
+</section>
+
+<section class="tab" id="batch">
+ <div class="mut">One per line: <code>url,label</code> (1 = phishing, 0 = benign). Use URLs that were NOT in the training data; mix both classes. Phishing pages that are already offline give no content opinion.</div>
+ <textarea id="ta" placeholder="https://www.wikipedia.org/,0&#10;https://example-phish.test/login,1"></textarea>
+ <div class="row" style="margin-top:8px"><button class="go" id="b2">Run</button><span class="mut" id="prog"></span></div>
+ <div class="row" style="margin-top:8px"><label>URL model threshold <input type="number" id="tu" step="0.05" min="0" max="1" value="0.7"></label>
+ <label>Content model threshold <input type="number" id="tc" step="0.05" min="0" max="1" value="0.7"></label></div>
+ <div id="sum"></div><div class="wrap" id="tbl"></div>
+</section>
+
+<section class="tab" id="train"><div id="tm" class="mut">loading...</div></section>
+
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=x=>x==null?'-':(100*x).toFixed(1)+'%',cls=p=>p==null?'':p>=.7?'bad':p>=.4?'warn':'ok';
+async function api(p){const r=await fetch(p);const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on')});
+
+api('/api/status').then(s=>{const u=s.url_model,c=s.content_model;
+ $('#status').innerHTML=`URL model: <b class="${u.available?'ok':'bad'}">${u.available?'loaded':'MISSING'}</b> ${esc(u.version||'')} &nbsp;|&nbsp; Content model: <b class="${c.available?'ok':'bad'}">${c.available?'loaded':'NOT LOADED'}</b> ${esc(c.version||'')} ${c.n_features?`(${c.n_features} features)`:''}`}).catch(()=>$('#status').textContent='server not reachable: run python verify_server.py');
+
+function card(name,m){if(!m)return`<div class="card"><b>${name}</b><div class="mut">no opinion (model missing, page unreachable or not HTML)</div></div>`;
+ const p=m.probability;return`<div class="card"><b>${name}</b> <span class="mut">${esc(m.model_version||'')}</span><div class="big ${cls(p)}">${pct(p)}</div><div class="bar"><i style="width:${100*p}%"></i></div>
+ ${m.signals&&m.signals.length?'<ul>'+m.signals.map(s=>`<li>${esc(s)}</li>`).join('')+'</ul>':''}${m.latency_ms?`<div class="mut">${m.latency_ms} ms; final URL ${esc(m.final_url)}</div>`:''}</div>`}
+$('#b1').onclick=async()=>{const u=$('#u').value.trim();if(!u)return;$('#r1').innerHTML='<div class="mut">checking (up to ~10 s)...</div>';
+ try{const r=await api('/api/check?url='+encodeURIComponent(u));$('#r1').innerHTML=card('URL model (text of the address)',r.url_model)+card('Content model (page HTML)',r.content_model)+
+ '<div class="mut">Probabilities are model scores, not certainty. Red from 70%: the detector treats this as Suspicious at most.</div>'}catch(e){$('#r1').innerHTML=`<div class="card bad">${esc(e.message)}</div>`}};
+
+let rows=[];
+function parse(t){return t.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('#')).map(l=>{const i=Math.max(l.lastIndexOf(','),l.lastIndexOf('\t'));if(i<0)return null;
+ const lab=l.slice(i+1).trim().toLowerCase();const y=['1','phish','phishing','malicious'].includes(lab)?1:['0','benign','safe'].includes(lab)?0:null;return y==null?null:{url:l.slice(0,i).trim(),y}}).filter(Boolean)}
+function auc(pairs){const P=pairs.filter(p=>p[1]===1),N=pairs.filter(p=>p[1]===0);if(!P.length||!N.length)return null;let s=0;for(const a of P)for(const b of N)s+=a[0]>b[0]?1:a[0]===b[0]?.5:0;return s/(P.length*N.length)}
+function stats(name,fn,th){let tp=0,fp=0,tn=0,fn_=0,none=0,pairs=[];for(const r of rows){const s=fn(r);if(s==null){none++;continue}pairs.push([s,r.y]);const hit=s>=th;if(r.y&&hit)tp++;else if(r.y)fn_++;else if(hit)fp++;else tn++}
+ const P=tp+fn_,N=fp+tn,a=auc(pairs);return`<tr><td>${name}</td><td>${pairs.length}</td><td>${none}</td><td>${P?pct(tp/P):'-'} (${tp}/${P})</td><td>${N?pct(fp/N):'-'} (${fp}/${N})</td><td>${tp+fp?pct(tp/(tp+fp)):'-'}</td><td>${a==null?'-':a.toFixed(3)}</td></tr>`}
+function render(){if(!rows.length)return;const tu=+$('#tu').value,tc=+$('#tc').value,U=r=>r.u,C=r=>r.c;
+ const both=r=>r.u==null||r.c==null?null:Math.min(r.u,r.c),eith=r=>r.u==null&&r.c==null?null:Math.max(r.u??0,r.c??0);
+ const th2=Math.min(tu,tc);
+ $('#sum').innerHTML=`<h2>Result (${rows.length} URLs; ${rows.filter(r=>r.y).length} phishing, ${rows.filter(r=>!r.y).length} benign)</h2><div class="wrap"><table><tr><th>Model</th><th>scored</th><th>no opinion</th><th>phishing caught (recall)</th><th>benign flagged (false positive)</th><th>precision</th><th>AUC</th></tr>
+ ${stats('URL model @'+tu,U,tu)}${stats('Content model @'+tc,C,tc)}${stats('Both agree (min score) @'+th2,both,th2)}${stats('Either (max score) @'+th2,eith,th2)}</table></div>
+ <div class="mut">${rows.length<100?'Fewer than 100 URLs: treat these numbers as a rough indication only. ':''}"Both agree" is the rule recommended for raising a verdict. Precision here depends on your phishing:benign mix; real browsing has far less than 1% phishing.</div>`;
+ $('#tbl').innerHTML=`<h2>Details</h2><table><tr><th>URL</th><th>true</th><th>URL model</th><th>Content</th><th>content signals</th></tr>`+rows.map(r=>`<tr><td>${esc(r.url.slice(0,70))}</td><td>${r.y?'phish':'benign'}</td><td class="${cls(r.u)}">${pct(r.u)}</td><td class="${cls(r.c)}">${r.err?'error':pct(r.c)}</td><td>${esc((r.s||[]).join('; '))}</td></tr>`).join('')+'</table>'}
+['tu','tc'].forEach(i=>$('#'+i).oninput=render);
+$('#b2').onclick=async()=>{rows=parse($('#ta').value).slice(0,300);if(!rows.length){$('#prog').textContent='no valid lines';return}
+ let done=0,i=0;$('#b2').disabled=true;const next=async()=>{while(i<rows.length){const r=rows[i++];try{const j=await api('/api/check?url='+encodeURIComponent(r.url));r.u=j.url_model?.probability??null;r.c=j.content_model?.probability??null;r.s=j.content_model?.signals||[]}catch(e){r.u=r.c=null;r.err=1}
+  $('#prog').textContent=`${++done}/${rows.length}`;if(done%5===0)render()}};
+ await Promise.all([next(),next(),next()]);$('#b2').disabled=false;render()};
+
+api('/api/metrics').then(m=>{const c=m.content;let h='';
+ if(c){h+=`<div class="card"><b>Content model</b> ${esc(c.version)} <span class="mut">eval: ${esc(c.eval_mode||'?')}; ${c.n_pages} pages</span><div class="mut">held-out: ${Object.entries(c.heldout).map(([k,v])=>k+' '+v.toFixed(3)).join(' &nbsp; ')}</div>
+ <div class="wrap"><table><tr><th>threshold</th><th>recall</th><th>false positive</th></tr>${c.thresholds.map(t=>`<tr><td>${t.threshold}</td><td>${pct(t.recall)}</td><td>${pct(t.fpr)}</td></tr>`).join('')}</table></div>
+ <h2>Top features</h2><table>${c.top_features.map(f=>`<tr><td>${esc(f[0])}</td><td style="width:50%"><div class="bar"><i style="width:${Math.min(100,f[1]*500)}%"></i></div></td><td>${f[1].toFixed(3)}</td></tr>`).join('')}</table>
+ <div class="mut">Held-out numbers come from the training split, not from this page. Use the Test set tab for your own check.</div></div>`}
+ if(m.url)h+=`<div class="card"><b>URL model</b><details><summary class="mut">raw model_metrics.json</summary><pre>${esc(JSON.stringify(m.url,null,1))}</pre></details></div>`;
+ $('#tm').innerHTML=h||'no metrics files found'}).catch(()=>{$('#tm').textContent='metrics unavailable'});
+</script></main></body></html>

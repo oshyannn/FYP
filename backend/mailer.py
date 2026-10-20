@@ -34,10 +34,12 @@ def send(to: str, subject: str, body: str) -> bool:
         return False
 
 
-def send_verification_code(to: str, code: str) -> bool:
-    return send(to, "Your SafeBrowse verification code",
-                f"Hello,\n\nYour SafeBrowse verification code is: {code}\n\n"
-                f"It expires in {config.VERIFY_CODE_MINUTES} minutes. Never share it with anyone. "
+def send_verification_code(to: str, code: str, link: str | None = None) -> bool:
+    link_part = (f"Option 1 - click this link to confirm (the SafeBrowse app then signs you in automatically):\n{link}\n\n"
+                 if link else "")
+    return send(to, "Confirm your SafeBrowse email",
+                f"Hello,\n\n{link_part}Option 2 - enter this 6-digit code in the app (also works from another device):\n"
+                f"{code}\n\nThe code expires in {config.VERIFY_CODE_MINUTES} minutes. Never share it with anyone. "
                 "If you did not sign up, ignore this email.\n")
 
 

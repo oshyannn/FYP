@@ -6,7 +6,7 @@ import hmac
 
 import config
 import db
-from security import code_hash, is_code, make_code, make_pairing_code
+from security import code_hash, is_code, make_code, make_pairing_code, new_token
 
 
 def _otp_hash(user_id, purpose: str, code: str) -> str:
@@ -70,3 +70,54 @@ def consume_pairing_code(code: str):
                  "WHERE token_hash = %s AND purpose = 'extension_pairing'::public.token_purpose "
                  "AND consumed_at IS NULL AND expires_at > now() RETURNING user_id", (code_hash("pairing", code),))
     return row["user_id"] if row else None
+
+
+# ---- emailed verification link (long random token, separate from the 6-digit code) -------------------------
+def issue_link(user_id, ttl_hours: int) -> str:
+    token = new_token()
+    with db.transaction() as c:
+        c.execute("UPDATE public.auth_tokens SET consumed_at = now() "
+                  "WHERE user_id = %s AND purpose = 'email_verification_link'::public.token_purpose AND consumed_at IS NULL",
+                  (user_id,))
+        c.execute("INSERT INTO public.auth_tokens (user_id, token_hash, purpose, expires_at) "
+                  "VALUES (%s, %s, 'email_verification_link'::public.token_purpose, now() + %s * interval '1 hour')",
+                  (user_id, code_hash("link", token), ttl_hours))
+    return token
+
+
+def peek_link(token: str):
+    row = db.one("SELECT user_id FROM public.auth_tokens WHERE token_hash = %s "
+                 "AND purpose = 'email_verification_link'::public.token_purpose "
+                 "AND consumed_at IS NULL AND expires_at > now()", (code_hash("link", token),))
+    return row["user_id"] if row else None
+
+
+def consume_link(token: str):
+    row = db.one("UPDATE public.auth_tokens SET consumed_at = now() WHERE token_hash = %s "
+                 "AND purpose = 'email_verification_link'::public.token_purpose "
+                 "AND consumed_at IS NULL AND expires_at > now() RETURNING user_id", (code_hash("link", token),))
+    return row["user_id"] if row else None
+
+
+# ---- sign-up hand-off: only the app that started the sign-up (it holds the secret) can be logged in by it ----
+def issue_handoff(user_id, challenge: str, ttl_minutes: int) -> None:
+    with db.transaction() as c:
+        c.execute("UPDATE public.auth_tokens SET consumed_at = now() "
+                  "WHERE user_id = %s AND purpose = 'signup_handoff'::public.token_purpose AND consumed_at IS NULL", (user_id,))
+        c.execute("INSERT INTO public.auth_tokens (user_id, token_hash, purpose, expires_at) "
+                  "VALUES (%s, %s, 'signup_handoff'::public.token_purpose, now() + %s * interval '1 minute')",
+                  (user_id, code_hash("handoff", challenge), ttl_minutes))
+
+
+def has_handoff(user_id, challenge: str) -> bool:
+    row = db.one("SELECT 1 AS x FROM public.auth_tokens WHERE user_id = %s AND token_hash = %s "
+                 "AND purpose = 'signup_handoff'::public.token_purpose AND consumed_at IS NULL AND expires_at > now()",
+                 (user_id, code_hash("handoff", challenge)))
+    return row is not None
+
+
+def consume_handoff(user_id, challenge: str) -> bool:
+    row = db.one("UPDATE public.auth_tokens SET consumed_at = now() WHERE user_id = %s AND token_hash = %s "
+                 "AND purpose = 'signup_handoff'::public.token_purpose AND consumed_at IS NULL AND expires_at > now() "
+                 "RETURNING id", (user_id, code_hash("handoff", challenge)))
+    return row is not None

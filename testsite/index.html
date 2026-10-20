@@ -1,0 +1,16 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><title>Download guard test site</title><style>body{font-family:system-ui;max-width:680px;margin:40px auto;padding:0 16px;line-height:1.5}button{font-size:16px;padding:10px 16px}.box{background:#f4f4f4;border-radius:8px;padding:10px 14px;margin:12px 0}</style></head><body><p><a href='/'>&larr; all tests</a></p><h1>Download guard test site</h1><p>Everything here is harmless: the 'program' files are plain text with a program-like name. Rules being tested:</p>
+<ul><li>You click + the file is from the same website = <b>allowed</b></li><li>Nothing clicked (page or script starts it) = a <b>dialog asks you</b> (Block / Allow once / Always allow this site), even on trusted sites. The file is held (not saved) until you answer; no answer in 60 s = Block</li><li>You click, but the file is from another website = a <b>dialog asks you</b></li></ul>
+<ol>
+<li><a href='manual.html'>1. You click a download link</a> &mdash; expect: downloads, no warning</li>
+<li><a href='auto_refresh.html'>2. Page sends you an .exe by itself (meta refresh)</a> &mdash; expect: dialog</li>
+<li><a href='auto_iframe.html'>3. Hidden iframe loads an .exe</a> &mdash; expect: dialog</li>
+<li><a href='auto_js.html'>4. Script clicks a hidden link on load</a> &mdash; expect: dialog</li>
+<li><a href='delayed.html'>5. Script starts a download 6 s after your click</a> &mdash; expect: dialog</li>
+<li><a href='slow.html'>5b. Slow network: real link, server answers after 6 s</a> &mdash; expect: allowed</li>
+<li><a href='cross.html'>6. You click, but the file comes from a different website</a> &mdash; expect: dialog</li>
+<li><a href='inject.html'>7. Injected script starts the download the moment you click</a> &mdash; expect: <b>NOT blocked</b> (known limit)</li>
+<li><a href='safe_files.html'>8. Normal files (.pdf .png .txt)</a> &mdash; expect: no warning</li>
+</ol>
+<p><b>Known limit (test 7):</b> the extension cannot tell a real download button from a malicious script attached to a button you click. It only sees: a person clicked, same website.</p>
+<p><p>A site that is <b>confirmed malicious</b> (on a blacklist / flagged by the backend) is still blocked outright with a notification, no dialog.</p>
+<p><b>Tip:</b> after "Always allow this site" a site is allowed for 30 days; remove and re-add the extension to reset it.</p></body></html>

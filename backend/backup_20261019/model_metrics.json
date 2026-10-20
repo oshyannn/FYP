@@ -1,0 +1,83 @@
+{
+  "version": "v1.0.0",
+  "trained_at": "2026-10-15T10:33:25+00:00",
+  "rows_total": 187814,
+  "rows_train": 150282,
+  "rows_test": 37532,
+  "domains_test": 33990,
+  "split": "GroupShuffleSplit by registered domain, test_size=0.2",
+  "threshold": 0.5,
+  "accuracy": 0.8254822551422786,
+  "precision": 0.8288593596718095,
+  "recall": 0.6674326750448834,
+  "f1": 0.7394383005807941,
+  "roc_auc": 0.8658328696133476,
+  "false_positive_rate": 0.08128944804507138,
+  "fpr_at_0.7": 0.02270512983437116,
+  "threshold_table": {
+    "0.3": {
+      "false_positive_rate": 0.3932,
+      "recall": 0.8475
+    },
+    "0.4": {
+      "false_positive_rate": 0.1675,
+      "recall": 0.7268
+    },
+    "0.5": {
+      "false_positive_rate": 0.0813,
+      "recall": 0.6674
+    },
+    "0.6": {
+      "false_positive_rate": 0.0428,
+      "recall": 0.6239
+    },
+    "0.7": {
+      "false_positive_rate": 0.0227,
+      "recall": 0.5846
+    },
+    "0.8": {
+      "false_positive_rate": 0.0102,
+      "recall": 0.5377
+    },
+    "0.9": {
+      "false_positive_rate": 0.0038,
+      "recall": 0.4569
+    }
+  },
+  "feature_importance": {
+    "host_entropy": 0.10282020598608524,
+    "risky_tld": 0.09213060537387119,
+    "num_host_tokens": 0.08904614257553127,
+    "num_dots_host": 0.06450454650264079,
+    "path_length": 0.05837682915153063,
+    "num_subdomains": 0.054462341374454326,
+    "num_path_segments": 0.05310572322573747,
+    "vowel_ratio_host": 0.049227010813152894,
+    "digit_ratio_host": 0.04798711577484106,
+    "longest_path_token": 0.047265744897283246,
+    "max_consonant_run": 0.0418638439207704,
+    "tld_length": 0.041231373418124814,
+    "num_digits_host": 0.039729515236458096,
+    "path_digit_ratio": 0.03537910693291204,
+    "path_has_risky_ext": 0.031049623121002665,
+    "host_length": 0.028014839611142834,
+    "reg_label_length": 0.025965609436903292,
+    "longest_host_label": 0.02107247357327821,
+    "avg_token_length": 0.02104221529328902,
+    "digit_letter_switches": 0.01895610743028815,
+    "num_hyphens_host": 0.013899556387155855,
+    "num_suspicious_words": 0.007861861143028937,
+    "brand_mismatch": 0.007406754954678178,
+    "path_special_chars": 0.0040234830112309055,
+    "host_is_ip": 0.0024463067473921244,
+    "path_pct_encoded": 0.0007101317011625604,
+    "path_double_slash": 0.0003682986313852487,
+    "has_punycode": 5.2536656379117915e-05,
+    "has_at_symbol": 9.711828959556014e-08
+  },
+  "root_only": {
+    "roc_auc": 0.7876405554479438,
+    "false_positive_rate": 0.10458762231541492,
+    "recall": 0.5991382405745063
+  }
+}

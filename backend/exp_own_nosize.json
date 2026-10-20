@@ -1,0 +1,150 @@
+{
+  "version": "content-20261019-2136",
+  "eval_mode": "own-pages-test",
+  "heldout": {
+    "accuracy": 0.7648578811369509,
+    "precision": 0.5574324324324325,
+    "recall": 0.5374592833876222,
+    "auc": 0.7618087711402178
+  },
+  "thresholds": [
+    {
+      "threshold": 0.3,
+      "recall": 0.7003257328990228,
+      "fpr": 0.3079625292740047,
+      "fpr_by_source": {
+        "benign_history": 0.6,
+        "benign_tail": 0.3353174603174603,
+        "benign_tail_login": 0.4691358024691358,
+        "benign_top": 0.17194570135746606,
+        "benign_top_login": 0.3488372093023256
+      }
+    },
+    {
+      "threshold": 0.5,
+      "recall": 0.5374592833876222,
+      "fpr": 0.15339578454332553,
+      "fpr_by_source": {
+        "benign_history": 0.2,
+        "benign_tail": 0.15873015873015872,
+        "benign_tail_login": 0.35802469135802467,
+        "benign_top": 0.06334841628959276,
+        "benign_top_login": 0.16279069767441862
+      }
+    },
+    {
+      "threshold": 0.7,
+      "recall": 0.41368078175895767,
+      "fpr": 0.07845433255269321,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.07936507936507936,
+        "benign_tail_login": 0.20987654320987653,
+        "benign_top": 0.027149321266968326,
+        "benign_top_login": 0.09302325581395349
+      }
+    },
+    {
+      "threshold": 0.8,
+      "recall": 0.19543973941368079,
+      "fpr": 0.01756440281030445,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.017857142857142856,
+        "benign_tail_login": 0.024691358024691357,
+        "benign_top": 0.013574660633484163,
+        "benign_top_login": 0.023255813953488372
+      }
+    },
+    {
+      "threshold": 0.9,
+      "recall": 0.04234527687296417,
+      "fpr": 0.00234192037470726,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.001984126984126984,
+        "benign_tail_login": 0.0,
+        "benign_top": 0.004524886877828055,
+        "benign_top_login": 0.0
+      }
+    },
+    {
+      "threshold": 0.95,
+      "recall": 0.013029315960912053,
+      "fpr": 0.0,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.0,
+        "benign_tail_login": 0.0,
+        "benign_top": 0.0,
+        "benign_top_login": 0.0
+      }
+    }
+  ],
+  "top_features": [
+    [
+      "ext_link_ratio",
+      0.16416952675812632
+    ],
+    [
+      "title_matches_domain",
+      0.12772613289620335
+    ],
+    [
+      "ext_script_ratio",
+      0.06904501698849215
+    ],
+    [
+      "ext_resource_ratio",
+      0.06406841286163932
+    ],
+    [
+      "hidden_iframe",
+      0.05946782039267802
+    ],
+    [
+      "n_iframes",
+      0.0526688412864767
+    ],
+    [
+      "null_link_ratio",
+      0.04948849731036105
+    ],
+    [
+      "obfuscation_density",
+      0.04494782682824717
+    ],
+    [
+      "n_inputs",
+      0.04097921737726159
+    ],
+    [
+      "favicon_missing",
+      0.033892249990853704
+    ],
+    [
+      "thin_page",
+      0.02954430374212542
+    ],
+    [
+      "n_sensitive_words",
+      0.028598679196995994
+    ]
+  ],
+  "n_pages": 15880,
+  "dropped": [
+    "log_html_len",
+    "log_inline_script_len",
+    "log_text_len",
+    "n_images",
+    "n_links",
+    "n_redirects",
+    "n_scripts",
+    "n_tags",
+    "n_words",
+    "redirect_cross_domain",
+    "text_per_tag",
+    "title_len",
+    "tls_invalid"
+  ]
+}

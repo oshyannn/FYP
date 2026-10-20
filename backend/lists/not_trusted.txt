@@ -1,0 +1,3 @@
+# Domains that rank high on Tranco (so they would be treated as trusted) but that you do NOT trust,
+# e.g. pop-up / redirect ad networks. One registered domain per line, e.g.  example-adnetwork.com
+# Find the domain of a suspicious page with:  python check_sources.py <url>

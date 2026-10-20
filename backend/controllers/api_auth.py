@@ -12,6 +12,7 @@ unless the server opts in (see scripts/staff_admin.py).
 """
 from __future__ import annotations
 
+import hashlib
 import re
 from datetime import datetime, timezone
 
@@ -78,7 +79,18 @@ def _read_signup(data: dict):
     return {"full_name": full_name, "email": email, "password": password}, errors
 
 
-def _register(form: dict, employer: dict | None = None) -> None:
+def _send_verification(user_id, email: str) -> None:
+    """One email with both ways to verify: a 6-digit code and a link."""
+    code = tokens.issue_code(user_id, "email_verification", config.VERIFY_CODE_MINUTES)
+    link = f"{config.BASE_URL}/verify/{tokens.issue_link(user_id, config.VERIFY_LINK_HOURS)}"
+    mailer.send_verification_code(email, code, link)
+
+
+def _challenge_of(secret: str) -> str:
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+
+def _register(form: dict, employer: dict | None = None, challenge: str = "") -> None:
     pw_hash = hash_password(form["password"])        # hash first so timing does not reveal existing emails
     uid = users.create_user(form["email"], form["full_name"], pw_hash)
     if uid is None:
@@ -86,8 +98,9 @@ def _register(form: dict, employer: dict | None = None) -> None:
         return
     if employer:
         users.create_employer_application(uid, employer["company_name"], employer["company_registration_no"])
-    code = tokens.issue_code(uid, "email_verification", config.VERIFY_CODE_MINUTES)
-    mailer.send_verification_code(form["email"], code)
+    if challenge:
+        tokens.issue_handoff(uid, challenge, config.HANDOFF_MINUTES)
+    _send_verification(uid, form["email"])
     audit.log("register", "auth", uid, {"employer_application": bool(employer)})
 
 
@@ -124,8 +137,7 @@ def _login(portal: str):
 
     if user["status"] == "pending" and not user["is_email_verified"]:
         if not tokens.recently_issued(user["id"], "email_verification", config.CODE_RESEND_SECONDS):
-            mailer.send_verification_code(user["email"], tokens.issue_code(
-                user["id"], "email_verification", config.VERIFY_CODE_MINUTES))
+            _send_verification(user["id"], user["email"])
         audit.log("login_unverified", "auth", user["id"], {"portal": portal})
         return _err("email_not_verified", "Verify your email first. We sent a 6-digit code to your inbox.", 403)
     if user["status"] != "active":
@@ -160,8 +172,9 @@ def user_register():
     form, errors = _read_signup(_body())
     if errors:
         return _err("validation", "Please correct the highlighted fields.", 400, errors)
-    _register(form)
-    return _accepted("If this address can be registered, we sent a 6-digit verification code.")
+    challenge = _s(_body(), "client_challenge", 64).lower()        # sha256 of a secret the app keeps in memory
+    _register(form, challenge=challenge if re.fullmatch(r"[0-9a-f]{64}", challenge) else "")
+    return _accepted("If this address can be registered, we sent an email with a link and a 6-digit code.")
 
 
 @bp.post("/staff/request-access")
@@ -179,22 +192,46 @@ def staff_request_access():
     if errors:
         return _err("validation", "Please correct the highlighted fields.", 400, errors)
     _register(form, employer={"company_name": company, "company_registration_no": reg_no})
-    return _accepted("Check your email for a 6-digit code. After you verify it, an administrator reviews your company details.")
+    return _accepted("Check your email to verify your address. After that, an administrator reviews your company details.")
 
 
 # ---------------------------------------------------------------- email verification
 @bp.post("/auth/verify-email")
 @limiter.limit("20 per hour")
 def verify_email():
+    """Verify with the 6-digit code. If the app that started the sign-up sends its device_secret, it is logged in."""
     data = _body()
     email, _ = clean_email(_s(data, "email", 254))
     user = users.get_by_email(email) if email else None
     if not user or not tokens.verify_code(user["id"], "email_verification", _s(data, "code", 10)):
         return _err("invalid_code", BAD_CODE, 400)
     users.mark_verified(user["id"])
-    audit.log("email_verified", "auth", user["id"])
+    audit.log("email_verified", "auth", user["id"], {"via": "code"})
     portal = "staff" if user["role"] in PORTAL_ROLES["staff"] else "user"
-    return jsonify({"message": "Email verified. You can now log in.", "portal": portal})
+    result = {"message": "Email verified. You can now log in.", "portal": portal}
+    secret = _s(data, "device_secret", 128)
+    if portal == "user" and len(secret) >= 32 and tokens.consume_handoff(user["id"], _challenge_of(secret)):
+        result.update(_new_session(user, "user"))
+    return jsonify(result)
+
+
+@bp.post("/auth/complete-signup")
+@limiter.limit("40 per minute")
+def complete_signup():
+    """The app polls this after register. Pending until the email is verified (link or code), then it signs in."""
+    data = _body()
+    email, _ = clean_email(_s(data, "email", 254))
+    secret = _s(data, "device_secret", 128)
+    user = users.get_by_email(email) if email else None
+    challenge = _challenge_of(secret) if len(secret) >= 32 else ""
+    if not user or user["role"] != "user" or not challenge or not tokens.has_handoff(user["id"], challenge):
+        return _err("invalid_request", "This sign-up can no longer be completed. Log in with your password.", 400)
+    if not user["is_email_verified"] or user["status"] != "active":
+        return jsonify({"status": "pending"}), 202
+    if not tokens.consume_handoff(user["id"], challenge):
+        return _err("invalid_request", "This sign-up can no longer be completed. Log in with your password.", 400)
+    audit.log("signup_completed", "auth", user["id"])
+    return jsonify(_new_session(user, "user"))
 
 
 @bp.post("/auth/resend-code")
@@ -204,9 +241,8 @@ def resend_code():
     user = users.get_by_email(email) if email else None
     if (user and user["status"] == "pending" and not user["is_email_verified"]
             and not tokens.recently_issued(user["id"], "email_verification", config.CODE_RESEND_SECONDS)):
-        mailer.send_verification_code(user["email"], tokens.issue_code(
-            user["id"], "email_verification", config.VERIFY_CODE_MINUTES))
-    return _accepted("If that account is waiting for verification, we sent a new code.")
+        _send_verification(user["id"], user["email"])
+    return _accepted("If that account is waiting for verification, we sent a new email.")
 
 
 # ---------------------------------------------------------------- password recovery

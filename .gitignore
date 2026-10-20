@@ -1,6 +1,7 @@
 backend/.env
 backend/PhiUSIIL_Phishing_URL_Dataset.csv
 backend/model.joblib
+backend/*.joblib
 backend/data/
 backend/__pycache__/
 backend/controllers/__pycache__/
@@ -12,3 +13,5 @@ backend/PhiUSIIL_Phishing_URL_Dataset.csv
 progress.txt
 __pycache__/
 *.pyc
+
+/backend/backup_20261019/model.joblib

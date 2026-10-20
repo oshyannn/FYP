@@ -1,0 +1,16 @@
+# Domain endings that only verified institutions can register. A site under these is treated as Safe
+# unless a blacklist / feed lists it. (Compromised sites and student sub-pages still exist: it is a trade-off.)
+edu.my
+gov.my
+mil.my
+edu
+gov
+mil
+ac.uk
+gov.uk
+edu.au
+gov.au
+edu.sg
+gov.sg
+ac.jp
+go.jp

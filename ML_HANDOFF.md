@@ -42,6 +42,10 @@ extension -> app.py -> detector.py -> predict.py (loads model.joblib, uses featu
 | `export_history.py` | Own Chrome history -> `data/benign_extra.csv` (query strings removed; keep private) |
 | `try_urls.py` | Score a few URLs with the model only |
 | `safebrowsing.py` | Google Safe Browsing provider (optional, needs an API key) |
+| `lookalike.py` | Look-alike / typosquatting check against protected domains (Tranco top 5,000 + `lists/protected_domains.txt`): typo, homoglyph, extra words, other domain ending |
+| `eval_lookalike.py` | Measures look-alike false alarms and detections on your data |
+| `check_sources.py` | Explains a verdict: what each source says, Tranco rank, why trusted |
+| `eval_fresh.py` | Model recall on phishing from domains never seen in training (run after `feeds.py`, before retraining) |
 | `detector.py` | Combines blacklist, whitelist, trusted prefixes, PhishTank, Safe Browsing, model, shared-host rule |
 
 ## 4. Features (29, feature version 3)
@@ -97,12 +101,14 @@ How the AUC evolved (all [ran]): first model, synthetic benign paths 0.978 (misl
 
 1. Blacklist (manual list, OpenPhish/URLhaus feed) -> Malicious 100.
 2. Whitelist (manual + Tranco top 10,000, hosts not in `shared_hosts.txt`) -> Safe 5.
+2b. `lists/not_trusted.txt` removes high-ranking but untrusted domains (ad networks, redirectors) from the Tranco part of the whitelist. Tranco ranks popularity, not trustworthiness.
 3. Trusted prefixes -> Safe 5. Built in: `drive.google.com/drive/` (the signed-in user's own Drive UI); more can be added in `lists/trusted_prefixes.txt`.
 4. PhishTank + model: highest score wins, with these rules [tested with mocks]:
    - Model probability is mapped to a score: below 0.7 -> 0..29; 0.7 to 1.0 -> 30..69 (Suspicious). The model alone never reaches Malicious. 0.7 was chosen from the threshold table (about 2% false positives, 60% recall) [judgement].
    - **Agreement rule:** a PhishTank record with score >= 60 (e.g. submitted but not yet voted on) plus a model score in the Suspicious range -> Malicious (70).
    - **No "Safe" without evidence of safety.** If the only evidence is a low model score (and PhishTank has no record), the result is `Unknown` (`has_data` false) with the reason "no strong phishing signal; not a guarantee". Reason: a phishing page on a normal-looking domain (`chartersbank.com`) scores low and must not be shown as safe.
    - `predict()` returning `None` means no opinion, never 0.
+   - **Look-alike check** (`lookalike.py`): a domain that is not itself protected but is one edit away from, visually identical to, or built around a protected domain scores 50 (Suspicious), never Malicious on its own; look-alike plus a model score in the Suspicious range -> Malicious (70). It only catches imitations of domains in the protected list, so `lists/protected_domains.txt` must name the real domains that matter (e.g. `charterbank.com` makes `chartersbank.com` detectable). Unit-tested on 21 cases; false-alarm and detection rates on real data not yet measured (run `eval_lookalike.py`) [tested].
    - **Google Safe Browsing** (`safebrowsing.py`, Lookup API v4; inactive unless `GOOGLE_SAFE_BROWSING_API_KEY` is set): a listed URL scores 100 (phishing, malware) or 85 (unwanted software) and is treated like a PhishTank hit. No match, or a failed lookup, is never evidence of safety. The Lookup API sends the full URL to Google: disclose in the report. Mock-tested only; not yet run against the real API [tested].
 5. Shared hosting platforms (`lists/shared_hosts.txt`): mild warning (score 30, Suspicious) with an explanation that this does not mean the page is malicious. The model sees only the host there (paths are random document IDs); PhishTank domain-level matches are ignored; an exact PhishTank match still gives Malicious.
 
@@ -117,7 +123,8 @@ Result fields consumed by the extension are unchanged. Mapping to the database: 
 5. **Long random IDs in paths** (document links, file IDs) looked like phishing to the first 29-feature model (observed: Google Docs URL scored 97%). Mitigated by host-only scoring on shared platforms and by ID-style benign path templates in `build_dataset.py`; needs a retrain and re-test.
 6. **Unvalidated end to end.** Latest feature set not yet re-tested in the extension on the known cases (`phishtank.net`, `p581488.pro`, `drive.google.com`, `chartersbank.com`).
 7. Licences of PhishTank, OpenPhish, URLhaus and PhiUSIIL not checked; cite them in the report.
-8. The thesis text should say 29 lexical features if it gives a count.
+8. **Look-alike limits.** An attacker whose domain imitates nothing in the protected list is invisible to this check; legitimate unrelated sites can also have similar names; popular names under 6 letters are skipped (add them to `protected_domains.txt`). Domain age (RDAP/WHOIS) would be a strong extra signal but needs a network lookup and is not implemented.
+9. The thesis text should say 29 lexical features if it gives a count.
 
 ## 9. How to retrain (from `backend/`, venv active)
 
@@ -139,3 +146,15 @@ Re-run `train.py` after any change to `features.py`; an old `model.joblib` is re
 4. Add a time-based evaluation.
 5. Write metrics into `ai_models.metrics` and activate the row once the model is accepted.
 6. If someone other than the student contributes the ML part, confirm credit with the supervisor (thesis section 1.5 lists one member).
+
+## Update (2026-10-18): domain-based signals
+- lookalike.py: short names only compared against lists/protected_domains.txt (hi.com -> hii.com flagged); popular-domain typo rule needs plain letters, length >= 7; combo ignores gov/edu/ac targets.
+- eval_lookalike.py after tuning: false alarms 1.41% (Tranco 5001+), detections 0.56% of feed domains (before: 3.61% / 0.69%). Weak signal, kept at Suspicious-level (50) only.
+- rdap.py: registration date / registrant (RDAP, look-alike hits and model-only suspicion). .my has no RDAP service; registrants usually redacted.
+- lists/trusted_suffixes.txt: edu.my, gov.my, edu, gov ... treated Safe (after blacklist).
+- eval_fresh.py 99.8% recall is NOT a valid headline number (not truly unseen, no false-positive side). Report train.py numbers (AUC ~0.87, recall ~67%).
+
+## Update (2026-10-18): extension and adult list
+- detector.py: adult-site list (data/adult_domains.txt via import_adult.py + lists/adult_manual.txt) -> status "Restricted", category "adult"; BLOCK_ADULT=0 turns it off; lists/whitelist.txt overrides.
+- extension: checks every navigation (answer within 700 ms = decide at once, otherwise "checking" page up to 15 s then fail-open), re-checks redirect targets (onCommitted), pauses risky downloads (.exe/.msi/... ) from unverified sources and asks (notification button "Download anyway"). Needs manifest permissions: tabs, webNavigation, notifications, storage, downloads.
+- Not covered: drive-by exploits, malware on compromised legit sites, iframes / in-page navigation.

@@ -25,6 +25,8 @@ def init_web(app):
 
     from controllers.api_auth import bp
     app.register_blueprint(bp)
+    from controllers.verify_pages import bp as verify_bp
+    app.register_blueprint(verify_bp)
 
     @app.before_request
     def _load_user():
@@ -34,7 +36,7 @@ def init_web(app):
 
     @app.after_request
     def _headers(resp):
-        resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        resp.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
         resp.headers["X-Content-Type-Options"] = "nosniff"
         resp.headers["Referrer-Policy"] = "no-referrer"
         resp.headers["Cache-Control"] = "no-store"

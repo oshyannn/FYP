@@ -8,6 +8,28 @@ DATA = BASE / "data"
 LISTS = BASE / "lists"
 MODEL_PATH = BASE / "model.joblib"
 METRICS_PATH = BASE / "model_metrics.json"
+CONTENT_MODEL_PATH = BASE / "model_content.joblib"
+CONTENT_METRICS_PATH = BASE / "model_content_metrics.json"
+PAGES = DATA / "pages"
+
+
+def _load_env() -> None:
+    """Read KEY=VALUE lines from backend/.env into os.environ (real environment variables win)."""
+    import os
+    f = BASE / ".env"
+    if not f.exists():
+        return
+    for raw in f.read_text(encoding="utf-8", errors="ignore").splitlines():
+        raw = raw.strip()
+        if not raw or raw.startswith("#") or "=" not in raw:
+            continue
+        k, v = raw.split("=", 1)
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k and v:
+            os.environ.setdefault(k, v)
+
+
+_load_env()
 
 
 def lines(path: Path) -> list[str]:

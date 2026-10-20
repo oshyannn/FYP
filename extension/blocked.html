@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Page blocked</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#fff5f5;color:#222;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+  main{max-width:560px;padding:32px}
+  h1{color:#b00020;margin:0 0 8px}
+  .url{word-break:break-all;background:#fff;border:1px solid #e5b4b4;border-radius:6px;padding:8px;font-family:monospace}
+  ul{padding-left:20px}
+  button{font-size:15px;padding:10px 16px;border-radius:6px;border:0;cursor:pointer;margin-right:8px}
+  #leave{background:#b00020;color:#fff}
+  #proceed{background:transparent;color:#666;text-decoration:underline}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">⚠ Page blocked</h1>
+  <p id="lead">This page was blocked because it looks dangerous (risk score <span id="score"></span>/100).</p>
+  <div class="url" id="url"></div>
+  <p><b>Why:</b></p>
+  <ul id="reasons"></ul>
+  <p><button id="leave">Leave this page</button><button id="proceed">Proceed anyway (unsafe)</button></p>
+</main>
+<script src="blocked.js"></script>
+</body>
+</html>

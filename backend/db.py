@@ -9,8 +9,6 @@ from psycopg_pool import ConnectionPool
 _pool: ConnectionPool | None = None
 
 
-
-
 def init_pool(url: str) -> None:
     global _pool
     if _pool is None:

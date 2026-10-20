@@ -5,7 +5,10 @@
 
   "permissions": [
     "tabs",
-    "notifications"
+    "webNavigation",
+    "notifications",
+    "storage",
+    "downloads"
   ],
 
   "host_permissions": [
@@ -18,5 +21,15 @@
 
   "action": {
     "default_popup": "popup.html"
+  },
+
+"content_scripts": [
+  {
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["content.js"],
+    "run_at": "document_start",
+    "all_frames": true
   }
+]
 }
+

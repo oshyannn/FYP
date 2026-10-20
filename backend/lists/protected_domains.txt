@@ -1,0 +1,12 @@
+# Real domains you want protected from imitations (typos, look-alike characters, extra words).
+# The most popular 5,000 domains are protected automatically; list here the ones that matter to YOU:
+# your bank, your university, services you log in to, and legitimate small sites that are not in the top list.
+# One domain per line, e.g.  maybank2u.com.my
+# Any domain that merely resembles one of these (but is not it) gets a "look-alike" warning.
+charterbank.com
+maybank2u.com.my
+cimbclicks.com.my
+tarc.edu.my
+apple.com
+# short names: one-letter typos of these (hii.com) are flagged too
+hi.com

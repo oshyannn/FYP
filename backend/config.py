@@ -22,6 +22,7 @@ IS_PROD = APP_ENV == "production"
 
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000").rstrip("/")   # used in the links inside emails
 HTTPS = _bool("HTTPS", IS_PROD)                       # true when served over https (adds the HSTS header)
 
 GMAIL_USER = os.getenv("GMAIL_USER", "")
@@ -46,6 +47,8 @@ EXT_IDLE_DAYS = _int("EXT_IDLE_DAYS", 14)
 MAX_FAILED_LOGINS = _int("MAX_FAILED_LOGINS", 5)
 LOCK_MINUTES = _int("LOCK_MINUTES", 15)
 VERIFY_CODE_MINUTES = _int("VERIFY_CODE_MINUTES", 15)
+VERIFY_LINK_HOURS = _int("VERIFY_LINK_HOURS", 24)
+HANDOFF_MINUTES = _int("HANDOFF_MINUTES", 30)
 RESET_CODE_MINUTES = _int("RESET_CODE_MINUTES", 15)
 CODE_MAX_ATTEMPTS = _int("CODE_MAX_ATTEMPTS", 5)
 CODE_RESEND_SECONDS = _int("CODE_RESEND_SECONDS", 60)
@@ -64,6 +67,8 @@ def validate() -> list[str]:
     if not DATABASE_URL.startswith(("postgresql://", "postgres://")):
         problems.append("DATABASE_URL must be a Postgres connection string (Supabase > Connect > Session pooler).")
     if IS_PROD:
+        if not BASE_URL.startswith("https://"):
+            problems.append("BASE_URL must be https:// in production.")
         if not HTTPS:
             problems.append("HTTPS must be true in production (serve the API over https).")
         if not (GMAIL_USER and GMAIL_APP_PASSWORD):

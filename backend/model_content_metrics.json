@@ -1,0 +1,142 @@
+{
+  "version": "content-20261019-2254",
+  "eval_mode": "random-domain-split",
+  "heldout": {
+    "accuracy": 0.8823529411764706,
+    "precision": 0.9015777610818934,
+    "recall": 0.8304498269896193,
+    "auc": 0.9508101154258862
+  },
+  "thresholds": [
+    {
+      "threshold": 0.3,
+      "recall": 0.9314878892733564,
+      "fpr": 0.2198743575099943,
+      "fpr_by_source": {
+        "benign_history": 0.6666666666666666,
+        "benign_tail": 0.3,
+        "benign_tail_login": 0.5348837209302325,
+        "benign_top": 0.19540229885057472,
+        "benign_top_login": 0.3548387096774194,
+        "phreshphish_benign": 0.18461538461538463
+      }
+    },
+    {
+      "threshold": 0.5,
+      "recall": 0.8304498269896193,
+      "fpr": 0.07481439177612793,
+      "fpr_by_source": {
+        "benign_history": 0.3333333333333333,
+        "benign_tail": 0.10606060606060606,
+        "benign_tail_login": 0.20930232558139536,
+        "benign_top": 0.05747126436781609,
+        "benign_top_login": 0.12903225806451613,
+        "phreshphish_benign": 0.06153846153846154
+      }
+    },
+    {
+      "threshold": 0.7,
+      "recall": 0.701038062283737,
+      "fpr": 0.019988577955454025,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.02727272727272727,
+        "benign_tail_login": 0.11627906976744186,
+        "benign_top": 0.022988505747126436,
+        "benign_top_login": 0.06451612903225806,
+        "phreshphish_benign": 0.01282051282051282
+      }
+    },
+    {
+      "threshold": 0.8,
+      "recall": 0.6096885813148789,
+      "fpr": 0.011422044545973729,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.01818181818181818,
+        "benign_tail_login": 0.046511627906976744,
+        "benign_top": 0.011494252873563218,
+        "benign_top_login": 0.03225806451612903,
+        "phreshphish_benign": 0.007692307692307693
+      }
+    },
+    {
+      "threshold": 0.9,
+      "recall": 0.5065743944636678,
+      "fpr": 0.003997715591090805,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.00909090909090909,
+        "benign_tail_login": 0.023255813953488372,
+        "benign_top": 0.0,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.002564102564102564
+      }
+    },
+    {
+      "threshold": 0.95,
+      "recall": 0.41522491349480967,
+      "fpr": 0.002284408909194746,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.0,
+        "benign_tail_login": 0.023255813953488372,
+        "benign_top": 0.0,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.002564102564102564
+      }
+    }
+  ],
+  "top_features": [
+    [
+      "n_scripts",
+      0.09153762492806747
+    ],
+    [
+      "title_matches_domain",
+      0.07625683348892459
+    ],
+    [
+      "log_html_len",
+      0.06914927044259711
+    ],
+    [
+      "ext_link_ratio",
+      0.06866835700098493
+    ],
+    [
+      "n_words",
+      0.06733494599552192
+    ],
+    [
+      "title_len",
+      0.06467644867042012
+    ],
+    [
+      "n_links",
+      0.06124063062344987
+    ],
+    [
+      "log_inline_script_len",
+      0.05215975834491302
+    ],
+    [
+      "n_tags",
+      0.04992297735841785
+    ],
+    [
+      "log_text_len",
+      0.048196131942282304
+    ],
+    [
+      "text_per_tag",
+      0.030298955492749174
+    ],
+    [
+      "ext_script_ratio",
+      0.02618956514221563
+    ]
+  ],
+  "n_pages": 15880,
+  "dropped": []
+}

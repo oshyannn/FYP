@@ -1,0 +1,156 @@
+{
+  "version": "content-20261019-2122",
+  "eval_mode": "random-domain-split",
+  "heldout": {
+    "accuracy": 0.8623279098873592,
+    "precision": 0.8686720469552458,
+    "recall": 0.8193771626297578,
+    "auc": 0.9299826693199535
+  },
+  "thresholds": [
+    {
+      "threshold": 0.3,
+      "recall": 0.9072664359861592,
+      "fpr": 0.23814962878355225,
+      "fpr_by_source": {
+        "benign_history": 0.6666666666666666,
+        "benign_tail": 0.3151515151515151,
+        "benign_tail_login": 0.46511627906976744,
+        "benign_top": 0.1781609195402299,
+        "benign_top_login": 0.45161290322580644,
+        "phreshphish_benign": 0.21025641025641026
+      }
+    },
+    {
+      "threshold": 0.5,
+      "recall": 0.8193771626297578,
+      "fpr": 0.10222729868646488,
+      "fpr_by_source": {
+        "benign_history": 0.3333333333333333,
+        "benign_tail": 0.13333333333333333,
+        "benign_tail_login": 0.23255813953488372,
+        "benign_top": 0.06321839080459771,
+        "benign_top_login": 0.1935483870967742,
+        "phreshphish_benign": 0.09145299145299145
+      }
+    },
+    {
+      "threshold": 0.7,
+      "recall": 0.6961937716262976,
+      "fpr": 0.03597944031981725,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.05454545454545454,
+        "benign_tail_login": 0.13953488372093023,
+        "benign_top": 0.022988505747126436,
+        "benign_top_login": 0.03225806451612903,
+        "phreshphish_benign": 0.02905982905982906
+      }
+    },
+    {
+      "threshold": 0.8,
+      "recall": 0.5799307958477509,
+      "fpr": 0.008566533409480296,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.012121212121212121,
+        "benign_tail_login": 0.046511627906976744,
+        "benign_top": 0.011494252873563218,
+        "benign_top_login": 0.03225806451612903,
+        "phreshphish_benign": 0.005128205128205128
+      }
+    },
+    {
+      "threshold": 0.9,
+      "recall": 0.4698961937716263,
+      "fpr": 0.004568817818389492,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.0,
+        "benign_tail_login": 0.023255813953488372,
+        "benign_top": 0.011494252873563218,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.004273504273504274
+      }
+    },
+    {
+      "threshold": 0.95,
+      "recall": 0.41314878892733564,
+      "fpr": 0.0034266133637921186,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.0,
+        "benign_tail_login": 0.0,
+        "benign_top": 0.005747126436781609,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.004273504273504274
+      }
+    }
+  ],
+  "top_features": [
+    [
+      "ext_link_ratio",
+      0.1683614386429009
+    ],
+    [
+      "title_matches_domain",
+      0.12449856221028793
+    ],
+    [
+      "ext_script_ratio",
+      0.0661894648882939
+    ],
+    [
+      "ext_resource_ratio",
+      0.06327344840483598
+    ],
+    [
+      "null_link_ratio",
+      0.05410708766484376
+    ],
+    [
+      "hidden_iframe",
+      0.05267038446776516
+    ],
+    [
+      "n_iframes",
+      0.047780333874069464
+    ],
+    [
+      "obfuscation_density",
+      0.04301699928058901
+    ],
+    [
+      "n_inputs",
+      0.04183169207381312
+    ],
+    [
+      "favicon_missing",
+      0.033486096888816735
+    ],
+    [
+      "thin_page",
+      0.03245678085064385
+    ],
+    [
+      "n_sensitive_words",
+      0.02955578881780741
+    ]
+  ],
+  "n_pages": 15880,
+  "dropped": [
+    "log_html_len",
+    "log_inline_script_len",
+    "log_text_len",
+    "n_images",
+    "n_links",
+    "n_redirects",
+    "n_scripts",
+    "n_tags",
+    "n_words",
+    "redirect_cross_domain",
+    "text_per_tag",
+    "title_len",
+    "tls_invalid"
+  ]
+}
