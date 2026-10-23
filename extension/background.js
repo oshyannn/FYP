@@ -5,7 +5,8 @@ console.log("Background running...");
 const MISSING = ["tabs", "webNavigation", "notifications", "storage", "downloads"].filter((p) => !chrome[p]);
 if (MISSING.length) console.error("manifest.json is missing permissions: " + MISSING.join(", ") + " (add them to \"permissions\", then reload the extension)");
 
-const API = "http://127.0.0.1:5000/analyze";
+const API_BASE = "http://127.0.0.1:5000";   // keep in sync with extension-ui/src/config.ts
+const API = API_BASE + "/analyze";
 const ICON = chrome.runtime.getURL("icons/icon128.png");
 const QUICK_MS = 700;                 // answered within this -> decide at once (whitelist/blacklist hits are instant)
 const DEEP_MS = 15000;                // slower check: the user waits on a "checking" page, then fail-open
@@ -52,32 +53,92 @@ function notify(id, opts) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// ---------------------------------------------------------------- account (paired with the desktop app), settings, history
+// The popup stores {auth, settings, history} in chrome.storage.local. The token comes from the pairing code, never from a password.
+const DEFAULT_SETTINGS = { realtime: true, autoscan: true, blocking: true, notifications: true };
+async function getSettings() {
+    try { return { ...DEFAULT_SETTINGS, ...((await chrome.storage.local.get("settings")).settings || {}) }; }
+    catch { return { ...DEFAULT_SETTINGS }; }
+}
+async function getToken() {
+    try { return ((await chrome.storage.local.get("auth")).auth || {}).token || null; }
+    catch { return null; }
+}
+async function refreshBadge() {
+    const paired = !!(await getToken());
+    chrome.action?.setBadgeText({ text: paired ? "" : "!" });
+    chrome.action?.setBadgeBackgroundColor({ color: "#dc2626" });
+    chrome.action?.setTitle({ title: paired ? "SafeBrowse" : "SafeBrowse: pair with the desktop app to start protection" });
+}
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes.auth) refreshBadge(); });
+chrome.runtime.onStartup?.addListener(refreshBadge);
+chrome.runtime.onInstalled.addListener(refreshBadge);
+refreshBadge();
+
+// Scan history shown in the popup (newest first, max 200). TODO(supabase): also send each record to the backend.
+const HISTORY_MAX = 200;
+let historyChain = Promise.resolve();            // writes are queued so two quick scans cannot overwrite each other
+function toStatus(d) {
+    if (!d || !d.has_data) return "unknown";
+    return d.status === "Safe" ? "safe" : d.status === "Suspicious" ? "suspicious" : "malicious";   // "Restricted" (adult) counts as blocked
+}
+function toVerdict(url, d) {
+    return {
+        url, status: toStatus(d), score: Number(d && d.risk_score) || 0,
+        reasons: Array.isArray(d && d.reasons) ? d.reasons.map(String).slice(0, 12) : [],
+        source: String((d && d.source) || ""), adult: !!d && d.status === "Restricted", ts: Date.now(),
+    };
+}
+function recordHistory(url, d, kind) {
+    historyChain = historyChain.then(async () => {
+        try {
+            const list = (await chrome.storage.local.get("history")).history || [];
+            const v = toVerdict(url, d);
+            if (kind !== "manual" && list.some((h) => h.url === url && v.ts - h.ts < 60000)) return;   // same page opened again within a minute
+            list.unshift({ ...v, id: v.ts + "-" + Math.random().toString(36).slice(2, 8), kind });
+            await chrome.storage.local.set({ history: list.slice(0, HISTORY_MAX) });
+        } catch (err) { console.error("could not save history:", err); }
+    });
+}
+
 function reasonText(data) {
     const r = Array.isArray(data.reasons) ? data.reasons.slice(0, 2).join(" ") : "";
     return r.length > 180 ? r.slice(0, 177) + "..." : r;
 }
 
-function analyze(url) {
+// opts.record: also store the verdict in the popup history (page loads and manual scans, not background look-ups of referrers)
+// opts.force: ignore the 5-minute cache (manual "Scan again")
+function analyze(url, opts = {}) {
+    const done = (p) => (opts.record ? p.then((d) => { recordHistory(url, d, opts.kind || "auto"); return d; }) : p);
     const hit = cache.get(url);
-    if (hit && Date.now() - hit.t < CACHE_MS) return Promise.resolve(hit.data);
-    if (pending.has(url)) return pending.get(url);
+    if (!opts.force && hit && Date.now() - hit.t < CACHE_MS) return done(Promise.resolve(hit.data));
+    if (!opts.force && pending.has(url)) return done(pending.get(url));
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), DEEP_MS);
-    const p = fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-        signal: ctl.signal,
-    })
-        .then((r) => r.json())
+    const p = getToken()
+        .then((token) => fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+            body: JSON.stringify({ url }),
+            signal: ctl.signal,
+        }))
+        .then(async (r) => {
+            if (r.status === 401) {                                  // token revoked/expired (or never paired): ask for a new pairing code
+                await chrome.storage.local.remove("auth");
+                const e = new Error("Not paired with the desktop app."); e.code = "unauthenticated"; e.status = 401; throw e;
+            }
+            const data = await r.json();
+            if (!r.ok) { const e = new Error((data && (data.message || (data.error && data.error.message))) || "Analysis failed."); e.status = r.status; throw e; }
+            return data;
+        })
         .then((data) => {
             if (cache.size > 500) cache.clear();
             cache.set(url, { t: Date.now(), data });
             return data;
         })
-        .finally(() => { clearTimeout(timer); pending.delete(url); });
+        .finally(() => { clearTimeout(timer); if (pending.get(url) === p) pending.delete(url); });
     pending.set(url, p);
-    return p;
+    return done(p);
 }
 
 async function isAllowed(url) {
@@ -134,7 +195,8 @@ function blockedPage(url, data) {
     return chrome.runtime.getURL("blocked.html") + "?" + q;
 }
 
-function cautionNotice(url, data) {
+async function cautionNotice(url, data) {
+    if (!(await getSettings()).notifications) return;
     if (notified.has(url)) return;
     notified.add(url);
     if (notified.size > 200) notified.clear();
@@ -145,19 +207,27 @@ function cautionNotice(url, data) {
 }
 
 // Act on a verdict for a page that is already loading: block it, warn about it, or leave it alone.
-function act(tabId, url, data) {
+async function act(tabId, url, data) {
     if (!data || !data.has_data) return;           // Unknown: not flagged, not confirmed safe
-    if (isBlockable(data)) chrome.tabs.update(tabId, { url: blockedPage(url, data) });
-    else if (data.status === "Suspicious") cautionNotice(url, data);
+    if (isBlockable(data)) {
+        if ((await getSettings()).blocking) chrome.tabs.update(tabId, { url: blockedPage(url, data) });
+        else notifyBlockingOff(url, data);           // "Website Blocking" is off: warn, do not block
+    } else if (data.status === "Suspicious") cautionNotice(url, data);
+}
+async function notifyBlockingOff(url, data) {
+    if (!(await getSettings()).notifications || notified.has("off:" + url)) return;
+    notified.add("off:" + url);
+    notify("", { type: "basic", iconUrl: ICON, title: "⚠ Dangerous website", message: "Blocking is OFF, so this page was not blocked.\n" + reasonText(data) });
 }
 
 // ---------------------------------------------------------------- 1. check every navigation before the page shows
 chrome.webNavigation?.onBeforeNavigate.addListener(async (d) => {
+    if (!(await getSettings()).realtime) return;     // "Real-Time URL Detection" is off
     await noteNavigation(d);                        // remember navigations a person started (localhost included)
     if (d.frameId !== 0 || !shouldScan(d.url)) return;
     if (await isAllowed(d.url)) return;
 
-    const p = analyze(d.url);
+    const p = analyze(d.url, { record: true });
     p.catch(() => {});                              // handled below; avoids an unhandled-rejection warning
     const host = new URL(d.url).hostname;
     if (await mapHas("good", host)) {
@@ -188,10 +258,11 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.type !== "verify" || !shouldScan(msg.url)) return;
     (async () => {
         try {
-            const data = await analyze(msg.url);
+            const data = await analyze(msg.url, { record: true });
             if (data && data.has_data && data.status === "Suspicious") cautionNotice(msg.url, data);
             rememberIfClean(msg.url, data);
-            send(isBlockable(data) ? { action: "block", blockedUrl: blockedPage(msg.url, data) } : { action: "allow" });
+            if (isBlockable(data) && !(await getSettings()).blocking) notifyBlockingOff(msg.url, data);
+            send(isBlockable(data) && (await getSettings()).blocking ? { action: "block", blockedUrl: blockedPage(msg.url, data) } : { action: "allow" });
         } catch (err) {
             console.error("API error (page allowed, check failed):", err);
             send({ action: "allow", failed: true });
@@ -200,15 +271,28 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     return true;                                    // keep the channel open for the async reply
 });
 
+// The popup asks for a verdict (current page or the "Scan URL" tab). Only our own popup page may ask.
+chrome.runtime.onMessage.addListener((msg, sender, send) => {
+    if (sender.id !== chrome.runtime.id || !msg || msg.type !== "scan") return;
+    if (!String(sender.url || "").startsWith(chrome.runtime.getURL("popup/"))) return;
+    if (typeof msg.url !== "string" || !/^https?:\/\//i.test(msg.url)) { send({ ok: false, error: { code: "bad_url", message: "Enter a valid http(s) address." } }); return; }
+    analyze(msg.url, { force: !!msg.force, record: !!msg.record, kind: msg.kind === "manual" ? "manual" : "auto" })
+        .then((data) => send({ ok: true, verdict: toVerdict(msg.url, data) }))
+        .catch((err) => send({ ok: false, error: { code: err.code || (err.name === "AbortError" ? "timeout" : "offline"), status: err.status || 0,
+            message: err.status ? err.message : err.name === "AbortError" ? "The check took too long. Try again." : "Can't reach the SafeBrowse server. Is the backend running?" } }));
+    return true;
+});
+
 // ---------------------------------------------------------------- 2. redirects: check where you ended up
 // A server redirect only fires onBeforeNavigate for the FIRST address; onCommitted reports the final one.
 chrome.webNavigation?.onCommitted.addListener(async (d) => {
     if (d.frameId !== 0 || !shouldScan(d.url)) return;
     const q = d.transitionQualifiers || [];
     if (!q.includes("server_redirect") && !q.includes("client_redirect")) return;
+    if (!(await getSettings()).realtime) return;
     if (await isAllowed(d.url)) return;
     try {
-        act(d.tabId, d.url, await analyze(d.url));
+        act(d.tabId, d.url, await analyze(d.url, { record: true }));
     } catch (err) {
         console.error("API error while checking redirect target:", err);
     }
@@ -332,6 +416,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {      // the dialog repor
 
 async function guard(item, held) {
   try {
+    if (!(await getSettings()).realtime) return;      // protection switched off in the popup
     const src = item.finalUrl || item.url;
     if (allowedDownloads.has(item.url)) { allowedDownloads.delete(item.url); return; }
     const web = /^https?:/i.test(src || "");
