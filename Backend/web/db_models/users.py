@@ -4,8 +4,8 @@ from __future__ import annotations
 import psycopg
 
 import config
-import db
-from security import make_username
+from web import db
+from web.security import make_username
 
 _COLS = ("id, email::text AS email, username, full_name, password_hash, role::text AS role, "
          "is_email_verified, status::text AS status, locked_until")

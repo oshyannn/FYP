@@ -1,6 +1,6 @@
 import os
 
-from phishtank import check
+from aidev.detection.phishtank import check
 
 api_key = os.getenv("PHISHTANK_API_KEY", "")
 

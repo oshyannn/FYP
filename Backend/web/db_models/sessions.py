@@ -1,7 +1,7 @@
 """Server-side sessions behind bearer tokens. Only the SHA-256 hash of the token is stored."""
 from __future__ import annotations
 
-import db
+from web import db
 
 
 def create(user_id, portal: str, token_hash: str, hours: int, idle_minutes: int,

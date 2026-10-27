@@ -5,7 +5,7 @@ console.log("Background running...");
 const MISSING = ["tabs", "webNavigation", "notifications", "storage", "downloads"].filter((p) => !chrome[p]);
 if (MISSING.length) console.error("manifest.json is missing permissions: " + MISSING.join(", ") + " (add them to \"permissions\", then reload the extension)");
 
-const API_BASE = "http://127.0.0.1:5000";   // keep in sync with extension-ui/src/config.ts
+const API_BASE = "http://127.0.0.1:5000";   // keep in sync with Extension/ui/src/config.ts
 const API = API_BASE + "/analyze";
 const ICON = chrome.runtime.getURL("icons/icon128.png");
 const QUICK_MS = 700;                 // answered within this -> decide at once (whitelist/blacklist hits are instant)

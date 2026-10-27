@@ -1,0 +1,10 @@
+# What the LIVE detector needs. Backend/requirements.txt includes this file, so both venvs get exactly these versions.
+# Versions = the ones in the working venv on 2026-10-27 (Python 3.13). Change them only together with a retrain.
+
+scikit-learn==1.9.1      # MUST equal the version the .joblib models were trained with (all of yours say 1.9.1)
+joblib==1.6.0
+numpy==2.5.4
+pandas==3.0.6            # not imported by the live code, kept because unpickling a model bundle may need it
+tldextract==5.4.0        # REQUIRED in training AND serving: features.py gives different values without it
+requests==2.34.2
+urllib3==2.8.0

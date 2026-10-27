@@ -18,14 +18,14 @@ import logging
 import os
 import time
 
-import phishtank
-import rdap
-import predict_content
-import lookalike
-import safebrowsing
-from common import BASE, DATA, LISTS, lines, is_shared
-from features import normalize, get_host, registered_domain
-from predict import predict as ml_predict
+from aidev.detection import phishtank
+from aidev.detection import rdap
+from aidev.detection import predict_content
+from aidev.detection import lookalike
+from aidev.detection import safebrowsing
+from aidev.core.common import DATA, LISTS, lines, is_shared
+from aidev.core.features import normalize, get_host, registered_domain
+from aidev.detection.predict import predict as ml_predict
 
 log = logging.getLogger(__name__)
 

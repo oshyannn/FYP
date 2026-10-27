@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from flask import Blueprint, Response
 
-from extensions import limiter
-from models import audit, tokens, users
+from web.extensions import limiter
+from web.db_models import audit, tokens, users
 
 bp = Blueprint("verify_pages", __name__)
 

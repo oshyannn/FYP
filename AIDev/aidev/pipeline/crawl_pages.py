@@ -1,11 +1,11 @@
 """
 Collect page content for the content model: phishing pages from the feeds, benign pages from Tranco + your history.
 
-    python feeds.py                        # first: fresh phishing URLs (OpenPhish/URLhaus) and the Tranco list
-    python import_phishtank.py             # optional: more verified phishing URLs (needs PHISHTANK_API_KEY)
-    python export_history.py               # optional: your own browsing as benign pages
-    python crawl_pages.py --phish 3000 --benign 3000
-    python train_content.py
+    python -m aidev.pipeline.feeds                        # first: fresh phishing URLs (OpenPhish/URLhaus) and the Tranco list
+    python -m aidev.pipeline.import_phishtank             # optional: more verified phishing URLs (needs PHISHTANK_API_KEY)
+    python -m aidev.pipeline.export_history               # optional: your own browsing as benign pages
+    python -m aidev.pipeline.crawl_pages --phish 3000 --benign 3000
+    python -m aidev.pipeline.train_content
 
 RUN IT SOON AFTER REFRESHING THE FEEDS: phishing pages are taken down within hours or days, and dead pages are skipped.
 Resumable: run it again with a bigger --phish/--benign to add more; pages already collected are not fetched again.
@@ -39,9 +39,9 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 
-import pagefetch
-from common import DATA, PAGES, is_shared, lines
-from features import registered_domain
+from aidev.detection import pagefetch
+from aidev.core.common import DATA, PAGES, is_shared, lines
+from aidev.core.features import registered_domain
 
 COLUMNS = ["url", "label", "source", "group", "final_url", "status", "tls_invalid", "redirects", "html_file", "fetched_at"]
 DEAD = re.compile(

@@ -1,7 +1,7 @@
 """
 Random Forest inference for detector.py.
 
-    from predict import predict
+    from aidev.detection.predict import predict
     r = predict(url)      # dict, or None when the model has no opinion
 
 None means "no opinion" (model missing, unreadable, bad URL, feature mismatch). It must
@@ -14,8 +14,8 @@ import time
 
 import joblib
 
-from common import MODEL_PATH
-from features import FEATURE_NAMES, FEATURE_VERSION, extract
+from aidev.core.common import MODEL_PATH
+from aidev.core.features import FEATURE_NAMES, FEATURE_VERSION, extract
 
 log = logging.getLogger(__name__)
 _BUNDLE = None
@@ -29,7 +29,7 @@ def _load():
     try:
         b = joblib.load(MODEL_PATH)
         if b["feature_names"] != FEATURE_NAMES or b.get("feature_version") != FEATURE_VERSION:
-            raise ValueError("features.py changed since training; retrain (python train.py)")
+            raise ValueError("features.py changed since training; retrain (python -m aidev.pipeline.train)")
         b["model"].n_jobs = 1  # single URL per call: thread overhead only adds latency
         _BUNDLE = b
     except Exception as exc:

@@ -1,5 +1,5 @@
 """
-Train the Random Forest.   python train.py
+Train the Random Forest.   python -m aidev.pipeline.train
 
 Writes model.joblib (model + feature names + version + metrics) and model_metrics.json.
 Splits by registered domain (GroupShuffleSplit) so the test set contains only domains
@@ -19,8 +19,8 @@ from sklearn.metrics import (accuracy_score, f1_score, precision_score,
 from sklearn.model_selection import GroupShuffleSplit
 from urllib.parse import urlsplit
 
-from common import DATA, METRICS_PATH, MODEL_PATH
-from features import FEATURE_NAMES, FEATURE_VERSION, normalise, vector
+from aidev.core.common import DATA, METRICS_PATH, MODEL_PATH
+from aidev.core.features import FEATURE_NAMES, FEATURE_VERSION, normalise, vector
 
 VERSION = "v1.0.0"
 SEED = 42

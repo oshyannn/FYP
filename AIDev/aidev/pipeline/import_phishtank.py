@@ -1,8 +1,8 @@
 """
 Build data/phishing_extra.csv from the PhishTank verified-phish feed.
 
-    python import_phishtank.py                  # downloads the feed (needs PHISHTANK_API_KEY, like scripts/checking.py)
-    python import_phishtank.py online-valid.json  # or use a feed file you already saved
+    python -m aidev.pipeline.import_phishtank                  # downloads the feed (needs PHISHTANK_API_KEY, like scripts/checking.py)
+    python -m aidev.pipeline.import_phishtank online-valid.json  # or use a feed file you already saved
 
 build_dataset.py reads phishing_extra.csv automatically. Run build_dataset.py and train.py after.
 """
@@ -17,7 +17,7 @@ import sys
 import pandas as pd
 import requests
 
-from common import DATA
+from aidev.core.common import DATA
 
 USER_AGENT = "phishtank/urldetect-fyp (+your.email@student.tarc.edu.my)"
 

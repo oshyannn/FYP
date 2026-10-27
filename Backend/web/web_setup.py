@@ -5,9 +5,9 @@ from flask import g, jsonify, request
 from werkzeug.exceptions import HTTPException
 
 import config
-import db
-from extensions import limiter
-from guards import load_current_user
+from web import db
+from web.extensions import limiter
+from web.guards import load_current_user
 
 
 def init_web(app):
@@ -23,9 +23,9 @@ def init_web(app):
     db.init_pool(config.DATABASE_URL)
     limiter.init_app(app)
 
-    from controllers.api_auth import bp
+    from web.controllers.api_auth import bp
     app.register_blueprint(bp)
-    from controllers.verify_pages import bp as verify_bp
+    from web.controllers.verify_pages import bp as verify_bp
     app.register_blueprint(verify_bp)
 
     @app.before_request

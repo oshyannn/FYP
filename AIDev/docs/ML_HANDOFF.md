@@ -3,6 +3,10 @@
 Project: Real-Time Malicious URL Detection System (BMCS3403). Last updated 2026-10-15.
 Read with `FYP_MASTER_RECORD.md` (section 10) and `file_structure.md`.
 
+> **Folder layout changed on 2026-10-27.** File names below are unchanged but the code now lives in `AIDev/aidev/{core,detection,pipeline,evaluation,tools}/`
+> and the account API in `Backend/`. Data is in `AIDev/data/`, models in `AIDev/models/`, lists in `AIDev/lists/`, experiments in `AIDev/experiments/`.
+> Run AIDev commands from `AIDev/` as `python -m aidev.<folder>.<module>` (e.g. `python -m aidev.pipeline.train`). Full map: `file_structure.md` in the repo root.
+
 Evidence rule: **[ran]** = numbers the student pasted from their own machine; **[tested]** = checked in the builder's sandbox on synthetic data or mocks only; **[judgement]** = reasoning, not verified.
 
 ## 1. Status at a glance
@@ -22,7 +26,7 @@ Estimates P(phishing) for a URL from its text alone: host and path. No network c
 
 Honest limit: a phishing page on a normal-looking domain (e.g. `chartersbank.com`, `teramill.com`) looks like any benign site to a lexical model. Only reputation sources (PhishTank, Google Safe Browsing) can catch those.
 
-## 3. Pipeline and files (all in `backend/`, run from there)
+## 3. Pipeline and files (code in `AIDev/aidev/`, run from `AIDev/`)
 
 ```
 feeds.py / import_phishtank.py / export_history.py / import_labeled.py   -> data/*
@@ -126,15 +130,15 @@ Result fields consumed by the extension are unchanged. Mapping to the database: 
 8. **Look-alike limits.** An attacker whose domain imitates nothing in the protected list is invisible to this check; legitimate unrelated sites can also have similar names; popular names under 6 letters are skipped (add them to `protected_domains.txt`). Domain age (RDAP/WHOIS) would be a strong extra signal but needs a network lookup and is not implemented.
 9. The thesis text should say 29 lexical features if it gives a count.
 
-## 9. How to retrain (from `backend/`, venv active)
+## 9. How to retrain (from `AIDev/`, venv active)
 
 ```
-python feeds.py
-python import_phishtank.py                 # optional, needs PHISHTANK_API_KEY
-python export_history.py                   # optional
-python import_labeled.py <csv> --url-col URL --label-col label --benign-value 1   # optional
-python build_dataset.py
-python train.py
+python -m aidev.pipeline.feeds
+python -m aidev.pipeline.import_phishtank                 # optional, needs PHISHTANK_API_KEY
+python -m aidev.pipeline.export_history                   # optional
+python -m aidev.pipeline.import_labeled <csv> --url-col URL --label-col label --benign-value 1   # optional
+python -m aidev.pipeline.build_dataset
+python -m aidev.pipeline.train
 ```
 Re-run `train.py` after any change to `features.py`; an old `model.joblib` is refused automatically.
 
@@ -161,5 +165,5 @@ Re-run `train.py` after any change to `features.py`; an old `model.joblib` is re
 - (later 2026-10-18) content features v2 (50 features): added n_sensitive_inputs (card/OTP/ID/seed-phrase fields), js_redirect, n_download_links,
   install_words (fake plugin/update), oauth_links, thin_page (redirector-style pages).
 - Training data: import_phreshphish.py streams PhreshPhish (HF, URL+HTML+label+date, CC BY 4.0, anti-phishing research only; cite arXiv:2507.10854).
-  Train with: python train_content.py --drop n_redirects,redirect_cross_domain,tls_invalid   (and --time-split to test on the newest pages).
+  Train with: python -m aidev.pipeline.train_content --drop n_redirects,redirect_cross_domain,tls_invalid   (and --time-split to test on the newest pages).
   crawl_pages.py remains for your own fresh/benign pages. Still no real accuracy number until the user runs it.

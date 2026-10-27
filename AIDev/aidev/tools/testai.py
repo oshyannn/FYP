@@ -1,11 +1,11 @@
 """
 See every layer of the detector for any URL, whitelisted or not, each with a short reason.
 
-    python testai.py https://some-small-site.com
-    python testai.py --file urls.txt        # one URL per line; add ",1" (phishing) or ",0" (benign) to get an accuracy summary
-    python testai.py                        # no arguments: type URLs, blank line to quit
-    python testai.py URL --json             # one JSON object per URL
-    python testai.py URL --verbose          # also show backend log lines (why a model gave no opinion)
+    python -m aidev.tools.testai https://some-small-site.com
+    python -m aidev.tools.testai --file urls.txt        # one URL per line; add ",1" (phishing) or ",0" (benign) to get an accuracy summary
+    python -m aidev.tools.testai                        # no arguments: type URLs, blank line to quit
+    python -m aidev.tools.testai URL --json             # one JSON object per URL
+    python -m aidev.tools.testai URL --verbose          # also show backend log lines (why a model gave no opinion)
 
 Per URL:
   [1] AI 1  URL-text model        called directly (ignores the whitelist)
@@ -28,11 +28,11 @@ from urllib.parse import urlsplit
 
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 
-import detector
-import pagefetch
-import predict as _predict_mod
-import predict_content as pc
-from common import is_shared
+from aidev.detection import detector
+from aidev.detection import pagefetch
+from aidev.detection import predict as _predict_mod
+from aidev.detection import predict_content as pc
+from aidev.core.common import is_shared
 
 ML1 = _predict_mod.predict          # original callables, kept so they can be swapped out and back
 ML2 = pc.predict

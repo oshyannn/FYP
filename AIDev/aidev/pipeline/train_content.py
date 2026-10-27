@@ -1,9 +1,9 @@
 """
 Train the page-content Random Forest from data/pages (made by crawl_pages.py and import_phreshphish.py).
 
-    python train_content.py --drop n_redirects,redirect_cross_domain,tls_invalid
-    python train_content.py --drop n_redirects,redirect_cross_domain,tls_invalid --no-size --out exp_nosize
-    python train_content.py --drop n_redirects,redirect_cross_domain,tls_invalid --test-on own --out exp_own
+    python -m aidev.pipeline.train_content --drop n_redirects,redirect_cross_domain,tls_invalid
+    python -m aidev.pipeline.train_content --drop n_redirects,redirect_cross_domain,tls_invalid --no-size --out exp_nosize
+    python -m aidev.pipeline.train_content --drop n_redirects,redirect_cross_domain,tls_invalid --test-on own --out exp_own
 
 Options:
   --drop a,b,c      leave out chosen features
@@ -34,8 +34,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import GroupShuffleSplit
 
-import content_features as cf
-from common import BASE, CONTENT_METRICS_PATH, CONTENT_MODEL_PATH, PAGES
+from aidev.detection import content_features as cf
+from aidev.core.common import CONTENT_METRICS_PATH, CONTENT_MODEL_PATH, EXPERIMENTS, PAGES
 
 SIZE_FEATURES = ["n_links", "n_tags", "n_images", "log_text_len", "log_html_len", "n_words", "text_per_tag",
                  "n_scripts", "log_inline_script_len", "title_len"]
@@ -158,5 +158,6 @@ if __name__ == "__main__":
         drop += [x for x in SIZE_FEATURES if x not in drop]
     kw = {}
     if a.out:
-        kw = {"out_model": BASE / f"{a.out}.joblib", "out_metrics": BASE / f"{a.out}.json"}
+        EXPERIMENTS.mkdir(exist_ok=True)
+        kw = {"out_model": EXPERIMENTS / f"{a.out}.joblib", "out_metrics": EXPERIMENTS / f"{a.out}.json"}
     main(drop=drop, time_split=a.time_split, test_on=a.test_on, no_own_train=a.no_own_train, **kw)

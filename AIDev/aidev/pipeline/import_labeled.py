@@ -1,7 +1,7 @@
 """
 Import a public labelled URL dataset (CSV) as extra training data.
 
-    python import_labeled.py dataset.csv --url-col URL --label-col label --benign-value 1
+    python -m aidev.pipeline.import_labeled dataset.csv --url-col URL --label-col label --benign-value 1
 
 Writes data/benign_labeled.csv and data/phishing_labeled.csv (build_dataset.py reads them).
 Check the dataset's documentation for which label value means "legitimate" and pass it as
@@ -14,7 +14,7 @@ import argparse
 
 import pandas as pd
 
-from common import DATA
+from aidev.core.common import DATA
 
 
 def main() -> None:

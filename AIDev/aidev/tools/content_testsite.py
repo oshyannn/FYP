@@ -1,7 +1,7 @@
 """
-Local test site for the CONTENT model. Run from backend/ (needs test_samples.py in the same folder):
+Local test site for the CONTENT model. Run from AIDev/ (uses aidev/tools/test_samples.py):
 
-    python content_testsite.py        ->  open http://127.0.0.1:8001/
+    python -m aidev.tools.content_testsite        ->  open http://127.0.0.1:8001/
 
 Shows 8 sample pages. "Open page" lets you see the page like a user would; "Score with model" runs the live content
 model on that page's HTML. Each page is scored as if it came from a made-up public address (shown on the card),
@@ -14,9 +14,9 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-import content_features as cf
-import predict_content as pc
-from test_samples import SAMPLES
+from aidev.detection import content_features as cf
+from aidev.detection import predict_content as pc
+from aidev.tools.test_samples import SAMPLES
 
 PORT = 8001
 STYLE = ("<style>body{font-family:system-ui;max-width:720px;margin:30px auto;padding:0 16px;line-height:1.5}"

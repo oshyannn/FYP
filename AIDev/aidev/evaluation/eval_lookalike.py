@@ -1,5 +1,5 @@
 """
-Measure the look-alike check on YOUR data:  python eval_lookalike.py
+Measure the look-alike check on YOUR data:  python -m aidev.evaluation.eval_lookalike
 
   false alarms : legitimate domains from Tranco ranks (TOP_N+1 .. +LIMIT), which are NOT protected,
                  that get flagged as imitating a protected one.  Lower is better.
@@ -15,9 +15,9 @@ from collections import Counter
 
 import pandas as pd
 
-import lookalike
-from common import DATA, lines
-from features import get_host
+from aidev.detection import lookalike
+from aidev.core.common import DATA, lines
+from aidev.core.features import get_host
 
 LIMIT = 25000
 

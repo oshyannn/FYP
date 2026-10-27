@@ -1,7 +1,7 @@
 """
-Local page to check the two models by hand. Run from backend/:
+Local page to check the two models by hand. Run from AIDev/:
 
-    python verify_server.py          ->  open http://127.0.0.1:8765
+    python -m aidev.tools.verify_server          ->  open http://127.0.0.1:8765
 
 Uses predict.py (URL model) and predict_content.py (content model) exactly as detector.py would, so what you see here
 is what the system sees. Listens on 127.0.0.1 only. Checking a URL makes the content model download that page
@@ -10,15 +10,16 @@ is what the system sees. Listens on 127.0.0.1 only. Checking a URL makes the con
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-import common
-import predict
-import predict_content
+from aidev.core import common
+from aidev.detection import predict
+from aidev.detection import predict_content
 
 PORT = 8765
-PAGE = common.BASE / "verify.html"
+PAGE = Path(__file__).resolve().with_name("verify.html")
 
 
 def _num(x):

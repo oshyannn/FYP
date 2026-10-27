@@ -1,4 +1,4 @@
-// Builds the popup into ../extension/popup  (no Vite needed: esbuild bundles the React code, Tailwind v4 compiles the CSS).
+// Builds the popup into ../chrome/popup  (no Vite needed: esbuild bundles the React code, Tailwind v4 compiles the CSS).
 //   npm install && npm run build
 import { build } from "esbuild";
 import { compile } from "tailwindcss";
@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const out = path.resolve(root, "../extension/popup");
+const out = path.resolve(root, "../chrome/popup");
 const require = createRequire(import.meta.url);
 
 fs.rmSync(out, { recursive: true, force: true });

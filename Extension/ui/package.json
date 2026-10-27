@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.1.0",
   "type": "module",
-  "description": "React popup for the SafeBrowse browser extension. `npm run build` writes ../extension/popup.",
+  "description": "React popup for the SafeBrowse browser extension. `npm run build` writes ../chrome/popup.",
   "scripts": {
     "build": "node build.mjs",
     "typecheck": "tsc --noEmit"

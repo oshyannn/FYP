@@ -4,8 +4,8 @@ Dec 2025; CC BY 4.0, for anti-phishing research. Cite: "PhreshPhish: A Real-Worl
 Website Dataset and Benchmark", arXiv:2507.10854).
 
     pip install datasets
-    python import_phreshphish.py --n 6000          # 6000 phishing + 6000 benign pages -> data/pages/
-    python train_content.py --drop n_redirects,redirect_cross_domain,tls_invalid
+    python -m aidev.pipeline.import_phreshphish --n 6000          # 6000 phishing + 6000 benign pages -> data/pages/
+    python -m aidev.pipeline.train_content --drop n_redirects,redirect_cross_domain,tls_invalid
 
 Why: crawling yourself gives few phishing pages because they die within hours. This dataset already holds their HTML.
 It is streamed, so you do not download all of it (only what is read). Needs internet and Hugging Face access.
@@ -24,9 +24,9 @@ import gzip
 import hashlib
 from datetime import datetime
 
-from common import PAGES, is_shared
-from crawl_pages import COLUMNS
-from features import registered_domain
+from aidev.core.common import PAGES, is_shared
+from aidev.pipeline.crawl_pages import COLUMNS
+from aidev.core.features import registered_domain
 
 
 def ingest(rows, n_per_class: int, per_domain_cap: int = 2, writer=None, save=None) -> dict:

@@ -1,7 +1,7 @@
 """
 Explain a verdict: show what EVERY source says about a URL, and why the final result is what it is.
 
-    python check_sources.py https://example.com/page https://other.site/
+    python -m aidev.evaluation.check_sources https://example.com/page https://other.site/
 
 Use it when a result looks wrong (e.g. a shady site shown as Safe): it says whether the URL was
 trusted because of the manual whitelist, a Tranco rank, or a trusted path, and what PhishTank,
@@ -12,12 +12,12 @@ from __future__ import annotations
 import os
 import sys
 
-import detector
-import phishtank
-import safebrowsing
-from common import DATA, LISTS, is_shared, lines
-from features import get_host, normalize, registered_domain
-from predict import predict
+from aidev.detection import detector
+from aidev.detection import phishtank
+from aidev.detection import safebrowsing
+from aidev.core.common import DATA, LISTS, is_shared, lines
+from aidev.core.features import get_host, normalize, registered_domain
+from aidev.detection.predict import predict
 
 
 def _rank(reg: str) -> int | None:

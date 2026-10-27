@@ -1,5 +1,5 @@
 """
-Download training/lookup data into data/. Run about daily:  python feeds.py
+Download training/lookup data into data/. Run about daily:  python -m aidev.pipeline.feeds
 
   data/tranco_top.txt   top domains (benign source), one per line
   data/feeds_urls.txt   OpenPhish + URLhaus URLs (phishing/malware source), one per line
@@ -14,7 +14,7 @@ import zipfile
 
 import requests
 
-from common import DATA
+from aidev.core.common import DATA
 
 UA = {"User-Agent": "urldetect-fyp/1.0"}
 TIMEOUT = 60

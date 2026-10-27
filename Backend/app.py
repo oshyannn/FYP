@@ -1,11 +1,17 @@
 from dotenv import load_dotenv
 
-load_dotenv()                      # reads backend/.env (also makes PHISHTANK_API_KEY available)
+load_dotenv()                      # reads Backend/.env
+
+import sys
+from pathlib import Path
+
+# The detection engine lives in ../AIDev (package "aidev"). This makes it importable without installing anything.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "AIDev"))
 
 from flask import Flask, request, jsonify
 
 import config
-from detector import analyze
+from aidev.detection.detector import analyze
 
 app = Flask(__name__)
 
@@ -24,10 +30,10 @@ def analyze_endpoint():
 
 
 if config.auth_ready():
-    from web_setup import init_web
+    from web.web_setup import init_web
     init_web(app)
     if config.REQUIRE_AUTH_FOR_ANALYZE:            # only a logged-in desktop user or a paired extension may scan
-        from guards import auth_required
+        from web.guards import auth_required
         app.view_functions["analyze_endpoint"] = auth_required("extension", "user")(analyze_endpoint)
 else:
     print("WARNING: SECRET_KEY / DATABASE_URL are not set, so the account API is OFF and only /analyze runs.\n"

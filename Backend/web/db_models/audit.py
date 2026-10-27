@@ -6,7 +6,7 @@ import logging
 from flask import has_request_context, request
 from psycopg.types.json import Jsonb
 
-import db
+from web import db
 
 _log = logging.getLogger(__name__)
 

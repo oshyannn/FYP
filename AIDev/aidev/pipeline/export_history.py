@@ -1,7 +1,7 @@
 """
 Export YOUR OWN Chrome browsing history as benign training URLs -> data/benign_extra.csv.
 
-    python export_history.py
+    python -m aidev.pipeline.export_history
 
 Runs entirely on your computer; nothing is uploaded. Privacy measures:
   * query strings and #fragments are removed (tokens/search terms live there);
@@ -22,8 +22,8 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 
-from common import DATA
-from features import registered_domain
+from aidev.core.common import DATA
+from aidev.core.features import registered_domain
 
 MAX_PER_DOMAIN = 10
 
