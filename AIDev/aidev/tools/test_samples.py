@@ -3,9 +3,9 @@ Offline smoke test for the content model: feeds hand-made sample pages straight 
 Nothing is downloaded and nothing is opened in a browser. The sample "phishing-like" pages are inert mock-ups
 (text only, no logos, forms point at reserved .test / .invalid domains that cannot resolve).
 
-Run from backend/:
-    python test_samples.py                                   # built-in samples
-    python test_samples.py --file page.html --url https://some.site/login   # your own saved HTML
+Run from AIDev/:
+    python -m aidev.tools.test_samples                                   # built-in samples
+    python -m aidev.tools.test_samples --file page.html --url https://some.site/login   # your own saved HTML
 
 This checks that the pipeline WORKS (extraction -> model -> reasons). It does not measure accuracy: for that use the
 Test set tab of verify_server.py with real URLs.
@@ -15,8 +15,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-import content_features as cf
-import predict_content as pc
+from aidev.detection import content_features as cf
+from aidev.detection import predict_content as pc
 
 FILLER = ("We publish guides, news and documentation for our community. Read the latest articles, browse the archive, "
           "subscribe to the newsletter and contact the team if you have questions. ") * 6

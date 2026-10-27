@@ -19,11 +19,11 @@ from datetime import datetime, timezone
 from flask import Blueprint, g, jsonify, request
 
 import config
-import mailer
-from extensions import limiter
-from guards import auth_required
-from models import audit, sessions, tokens, users
-from security import (DUMMY_HASH, clean_email, hash_password, hash_token, needs_rehash, new_token,
+from web import mailer
+from web.extensions import limiter
+from web.guards import auth_required
+from web.db_models import audit, sessions, tokens, users
+from web.security import (DUMMY_HASH, clean_email, hash_password, hash_token, needs_rehash, new_token,
                       normalize_pairing_code, password_errors, verify_password)
 
 bp = Blueprint("api", __name__, url_prefix="/api")

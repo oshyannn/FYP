@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import requests
 
-import common  # noqa: F401  (loads backend/.env into the environment)
+from aidev.core import common  # noqa: F401  (loads AIDev/.env into the environment)
 
 log = logging.getLogger(__name__)
 

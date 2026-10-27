@@ -6,7 +6,7 @@ HOW TO USE
 1. Change YOUR_EMAIL below to your own email (any Gmail works).
 2. Save this file, e.g. as test_phishtank.py
 3. In a NEW terminal window (must be opened after setx + full VS Code restart):
-       python test_phishtank.py
+       python -m aidev.tools.test
 """
 
 import base64

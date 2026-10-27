@@ -1,0 +1,4 @@
+# Everything AIDev needs: live detector + training pipeline. Install:  pip install -r requirements.txt
+-r requirements-runtime.txt
+
+datasets==5.1.0          # only aidev/pipeline/import_phreshphish.py (downloads the PhreshPhish dataset)

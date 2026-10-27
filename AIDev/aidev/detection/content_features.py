@@ -17,7 +17,7 @@ import re
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
-from features import BRANDS, split_host
+from aidev.core.features import BRANDS, split_host
 
 CONTENT_FEATURE_VERSION = 2
 

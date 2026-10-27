@@ -26,7 +26,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
-from common import is_shared
+from aidev.core.common import is_shared
 
 log = logging.getLogger(__name__)
 

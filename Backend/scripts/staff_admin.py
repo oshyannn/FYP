@@ -1,4 +1,4 @@
-"""Create the first admin and approve employers (until the admin dashboard exists). Run from backend/:
+"""Create the first admin and approve employers (until the admin dashboard exists). Run from Backend/:
 
     python -m scripts.staff_admin create-admin you@example.com "Your Name"
     python -m scripts.staff_admin approve-employer employer@example.com
@@ -13,8 +13,8 @@ import getpass
 import sys
 
 import config
-import db
-from security import clean_email, hash_password, make_username, password_errors
+from web import db
+from web.security import clean_email, hash_password, make_username, password_errors
 
 
 def _allow_privileged(conn) -> None:
@@ -72,6 +72,6 @@ if __name__ == "__main__":
     e.add_argument("email")
     args = p.parse_args()
     if not config.DATABASE_URL:
-        sys.exit("Set DATABASE_URL in backend/.env first.")
+        sys.exit("Set DATABASE_URL in Backend/.env first.")
     db.init_pool(config.DATABASE_URL)
     create_admin(args.email, args.name) if args.cmd == "create-admin" else approve_employer(args.email)

@@ -1,17 +1,25 @@
-backend/.env
-backend/PhiUSIIL_Phishing_URL_Dataset.csv
-backend/model.joblib
-backend/*.joblib
-backend/data/
-backend/__pycache__/
-backend/controllers/__pycache__/
-backend/data/__pycache__/
-backend/models/__pycache__/
-backend/scripts/__pycache__/
-backend/PhiUSIIL_Phishing_URL_Dataset.csv
+# ---- secrets
+.env
+**/.env
+
+# ---- per-folder virtual environments and installed packages
 .venv/
-progress.txt
+**/.venv/
+node_modules/
+**/node_modules/
 __pycache__/
 *.pyc
 
-/backend/backup_20261019/model.joblib
+# ---- AIDev: big or private files. Keep the folders (README.md/.gitkeep) but not the contents
+AIDev/data/*
+!AIDev/data/README.md
+!AIDev/data/.gitkeep
+AIDev/models/**/*.joblib
+AIDev/experiments/*.joblib
+# (AIDev/models/backup_20261019/model_content.joblib was committed before this rule existed, so git keeps tracking it)
+
+# ---- build output and local files
+DesktopApp/dist/
+DesktopApp/release/
+migrate_manifest.json
+progress.txt

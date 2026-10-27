@@ -1,10 +1,10 @@
 """
 Check URLs of your choice and see, side by side, what each part says.
 
-    python test_ai.py https://some-small-site.com https://another.org
-    python test_ai.py --file urls.txt            # one URL per line (a trailing ",0" / ",1" label is ignored)
-    python test_ai.py                            # no arguments: type URLs one by one, blank line to quit
-    python test_ai.py URL --json                 # one JSON object per URL, including the raw detector result
+    python -m aidev.tools.test_ai https://some-small-site.com https://another.org
+    python -m aidev.tools.test_ai --file urls.txt            # one URL per line (a trailing ",0" / ",1" label is ignored)
+    python -m aidev.tools.test_ai                            # no arguments: type URLs one by one, blank line to quit
+    python -m aidev.tools.test_ai URL --json                 # one JSON object per URL, including the raw detector result
                                                  # (shows which fields the API really returns)
 
 For every URL it prints:
@@ -25,10 +25,10 @@ from urllib.parse import urlsplit
 
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 
-import detector
-import predict_content
-from common import is_shared
-from predict import predict as ml1
+from aidev.detection import detector
+from aidev.detection import predict_content
+from aidev.core.common import is_shared
+from aidev.detection.predict import predict as ml1
 
 
 def pct(p) -> str:

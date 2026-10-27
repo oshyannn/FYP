@@ -5,8 +5,8 @@ from __future__ import annotations
 import hmac
 
 import config
-import db
-from security import code_hash, is_code, make_code, make_pairing_code, new_token
+from web import db
+from web.security import code_hash, is_code, make_code, make_pairing_code, new_token
 
 
 def _otp_hash(user_id, purpose: str, code: str) -> str:

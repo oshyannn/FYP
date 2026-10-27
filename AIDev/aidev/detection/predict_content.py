@@ -1,7 +1,7 @@
 """
 Content model inference for detector.py.
 
-    from predict_content import predict
+    from aidev.detection.predict_content import predict
     r = predict(url)     # dict or None
 
 Downloads the page (pagefetch.py), extracts features (content_features.py) and asks the content Random Forest.
@@ -25,9 +25,9 @@ from urllib.parse import urljoin, urlsplit
 
 import joblib
 
-import content_features as cf
-import pagefetch
-from common import CONTENT_MODEL_PATH
+from aidev.detection import content_features as cf
+from aidev.detection import pagefetch
+from aidev.core.common import CONTENT_MODEL_PATH
 
 log = logging.getLogger(__name__)
 _BUNDLE = None
@@ -57,7 +57,7 @@ def _load():
     try:
         b = joblib.load(CONTENT_MODEL_PATH)
         if b.get("feature_version") != cf.CONTENT_FEATURE_VERSION or any(n not in cf.FEATURE_NAMES for n in b["feature_names"]):
-            raise ValueError("content_features.py changed since training; retrain (python train_content.py)")
+            raise ValueError("content_features.py changed since training; retrain (python -m aidev.pipeline.train_content)")
         b["model"].n_jobs = 1
         _BUNDLE = b
     except Exception as exc:

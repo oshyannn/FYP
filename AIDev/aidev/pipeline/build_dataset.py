@@ -1,5 +1,5 @@
 """
-Build data/dataset.csv (columns: url, label, group).   python build_dataset.py
+Build data/dataset.csv (columns: url, label, group).   python -m aidev.pipeline.build_dataset
 
 label 1 = phishing/malicious, 0 = benign.  group = registered domain (used by train.py
 to split by domain so near-duplicate URLs never land in both train and test).
@@ -16,8 +16,8 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 
-from common import DATA, lines
-from features import normalise, registered_domain
+from aidev.core.common import DATA, lines
+from aidev.core.features import normalise, registered_domain
 
 SEED = 42
 MAX_POS_PER_DOMAIN = 5
@@ -84,7 +84,7 @@ def main() -> None:
         pos += [str(u).strip().lower() for u in pd.read_csv(f)["url"].dropna()]
     pos = sorted(set(pos))
     if not pos:
-        raise SystemExit("No phishing URLs. Run: python feeds.py")
+        raise SystemExit("No phishing URLs. Run: python -m aidev.pipeline.feeds")
 
     per_domain: dict[str, int] = {}
     pos_rows = []
@@ -133,7 +133,7 @@ def main() -> None:
     #     so that lesser-known legitimate sites are represented too
     domains = [d for d in lines(DATA / "tranco_top.txt") if d not in phish_groups and d not in used_groups]
     if not domains:
-        raise SystemExit("No Tranco domains. Run: python feeds.py")
+        raise SystemExit("No Tranco domains. Run: python -m aidev.pipeline.feeds")
     top, rest = domains[:20000], domains[20000:]
     rng.shuffle(top)
     rng.shuffle(rest)

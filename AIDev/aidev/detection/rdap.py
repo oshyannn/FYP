@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from common import DATA
+from aidev.core.common import DATA
 
 log = logging.getLogger(__name__)
 BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json"

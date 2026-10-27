@@ -1,8 +1,8 @@
 """
 Honest check of the MODEL on phishing it has never seen.
 
-    python feeds.py              # refresh feeds (OpenPhish/URLhaus change daily)
-    python eval_fresh.py         # BEFORE retraining; --benign my_sites.txt adds a false-positive check
+    python -m aidev.pipeline.feeds              # refresh feeds (OpenPhish/URLhaus change daily)
+    python -m aidev.evaluation.eval_fresh         # BEFORE retraining; --benign my_sites.txt adds a false-positive check
 
 "Fresh" = phishing URLs from the feeds whose registered domain is not in data/dataset.csv at all, so the
 model cannot have memorised them. Only the model is evaluated (blacklist/PhishTank/Safe Browsing would
@@ -18,9 +18,9 @@ import random
 
 import pandas as pd
 
-from common import DATA, lines
-from features import registered_domain
-from predict import predict
+from aidev.core.common import DATA, lines
+from aidev.core.features import registered_domain
+from aidev.detection.predict import predict
 
 THRESHOLDS = (0.5, 0.7, 0.9)
 
@@ -63,7 +63,7 @@ def main() -> None:
             pass
     print(f"fresh phishing URLs (domain never in the training data): {len(fresh)}")
     if len(fresh) < 50:
-        print("  Too few to mean anything. Run `python feeds.py` again later and do not retrain in between.")
+        print("  Too few to mean anything. Run `python -m aidev.pipeline.feeds` again later and do not retrain in between.")
     random.Random(1).shuffle(fresh)
     print("model on fresh phishing (higher is better; this is recall):")
     _rates(_probs(fresh[: a.n]), "fresh phishing")

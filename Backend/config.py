@@ -1,4 +1,4 @@
-"""Settings come from environment variables (backend/.env). Nothing secret is hard-coded."""
+"""Settings come from environment variables (Backend/.env). Nothing secret is hard-coded."""
 from __future__ import annotations
 
 import os

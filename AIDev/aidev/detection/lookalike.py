@@ -21,9 +21,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from common import DATA, LISTS, lines
-import features
-from features import RISKY_TLDS
+from aidev.core.common import DATA, LISTS, lines
+from aidev.core import features
+from aidev.core.features import RISKY_TLDS
 
 LOOKALIKE_TOP_N = 5000        # popular domains used as the protected set
 COMBO_TOP_N = 1000            # combo/filler matching only against the very top (fewer false alarms)

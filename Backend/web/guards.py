@@ -5,8 +5,8 @@ from functools import wraps
 
 from flask import g, jsonify, request
 
-from models import sessions
-from security import hash_token
+from web.db_models import sessions
+from web.security import hash_token
 
 
 def _bearer() -> str | None:

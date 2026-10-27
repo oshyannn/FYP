@@ -1,9 +1,9 @@
 """
 Download a public adult-site domain list into data/adult_domains.txt (used by detector.py).
 
-    python import_adult.py                  # tries the built-in sources in order, merges what works
-    python import_adult.py --url URL        # a hosts-file or one-domain-per-line list of your choice
-    python import_adult.py --file FILE      # a list you already downloaded
+    python -m aidev.pipeline.import_adult                  # tries the built-in sources in order, merges what works
+    python -m aidev.pipeline.import_adult --url URL        # a hosts-file or one-domain-per-line list of your choice
+    python -m aidev.pipeline.import_adult --file FILE      # a list you already downloaded
 
 Accepts hosts format ("0.0.0.0 example.com") and plain domain lists. Needs internet.
 Add your own domains one per line to lists/adult_manual.txt (no download needed).
@@ -16,7 +16,7 @@ import sys
 
 import requests
 
-from common import DATA
+from aidev.core.common import DATA
 
 SOURCES = [
     "https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt",

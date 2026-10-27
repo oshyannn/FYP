@@ -1,20 +1,23 @@
-"""Shared paths and small helpers. Run everything from backend/."""
+"""Shared paths and small helpers. Run AIDev commands from the AIDev/ folder:  python -m aidev.<folder>.<module>"""
 from __future__ import annotations
 
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
-DATA = BASE / "data"
-LISTS = BASE / "lists"
-MODEL_PATH = BASE / "model.joblib"
-METRICS_PATH = BASE / "model_metrics.json"
-CONTENT_MODEL_PATH = BASE / "model_content.joblib"
-CONTENT_METRICS_PATH = BASE / "model_content_metrics.json"
+ROOT = Path(__file__).resolve().parents[2]       # = the AIDev/ folder; everything below lives next to the aidev/ package
+BASE = ROOT                                      # old name, kept so older code keeps working
+DATA = ROOT / "data"                             # downloaded feeds, datasets, crawled pages (NOT in git, see data/README.md)
+LISTS = ROOT / "lists"                           # hand-edited whitelist / blacklist ... (in git)
+MODELS = ROOT / "models"                         # trained models (*.joblib NOT in git) + their metrics json (in git)
+EXPERIMENTS = ROOT / "experiments"               # side models from `train_content --out NAME` (*.joblib NOT in git)
+MODEL_PATH = MODELS / "model.joblib"
+METRICS_PATH = MODELS / "model_metrics.json"
+CONTENT_MODEL_PATH = MODELS / "model_content.joblib"
+CONTENT_METRICS_PATH = MODELS / "model_content_metrics.json"
 PAGES = DATA / "pages"
 
 
 def _load_env() -> None:
-    """Read KEY=VALUE lines from backend/.env into os.environ (real environment variables win)."""
+    """Read KEY=VALUE lines from AIDev/.env into os.environ (real environment variables win)."""
     import os
     f = BASE / ".env"
     if not f.exists():
