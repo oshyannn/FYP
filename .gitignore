@@ -23,3 +23,10 @@ DesktopApp/dist/
 DesktopApp/release/
 migrate_manifest.json
 progress.txt
+
+# ---- not sure want to ignore or not, it seem like last time claude auto generate file by prompt for knowing version
+AIDev/requirements.lock.txt
+Backend/requirements.lock.txt
+DesktopApp/.vite/deps/_metadata.json
+DesktopApp/.vite/deps/package.json
+Extension/ui/package-lock.json
