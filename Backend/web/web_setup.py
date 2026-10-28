@@ -27,6 +27,10 @@ def init_web(app):
     app.register_blueprint(bp)
     from web.controllers.verify_pages import bp as verify_bp
     app.register_blueprint(verify_bp)
+    from web.controllers.scans import bp as scans_bp          # URL scanner + detection history
+    app.register_blueprint(scans_bp)
+    from web.controllers.feedback import bp as feedback_bp
+    app.register_blueprint(feedback_bp)
 
     @app.before_request
     def _load_user():

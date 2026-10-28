@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, problem } from "../api";
 import { Alert, SecondaryButton } from "../components/ui";
 import type { Session } from "../types";
+import ScanApp from "./user/ScanApp";
 
 interface Device {
   id: string;
@@ -15,7 +16,7 @@ interface Props {
   onLogout: () => void;
 }
 
-// Placeholder home screen: proves that login works. The real modules (dashboard, scanner, history, ...) go here next.
+// Signed-in home. Normal users reach the URL scanner and detection history from here; the extension is paired here too.
 export default function Home({ session, onLogout }: Props) {
   const { user, portal } = session;
   const staff = portal === "staff";
@@ -23,6 +24,7 @@ export default function Home({ session, onLogout }: Props) {
   const [pair, setPair] = useState<{ code: string; expiresAt: number } | null>(null);
   const [left, setLeft] = useState(0);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [view, setView] = useState<"home" | "scan">("home");
 
   // Any 401 means the session ended (expired, revoked, password changed): go back to the login screen.
   function expired(status: number) {
@@ -74,6 +76,10 @@ export default function Home({ session, onLogout }: Props) {
     onLogout();
   }
 
+  if (view === "scan") {
+    return <ScanApp onBack={() => setView("home")} onLogout={onLogout} />;
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-slate-50">
       <header className={`${staff ? "bg-[#14284a]" : "bg-[#1e3a5f]"} text-white`}>
@@ -97,6 +103,18 @@ export default function Home({ session, onLogout }: Props) {
             Authentication works. The {staff ? "staff" : "user"} screens will be built on top of this one.
           </p>
         </section>
+
+        {!staff && (
+          <section className="bg-white border border-slate-200 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-slate-900">URL Scanner</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              Check a website address before you visit it, and review your detection history.
+            </p>
+            <div className="max-w-xs">
+              <SecondaryButton onClick={() => setView("scan")}>Open URL Scanner</SecondaryButton>
+            </div>
+          </section>
+        )}
 
         {!staff && (
           <section className="bg-white border border-slate-200 rounded-2xl p-6">

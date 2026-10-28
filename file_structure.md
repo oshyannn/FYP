@@ -2,15 +2,15 @@
 
 Self-contained map of the workspace so another AI (or teammate) can work on it without opening GitHub.
 **Keep it current:** when a file or folder is added, moved or deleted, update the tree and tables in the same commit.
-Layout version: 2026-10-27 (flat `backend/` + `extension/` split into four parts).
+Layout version: 2026-10-29 (four parts; DesktopApp URL scanner area `pages/user/` + Backend scan API + Feedback module added).
 
 ## 1. What the project is
 
 **SafeBrowse / Real-Time Malicious URL Detection System** (course BMCS3403, repo `oshyannn/FYP`). Four parts:
 
-1. **DesktopApp**: Electron + React + Vite app. Users register/log in, staff request access, and a logged-in user generates a **pairing code** for the browser extension.
+1. **DesktopApp**: Electron + React + Vite app. Users register/log in, staff request access, and a logged-in user generates a **pairing code** for the browser extension and can **scan URLs** (scan result, detailed analysis, detection history).
 2. **Extension**: Chrome Manifest V3 extension. Checks every navigation with the backend, shows block/"checking" pages, pauses risky downloads. Popup is React (source in `Extension/ui`, build output committed in `Extension/chrome/popup`).
-3. **Backend**: Flask. `POST /analyze` (`{"url": ...}` -> verdict), plus the account API for the desktop app and extension pairing (`/api/auth/*`, `/api/staff/*`, `/api/extension/*`) on Postgres (Supabase).
+3. **Backend**: Flask. `POST /analyze` (`{"url": ...}` -> verdict), plus the account API for the desktop app and extension pairing (`/api/auth/*`, `/api/staff/*`, `/api/extension/*`), the scan API for the desktop URL scanner (`web/controllers/scans.py`) and the feedback API (`web/controllers/feedback.py`) on Postgres (Supabase).
 4. **AIDev**: the detection engine (Python package `aidev`), the data, the trained models and the training pipeline. Backend imports it.
 
 Flow: `Extension / DesktopApp  --HTTP-->  Backend/app.py  --import-->  AIDev aidev.detection.detector.analyze(url)`.
@@ -25,7 +25,18 @@ FYP/
 ├── .gitignore
 ├── DesktopApp/                  Electron + React + Vite desktop app (own package.json, own node_modules). Moved in unchanged
 │   ├── electron/main.cjs, preload.cjs      Electron main process (API_BASE from env SAFEBROWSE_API, default http://127.0.0.1:5000)
-│   ├── src/                                React: App.tsx, api.ts, types.ts, components/, pages/ (Login, Register, VerifyEmail, ResetPassword, Staff*, Home)
+│   ├── src/                                React: App.tsx, api.ts, types.ts
+│   │   ├── components/                     shared UI; StatusBadge.tsx = verdict badge (used by the scan pages)
+│   │   │   └── feedback/                   Badge.tsx, ReplyBox.tsx, ThreadView.tsx (shared by the user and staff feedback screens)
+│   │   ├── lib/analysis.ts                 helpers for scan / analysis results
+│   │   ├── lib/feedback.ts                 feedback types, labels, status tones, PATCH helper
+│   │   └── pages/                          Login, Register, VerifyEmail, ResetPassword, Staff*, Home
+│   │       ├── StaffFeedback.tsx           employer / admin: list, open, reply, set status, close feedback
+│   │       └── user/                       logged-in user area
+│   │           ├── feedback/Feedback.tsx   user: submit / attach scan / edit / follow-up / status / search
+│   │           ├── ScanApp.tsx             container of the scanner section
+│   │           └── scan/                   UrlScanner.tsx (enter URL), ScanResult.tsx (verdict),
+│   │                                       DetailedAnalysis.tsx (signals/details), DetectionHistory.tsx (past scans)
 │   ├── index.html, vite.config.ts (dev port 5173), tsconfig.json, package.json, package-lock.json
 │   └── README.md, .gitignore
 ├── AIDev/                       Python. Run commands from here: python -m aidev.<folder>.<module>
@@ -51,9 +62,12 @@ FYP/
 │   ├── config.py                every setting, from environment variables (Backend/.env)
 │   ├── web/                     web_setup.py, extensions.py (rate limiter), guards.py (Bearer auth), security.py (argon2, tokens),
 │   │   │                        mailer.py, db.py (Postgres pool)
-│   │   ├── controllers/         api_auth.py (JSON API), verify_pages.py (email verification page)
-│   │   └── db_models/           users.py, sessions.py, tokens.py, audit.py  (database tables; NOT machine-learning models)
+│   │   ├── controllers/         api_auth.py (JSON API), verify_pages.py (email verification page),
+│   │   │                        scans.py (URL scan + history API for the desktop app), common.py (shared controller helpers),
+│   │   │                        feedback.py (feedback API: user /api/feedback*, staff /api/staff/feedback*)
+│   │   └── db_models/           users.py, sessions.py, tokens.py, audit.py, scans.py, feedback.py  (database tables; NOT machine-learning models)
 │   ├── scripts/staff_admin.py   create first admin / approve employers  (python -m scripts.staff_admin ...)
+│   ├── scripts/enable_feedback.py   one-time: registers the feedback blueprint in web/web_setup.py (python -m scripts.enable_feedback)
 │   ├── requirements.txt         includes ../AIDev/requirements-runtime.txt
 │   ├── .env.example             APP_ENV, SECRET_KEY, DATABASE_URL, BASE_URL, GMAIL_*, ALLOWED_EMAIL_DOMAINS, REQUIRE_AUTH_FOR_ANALYZE, CORS_ORIGINS
 │   └── README.md
@@ -72,6 +86,8 @@ Not in git but present on the owner's machine: `AIDev/.env`, `Backend/.env`, `AI
 ```
 Extension/chrome/background.js ──POST /analyze (Bearer token)──▶ Backend/app.py ──▶ aidev.detection.detector.analyze(url)
 DesktopApp (Electron) ──/api/auth, /api/staff, /api/extension/pairing-code──▶ Backend/web/controllers/api_auth.py ──▶ web/db_models ──▶ Postgres
+DesktopApp pages/user/scan ──scan requests / history──▶ Backend/web/controllers/scans.py ──▶ web/db_models/scans.py ──▶ Postgres
+DesktopApp pages/user/feedback + pages/StaffFeedback ──/api/feedback, /api/staff/feedback──▶ Backend/web/controllers/feedback.py ──▶ web/db_models/feedback.py ──▶ Postgres (public.feedback)
 Extension popup ──/api/extension/pair (code from the desktop app)──▶ Backend  ──▶ token kept in chrome.storage.local
 
 aidev.detection.detector  reads  AIDev/lists/*.txt, AIDev/data/tranco_top.txt, feeds_urls.txt, adult_domains.txt
@@ -122,10 +138,13 @@ Never run `python AIDev/aidev/...py` directly; use `python -m aidev.<folder>.<mo
 | Account / login / pairing API | `Backend/web/controllers/api_auth.py`, `Backend/web/db_models/*`, `Backend/web/security.py` |
 | Settings | `Backend/config.py` + `Backend/.env.example` (account side), `AIDev/.env.example` (detector side) |
 | Extension behaviour | `Extension/chrome/background.js` and the matching page; popup UI in `Extension/ui/src` |
+| URL scanner screens (scan, result, detailed analysis, history) | `DesktopApp/src/pages/user/` (`ScanApp.tsx`, `scan/*`), `DesktopApp/src/lib/analysis.ts`, `DesktopApp/src/components/StatusBadge.tsx` |
+| Scan / history API and storage | `Backend/web/controllers/scans.py`, `Backend/web/db_models/scans.py` |
+| Feedback (submit, attach scan, edit, reply, status, close, search) | `Backend/web/controllers/feedback.py`, `Backend/web/db_models/feedback.py`; screens `DesktopApp/src/pages/user/feedback/Feedback.tsx`, `DesktopApp/src/pages/StaffFeedback.tsx`, shared `DesktopApp/src/components/feedback/`, `DesktopApp/src/lib/feedback.ts` |
 | Desktop screens | `DesktopApp/src/pages`, API calls in `DesktopApp/src/api.ts`, Electron in `DesktopApp/electron/main.cjs` |
 | ML numbers, data sources, known weaknesses | `AIDev/docs/ML_HANDOFF.md` |
 
-## 7. Status (2026-10-27)
+## 7. Status (2026-10-29)
 
 URL model: Random Forest, ROC-AUC about 0.87, recall about 67% at 0.5. Content model trained on page features; no trusted accuracy number yet (see `AIDev/docs/ML_HANDOFF.md`).
 Extension pairs with the desktop app; history/settings are in `chrome.storage.local` behind `Extension/ui/src/store.ts` (Supabase later).
