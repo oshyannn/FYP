@@ -11,10 +11,12 @@ type Screen = "tab" | "result" | "details";
 interface Props {
   onBack: () => void;
   onLogout: () => void;
+  /** "Report wrong detection": the home screen opens Feedback with this scan attached */
+  onReport: (scan: ScanRecord) => void;
 }
 
 // The scanner area of the desktop app: URL Scanner, its result, the detailed analysis and the detection history.
-export default function ScanApp({ onBack, onLogout }: Props) {
+export default function ScanApp({ onBack, onLogout, onReport }: Props) {
   const [tab, setTab] = useState<Tab>("scanner");
   const [screen, setScreen] = useState<Screen>("tab");
   const [scan, setScan] = useState<ScanRecord | null>(null);
@@ -27,7 +29,9 @@ export default function ScanApp({ onBack, onLogout }: Props) {
     setNotice("");
   };
 
-  const report = () => setNotice("Reporting a wrong detection will be available in a later update.");
+  const report = () => {
+    if (scan) onReport(scan);
+  };
 
   let content;
   if (screen === "result" && scan) {

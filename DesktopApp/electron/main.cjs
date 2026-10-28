@@ -14,7 +14,7 @@ let auth = null;     // { token, portal, persist }
 let pending = null;  // { email, secret }: a sign-up in progress; the secret lets only THIS app be signed in by the link
 
 const METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
-const PATH_OK = /^\/api\/[A-Za-z0-9/_-]{1,100}$/;
+const PATH_OK = /^\/api\/[A-Za-z0-9/_-]{1,100}(\?[A-Za-z0-9=&%._~+-]{0,1200})?$/;   // an optional ?query is allowed (lists, search, paging)
 const NO_TOKEN = new Set([
   "/api/auth/login", "/api/staff/login", "/api/auth/register", "/api/staff/request-access",
   "/api/auth/verify-email", "/api/auth/complete-signup", "/api/auth/resend-code",
