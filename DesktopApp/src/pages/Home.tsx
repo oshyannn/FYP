@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { api, problem } from "../api";
 import { Alert, SecondaryButton } from "../components/ui";
 import type { Session } from "../types";
+import type { ReactNode } from "react";
+import type { ScanRecord } from "../lib/analysis";
+import StaffFeedback from "./StaffFeedback";
+import Feedback from "./user/feedback/Feedback";
 import ScanApp from "./user/ScanApp";
 
 interface Device {
@@ -24,7 +28,8 @@ export default function Home({ session, onLogout }: Props) {
   const [pair, setPair] = useState<{ code: string; expiresAt: number } | null>(null);
   const [left, setLeft] = useState(0);
   const [devices, setDevices] = useState<Device[]>([]);
-  const [view, setView] = useState<"home" | "scan">("home");
+  const [view, setView] = useState<"home" | "scan" | "feedback" | "staff-feedback">("home");
+  const [reportScan, setReportScan] = useState<ScanRecord | null>(null); // a scan the user is reporting as wrongly detected
 
   // Any 401 means the session ended (expired, revoked, password changed): go back to the login screen.
   function expired(status: number) {
@@ -76,8 +81,46 @@ export default function Home({ session, onLogout }: Props) {
     onLogout();
   }
 
+  // A full-page screen opened from the home cards, with a "Back to home" button.
+  const subpage = (body: ReactNode) => (
+    <div className="h-full overflow-y-auto bg-slate-50">
+      <header className={`${staff ? "bg-[#14284a]" : "bg-[#1e3a5f]"} text-white`}>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <h1 className="text-lg font-bold">SafeBrowse{staff ? " Staff" : ""}</h1>
+          <button
+            onClick={() => {
+              setReportScan(null);
+              setView("home");
+            }}
+            className="text-sm border border-white/30 rounded-lg px-3 py-1.5 hover:bg-white/10"
+          >
+            Back to home
+          </button>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto px-6 py-8">{body}</main>
+    </div>
+  );
+
   if (view === "scan") {
-    return <ScanApp onBack={() => setView("home")} onLogout={onLogout} />;
+    return (
+      <ScanApp
+        onBack={() => setView("home")}
+        onLogout={onLogout}
+        onReport={(s) => {
+          setReportScan(s);
+          setView("feedback");
+        }}
+      />
+    );
+  }
+
+  if (view === "feedback" && !staff) {
+    return subpage(<Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />);
+  }
+
+  if (view === "staff-feedback" && staff) {
+    return subpage(<StaffFeedback onSessionEnd={onLogout} />);
   }
 
   return (
@@ -115,6 +158,25 @@ export default function Home({ session, onLogout }: Props) {
             </div>
           </section>
         )}
+
+        <section className="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-slate-900">{staff ? "User Feedback" : "Feedback"}</h2>
+          <p className="text-sm text-slate-500 mt-1 mb-4">
+            {staff
+              ? "Review feedback and wrong-detection reports from users, reply to them and close them."
+              : "Report a wrong detection or suggest an improvement, and follow the replies to your feedback."}
+          </p>
+          <div className="max-w-xs">
+            <SecondaryButton
+              onClick={() => {
+                setReportScan(null);
+                setView(staff ? "staff-feedback" : "feedback");
+              }}
+            >
+              {staff ? "Open User Feedback" : "Open Feedback"}
+            </SecondaryButton>
+          </div>
+        </section>
 
         {!staff && (
           <section className="bg-white border border-slate-200 rounded-2xl p-6">
