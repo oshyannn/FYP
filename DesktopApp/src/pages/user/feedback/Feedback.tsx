@@ -16,14 +16,14 @@ interface Props {
   onSessionEnd: () => void;
 }
 
-// list = the new-feedback form with the user's own feedback listed below it; thread = one conversation; edit = change a thread
-type View = "list" | "thread" | "edit";
+type View = "list" | "form" | "thread";
 const PER_PAGE = 10;
 const input = "w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/10";
 
 export default function Feedback({ initialScan, onSessionEnd }: Props) {
-  const [view, setView] = useState<View>("list");
+  const [view, setView] = useState<View>(initialScan ? "form" : "list");
   const [thread, setThread] = useState<FeedbackThread | null>(null);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
@@ -31,14 +31,14 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
   const [rows, setRows] = useState<FeedbackRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [listError, setListError] = useState("");
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [listError, setListError] = useState("");
   const [reload, setReload] = useState(0); // bump to fetch the list again (e.g. after a new submission)
 
-  // form (new feedback in the list view, or editing a thread)
+  // form
   const [category, setCategory] = useState<FeedbackCategory>(initialScan ? categoryForScan(initialScan.risk_level) : "false_positive");
   const [subject, setSubject] = useState(initialScan ? `Wrong detection: ${initialScan.domain}` : "");
   const [message, setMessage] = useState("");
@@ -85,7 +85,7 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
 
   // the user's recent scans, offered for attaching
   useEffect(() => {
-    if (view === "thread") return;
+    if (view !== "form") return;
     (async () => {
       const res = await api.get("/api/scans?per_page=50");
       if (ended(res.status)) return;
@@ -102,38 +102,35 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
       setThread(res.data.feedback as FeedbackThread);
       setReplyError("");
       setView("thread");
-    } else setListError(problem(res).message);
+    } else setError(problem(res).message);
   }
 
-  function resetForm() {
+  function startNew() {
+    setEditing(false);
     setCategory("false_positive");
     setSubject("");
     setMessage("");
     setHistoryId("");
     setFields({});
+    setError("");
+    setDone("");
+    setView("form");
   }
 
   function startEdit(t: FeedbackThread) {
+    setEditing(true);
     setCategory(t.category);
     setSubject(t.subject);
     setMessage(t.message);
     setHistoryId(t.attached_scan?.id ?? "");
     setFields({});
     setError("");
-    setDone("");
-    setView("edit");
-  }
-
-  function cancelEdit() {
-    resetForm();
-    setError("");
-    setView("thread");
+    setView("form");
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
-    const editing = view === "edit" && thread;
     const local: Record<string, string> = {};
     if (subject.trim().length < 3) local.subject = "Enter a subject (at least 3 characters).";
     if (message.trim().length < 10) local.message = "Describe your feedback (at least 10 characters).";
@@ -141,28 +138,18 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
     if (Object.keys(local).length) return;
     setBusy(true);
     setError("");
-    setDone("");
     const payload = { category, subject: subject.trim(), message: message.trim(), history_id: historyId || null };
-    const res = editing
-      ? await patchFeedback(`/api/feedback/${thread.id}`, payload)
-      : await api.post("/api/feedback", payload);
+    const res =
+      editing && thread
+        ? await patchFeedback(`/api/feedback/${thread.id}`, payload)
+        : await api.post("/api/feedback", payload);
     setBusy(false);
     if (ended(res.status)) return;
     if (res.status === 200 || res.status === 201) {
-      resetForm();
-      if (editing) {
-        setThread(res.data.feedback as FeedbackThread);
-        setDone("Your feedback was updated.");
-        setView("thread");
-      } else {
-        // stay on this page: clear the filters and fetch the list so the new record shows at the top
-        setSearch("");
-        setQ("");
-        setStatus("");
-        setPage(1);
-        setReload((n) => n + 1);
-        setDone("Thank you. Your feedback was submitted and is listed below.");
-      }
+      setThread(res.data.feedback as FeedbackThread);
+      setDone(editing ? "Your feedback was updated." : "Thank you. Your feedback was submitted.");
+      setEditing(false);
+      setView("thread");
       return;
     }
     const p = problem(res);
@@ -187,70 +174,57 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 
-  const formCard = (editing: boolean) => (
-    <form onSubmit={submit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-4" noValidate>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="fb-category" className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
-          <select id="fb-category" value={category} onChange={(e) => setCategory(e.target.value as FeedbackCategory)} className={input}>
-            {CATEGORY_OPTIONS.map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
-          {fields.category && <p className="mt-1 text-xs text-red-600">{fields.category}</p>}
-        </div>
-        <div>
-          <label htmlFor="fb-scan" className="block text-sm font-medium text-slate-700 mb-1.5">Attach a scan result (optional)</label>
-          <select id="fb-scan" value={historyId} onChange={(e) => setHistoryId(e.target.value)} className={input}>
-            <option value="">No scan attached</option>
-            {historyId && !scans.some((s) => s.id === historyId) && <option value={historyId}>Currently attached scan</option>}
-            {scans.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.domain} · {LEVEL_STYLE[s.risk_level].label} · {new Date(s.scanned_at).toLocaleDateString()}
-              </option>
-            ))}
-          </select>
-          {fields.history_id && <p className="mt-1 text-xs text-red-600">{fields.history_id}</p>}
-        </div>
-      </div>
-      <div>
-        <label htmlFor="fb-subject" className="block text-sm font-medium text-slate-700 mb-1.5">Subject</label>
-        <input id="fb-subject" value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} className={input} placeholder="Short summary" aria-invalid={fields.subject ? true : undefined} />
-        {fields.subject && <p className="mt-1 text-xs text-red-600">{fields.subject}</p>}
-      </div>
-      <div>
-        <label htmlFor="fb-message" className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
-        <textarea id="fb-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={4000} rows={4} className={`${input} resize-none`} placeholder="Describe your feedback in detail..." aria-invalid={fields.message ? true : undefined} />
-        {fields.message && <p className="mt-1 text-xs text-red-600">{fields.message}</p>}
-      </div>
-      <div className="flex gap-3 justify-end pt-1">
-        {editing ? (
-          <button type="button" onClick={cancelEdit} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50">
-            Cancel
-          </button>
-        ) : (
-          (subject || message || historyId) && (
-            <button type="button" onClick={resetForm} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50">
-              Clear
-            </button>
-          )
-        )}
-        <button type="submit" disabled={busy} className="bg-[#1e3a5f] text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a] disabled:opacity-60">
-          {busy ? "Please wait…" : editing ? "Save changes" : "Submit feedback"}
-        </button>
-      </div>
-    </form>
-  );
-
-  if (view === "edit" && thread) {
+  if (view === "form") {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
-        <button onClick={cancelEdit} className="text-slate-500 hover:text-slate-700 text-sm">
+        <button onClick={() => (editing && thread ? setView("thread") : setView("list"))} className="text-slate-500 hover:text-slate-700 text-sm">
           ← Back
         </button>
-        <h2 className="text-xl font-bold text-slate-900">Edit Feedback</h2>
+        <h2 className="text-xl font-bold text-slate-900">{editing ? "Edit Feedback" : "New Feedback"}</h2>
         {error && <Alert kind="error">{error}</Alert>}
-        {formCard(true)}
+        <form onSubmit={submit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-4" noValidate>
+          <div>
+            <label htmlFor="fb-category" className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
+            <select id="fb-category" value={category} onChange={(e) => setCategory(e.target.value as FeedbackCategory)} className={input}>
+              {CATEGORY_OPTIONS.map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+            {fields.category && <p className="mt-1 text-xs text-red-600">{fields.category}</p>}
+          </div>
+          <div>
+            <label htmlFor="fb-subject" className="block text-sm font-medium text-slate-700 mb-1.5">Subject</label>
+            <input id="fb-subject" value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} className={input} placeholder="Short summary" aria-invalid={fields.subject ? true : undefined} />
+            {fields.subject && <p className="mt-1 text-xs text-red-600">{fields.subject}</p>}
+          </div>
+          <div>
+            <label htmlFor="fb-message" className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
+            <textarea id="fb-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={4000} rows={5} className={`${input} resize-none`} placeholder="Describe your feedback in detail..." aria-invalid={fields.message ? true : undefined} />
+            {fields.message && <p className="mt-1 text-xs text-red-600">{fields.message}</p>}
+          </div>
+          <div>
+            <label htmlFor="fb-scan" className="block text-sm font-medium text-slate-700 mb-1.5">Attach a scan result (optional)</label>
+            <select id="fb-scan" value={historyId} onChange={(e) => setHistoryId(e.target.value)} className={input}>
+              <option value="">No scan attached</option>
+              {historyId && !scans.some((s) => s.id === historyId) && <option value={historyId}>Currently attached scan</option>}
+              {scans.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.domain} · {LEVEL_STYLE[s.risk_level].label} · {new Date(s.scanned_at).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
+            {fields.history_id && <p className="mt-1 text-xs text-red-600">{fields.history_id}</p>}
+            {scans.length === 0 && <p className="mt-1 text-xs text-slate-500">You have no scan results yet. You can still send feedback without one.</p>}
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => (editing && thread ? setView("thread") : setView("list"))} className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50">
+              Cancel
+            </button>
+            <button type="submit" disabled={busy} className="flex-1 bg-[#1e3a5f] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a] disabled:opacity-60">
+              {busy ? "Please wait…" : editing ? "Save changes" : "Submit"}
+            </button>
+          </div>
+        </form>
       </div>
     );
   }
@@ -279,32 +253,29 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Feedback</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Report a wrong detection or tell us how to improve SafeBrowse.</p>
-      </div>
-
-      {done && <Alert kind="success">{done}</Alert>}
-      {error && <Alert kind="error">{error}</Alert>}
-      {formCard(false)}
-
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h3 className="text-base font-semibold text-slate-900">
-          Your feedback <span className="text-slate-400 font-normal">({total})</span>
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} maxLength={100} aria-label="Search feedback" placeholder="Search feedback..." className="min-w-48 px-3.5 py-2 border border-slate-300 rounded-lg text-sm placeholder-slate-400 bg-white focus:outline-none focus:border-[#1e3a5f]" />
-          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status" className="px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700">
-            <option value="">All Status</option>
-            {STATUS_OPTIONS.map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
+    <div className="max-w-5xl space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Feedback</h2>
+          <p className="text-slate-500 text-sm mt-0.5">Report a wrong detection or tell us how to improve SafeBrowse.</p>
         </div>
+        <button onClick={startNew} className="bg-[#1e3a5f] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a]">
+          New Feedback
+        </button>
       </div>
 
+      {error && <Alert kind="error">{error}</Alert>}
       {listError && <Alert kind="error">{listError}</Alert>}
+
+      <div className="flex flex-wrap gap-3">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} maxLength={100} aria-label="Search feedback" placeholder="Search feedback..." className="flex-1 min-w-36 px-3.5 py-2 border border-slate-300 rounded-lg text-sm placeholder-slate-400 bg-white focus:outline-none focus:border-[#1e3a5f]" />
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status" className="px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700">
+          <option value="">All Status</option>
+          {STATUS_OPTIONS.map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <table className="w-full">
@@ -321,7 +292,7 @@ export default function Feedback({ initialScan, onSessionEnd }: Props) {
                 <td className="px-5 py-3.5 text-sm font-medium text-slate-800 max-w-xs truncate" title={r.subject}>{r.subject}</td>
                 <td className="px-5 py-3.5 text-sm text-slate-600">{categoryLabel(r.category)}</td>
                 <td className="px-5 py-3.5"><Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge></td>
-                <td className="px-5 py-3.5 text-sm text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="px-5 py-3.5 text-sm text-slate-500">{new Date(r.created_at).toLocaleDateString()}</td>
                 <td className="px-5 py-3.5 text-sm text-slate-600">{r.reply_count}</td>
                 <td className="px-5 py-3.5">
                   <button onClick={() => open(r.id)} className="text-[#1e3a5f] text-sm font-medium hover:underline">View</button>
