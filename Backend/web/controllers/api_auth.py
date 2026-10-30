@@ -20,6 +20,7 @@ from flask import Blueprint, g, jsonify, request
 
 import config
 from web import mailer
+from web.controllers.common import body, err, raw, s
 from web.extensions import limiter
 from web.guards import auth_required
 from web.db_models import audit, sessions, tokens, users
@@ -34,26 +35,7 @@ PORTAL_ROLES = {"user": ("user",), "staff": ("employer", "admin")}   # who may s
 
 
 # ---------------------------------------------------------------- helpers
-def _err(code: str, message: str, status: int, fields: dict | None = None):
-    body = {"error": {"code": code, "message": message}}
-    if fields:
-        body["error"]["fields"] = fields
-    return jsonify(body), status
-
-
-def _body() -> dict:
-    data = request.get_json(silent=True)
-    return data if isinstance(data, dict) else {}
-
-
-def _s(data: dict, key: str, maxlen: int = 256) -> str:
-    v = data.get(key)
-    return v.strip()[:maxlen] if isinstance(v, str) else ""
-
-
-def _raw(data: dict, key: str, maxlen: int = 128) -> str:        # passwords are never trimmed
-    v = data.get(key)
-    return v[:maxlen] if isinstance(v, str) else ""
+_err, _body, _s, _raw = err, body, s, raw
 
 
 def _user_json(u) -> dict:
@@ -299,6 +281,17 @@ def logout():
 @auth_required("user", "staff", "extension")
 def me():
     return jsonify({"user": _user_json(g.user), "portal": g.user["portal"]})
+
+
+@bp.get("/me/profile")
+@auth_required("user", "staff")
+def my_profile():
+    u = users.get_profile(g.user["id"])
+    return jsonify({"profile": {
+        "id": str(u["id"]), "email": u["email"], "full_name": u["full_name"], "role": u["role"],
+        "email_verified": bool(u["is_email_verified"]), "status": u["status"],
+        "created_at": u["created_at"].isoformat(),
+        "last_login_at": u["last_login_at"].isoformat() if u["last_login_at"] else None}})
 
 
 @bp.patch("/me")

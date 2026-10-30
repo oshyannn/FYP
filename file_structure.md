@@ -84,7 +84,9 @@ Not in git but present on the owner's machine: `AIDev/.env`, `Backend/.env`, `AI
 ## 3. How the pieces connect
 
 ```
-Extension/chrome/background.js ──POST /analyze (Bearer token)──▶ Backend/app.py ──▶ aidev.detection.detector.analyze(url)
+Extension/chrome/background.js ──POST /analyze (Bearer token; look-ups that are not saved)──▶ Backend/app.py ──▶ aidev.detection.detector.analyze(url)
+Extension/chrome/background.js ──POST /api/scans (Bearer token; every page check is saved to the account)──▶ Backend/web/controllers/scans.py ──▶ Postgres ──▶ DesktopApp Detection History
+Extension popup "See more in app" ──safebrowse://history──▶ DesktopApp/electron/main.cjs (protocol link) ──▶ pages/Home.tsx ──▶ pages/user/ScanApp.tsx (initialTab)
 DesktopApp (Electron) ──/api/auth, /api/staff, /api/extension/pairing-code──▶ Backend/web/controllers/api_auth.py ──▶ web/db_models ──▶ Postgres
 DesktopApp pages/user/scan ──scan requests / history──▶ Backend/web/controllers/scans.py ──▶ web/db_models/scans.py ──▶ Postgres
 DesktopApp pages/user/feedback + pages/StaffFeedback ──/api/feedback, /api/staff/feedback──▶ Backend/web/controllers/feedback.py ──▶ web/db_models/feedback.py ──▶ Postgres (public.feedback)
@@ -147,5 +149,5 @@ Never run `python AIDev/aidev/...py` directly; use `python -m aidev.<folder>.<mo
 ## 7. Status (2026-10-29)
 
 URL model: Random Forest, ROC-AUC about 0.87, recall about 67% at 0.5. Content model trained on page features; no trusted accuracy number yet (see `AIDev/docs/ML_HANDOFF.md`).
-Extension pairs with the desktop app; history/settings are in `chrome.storage.local` behind `Extension/ui/src/store.ts` (Supabase later).
+Extension pairs with the desktop app. Scan history is NOT kept in the browser: it is saved to the account and read in the desktop app (login required). Settings stay in `chrome.storage.local` behind `Extension/ui/src/store.ts` (Supabase later).
 Open items: end-to-end re-test after the latest retrain, a hand-labelled test set, a time-based evaluation. The URL model file is ~720 MB (loaded at every Backend start).

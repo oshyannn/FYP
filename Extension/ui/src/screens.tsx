@@ -8,7 +8,7 @@ import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
 } from "./ui";
-import type { HistoryRecord, Settings, Verdict } from "./types";
+import type { Settings, Verdict } from "./types";
 
 // ─── Pairing (replaces the old login page: the code comes from the desktop app) ──────────────
 export function PairScreen({ notice, onSubmit }: { notice?: string; onSubmit: (code: string) => Promise<string | null> }) {
@@ -311,11 +311,10 @@ export function ManualResultScreen({ v, onScanAnother, onViewDetails }: { v: Ver
   );
 }
 
-// ─── Activity / History ─────────────────────────────────────────────────────────
-export function ActivityScreen({ current, history, monitoring, onViewHistory }: {
-  current?: Verdict; history: HistoryRecord[]; monitoring: boolean; onViewHistory: () => void;
+// ─── Activity ─────────────────────────────────────────────────────────────────────
+export function ActivityScreen({ current, monitoring, onOpenApp }: {
+  current?: Verdict; monitoring: boolean; onOpenApp: () => void;
 }) {
-  const recent = history.slice(0, 3);
   return (
     <div className="p-4 fade-in">
       <div className="flex items-center justify-between mb-3">
@@ -345,61 +344,13 @@ export function ActivityScreen({ current, history, monitoring, onViewHistory }: 
           <div className="text-[11px] text-gray-400">No page checked yet.</div>
         )}
       </div>
-      <SectionLabel>Recently Detected</SectionLabel>
-      <div className="space-y-1.5 mb-3 -mt-1.5">
-        {recent.length === 0 && <div className="text-[11px] text-gray-400 py-2">Nothing recorded yet. Pages you visit are checked automatically.</div>}
-        {recent.map((r) => (
-          <div key={r.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
-            <div className="shrink-0"><StatusIcon s={r.status} size={13} /></div>
-            <span className="text-[11px] font-mono text-gray-700 flex-1 truncate">{hostOf(r.url)}</span>
-            <span className={`text-[9px] font-bold ${statusColor(r.status)}`}>{statusLabel(r.status)}</span>
-            <span className="text-[10px] font-mono text-gray-400 shrink-0">{clock(r.ts)}</span>
-          </div>
-        ))}
+      <div className="bg-white rounded-xl p-3 border border-gray-200 mb-3">
+        <div className="text-[11px] font-semibold text-gray-700 mb-1">Your scan history is private</div>
+        <div className="text-[11px] text-gray-500 leading-relaxed">
+          Every page SafeBrowse checks is saved to your account, not to this browser. Open the SafeBrowse app and sign in to see the full history.
+        </div>
       </div>
-      <OutlineBtn onClick={onViewHistory} className="w-full"><ExternalLinkIcon size={11} />View Full History</OutlineBtn>
-    </div>
-  );
-}
-
-export function HistoryScreen({ history, onViewDetails, onClear }: {
-  history: HistoryRecord[]; onViewDetails: (r: HistoryRecord) => void; onClear: () => void;
-}) {
-  const [confirm, setConfirm] = useState(false);
-  return (
-    <div className="p-4 fade-in relative">
-      <SectionLabel>Recent Activity</SectionLabel>
-      {history.length === 0 && <div className="text-[11px] text-gray-400 py-4 text-center">No history yet.</div>}
-      <div className="space-y-2 mb-3 -mt-1.5">
-        {history.slice(0, 50).map((r) => (
-          <div key={r.id} className={`rounded-xl p-3 border ${statusBg(r.status)}`}>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <StatusIcon s={r.status} size={13} />
-                <span className={`text-[11px] font-bold ${statusColor(r.status)}`}>{statusLabel(r.status)}</span>
-                <span className={`text-[10px] font-mono font-bold ${statusColor(r.status)}`}>{Math.round(r.score)}/100</span>
-              </div>
-              <div className="flex items-center gap-1 text-gray-400"><ClockIcon size={11} /><span className="text-[10px] font-mono">{clock(r.ts)}</span></div>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-mono text-gray-600 truncate" title={r.url}>{hostOf(r.url)}</span>
-              <button onClick={() => onViewDetails(r)} className="text-[10px] text-[#0f2a4a] font-semibold hover:underline underline-offset-2 flex items-center gap-0.5 shrink-0">
-                <ExternalLinkIcon size={10} />View
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      {history.length > 0 && <PrimaryBtn onClick={() => setConfirm(true)} className="w-full">Clear History</PrimaryBtn>}
-      {confirm && (
-        <ConfirmDialog
-          title="Clear all history?"
-          message="This removes the list of scanned websites stored in this browser."
-          confirmLabel="Clear"
-          onCancel={() => setConfirm(false)}
-          onConfirm={() => { setConfirm(false); onClear(); }}
-        />
-      )}
+      <OutlineBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />See more in app</OutlineBtn>
     </div>
   );
 }

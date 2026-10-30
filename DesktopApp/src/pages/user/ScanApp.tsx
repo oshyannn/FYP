@@ -13,11 +13,13 @@ interface Props {
   onLogout: () => void;
   /** "Report wrong detection": the home screen opens Feedback with this scan attached */
   onReport: (scan: ScanRecord) => void;
+  /** which tab to show first (the browser extension can link straight to the detection history) */
+  initialTab?: Tab;
 }
 
 // The scanner area of the desktop app: URL Scanner, its result, the detailed analysis and the detection history.
-export default function ScanApp({ onBack, onLogout, onReport }: Props) {
-  const [tab, setTab] = useState<Tab>("scanner");
+export default function ScanApp({ onBack, onLogout, onReport, initialTab }: Props) {
+  const [tab, setTab] = useState<Tab>(initialTab ?? "scanner");
   const [screen, setScreen] = useState<Screen>("tab");
   const [scan, setScan] = useState<ScanRecord | null>(null);
   const [cameFrom, setCameFrom] = useState<"result" | "history">("history");

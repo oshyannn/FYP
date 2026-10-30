@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import {
-  AlertTriangleIcon, ArrowLeftIcon, ActivityIcon, CheckCircleIcon, ClockIcon, SearchIcon,
+  AlertTriangleIcon, ArrowLeftIcon, ActivityIcon, CheckCircleIcon, SearchIcon,
   SettingsIcon, ShieldCheckIcon, ShieldIcon, ShieldXIcon, GlobeIcon,
 } from "./icons";
 import type { Status } from "./types";
 
 export type Screen =
-  | "status" | "activity" | "manual_scan" | "manual_result" | "history" | "settings" | "details";
+  | "status" | "activity" | "manual_scan" | "manual_result" | "settings" | "details";
 
 // ─── Status helpers (same colours as the Figma design; "unknown" is neutral grey) ─────────────
 export const statusColor = (s: Status) =>
@@ -63,7 +63,6 @@ export function NavBar({ screen, onNav }: { screen: Screen; onNav: (s: Screen) =
     { id: "status", label: "Status", icon: <ShieldIcon size={14} /> },
     { id: "activity", label: "Activity", icon: <ActivityIcon size={14} /> },
     { id: "manual_scan", label: "Scan URL", icon: <SearchIcon size={14} /> },
-    { id: "history", label: "History", icon: <ClockIcon size={14} /> },
   ];
   const active = screen === "manual_result" ? "manual_scan" : screen === "details" ? "status" : screen;
   return (

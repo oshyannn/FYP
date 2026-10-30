@@ -92,6 +92,9 @@ export async function scan(url: string, opts: ScanOpts = {}): Promise<Verdict> {
   return res.verdict;
 }
 
+/** Open the SafeBrowse desktop app on a page (safebrowse://history). background.js does it and closes the empty tab Chrome leaves. */
+export const openApp = (page: "history" | "scanner" | "dashboard" = "history") => chrome.runtime.sendMessage({ type: "open-app", page });
+
 // ---- helpers shared by screens
 export interface Target {
   tabId?: number;

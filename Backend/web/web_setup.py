@@ -27,10 +27,16 @@ def init_web(app):
     app.register_blueprint(bp)
     from web.controllers.verify_pages import bp as verify_bp
     app.register_blueprint(verify_bp)
-    from web.controllers.scans import bp as scans_bp          # URL scanner + detection history
+    from web.controllers.scans import bp as scans_bp
     app.register_blueprint(scans_bp)
+    from web.controllers.employers import bp as employers_bp
+    app.register_blueprint(employers_bp)
+    from web.controllers.threats import bp as threats_bp
+    app.register_blueprint(threats_bp)
     from web.controllers.feedback import bp as feedback_bp
     app.register_blueprint(feedback_bp)
+    from web.controllers.dashboard import bp as dashboard_bp
+    app.register_blueprint(dashboard_bp)
 
     @app.before_request
     def _load_user():
