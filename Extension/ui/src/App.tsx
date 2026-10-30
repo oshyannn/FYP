@@ -3,10 +3,10 @@ import * as api from "./api";
 import * as store from "./store";
 import { Footer, Header, NavBar, type Screen } from "./ui";
 import {
-  ActivityScreen, CheckingScreen, DetailsScreen, HistoryScreen, MaliciousScreen, ManualResultScreen,
+  ActivityScreen, CheckingScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
   ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SuspiciousScreen,
 } from "./screens";
-import type { Auth, HistoryRecord, Settings, Verdict } from "./types";
+import type { Auth, Settings, Verdict } from "./types";
 
 type Boot = "loading" | "pair" | "ready";
 type Current =
@@ -29,7 +29,6 @@ export default function App() {
   const [notice, setNotice] = useState<string | undefined>();
   const [auth, setAuth] = useState<Auth | null>(null);
   const [settings, setSettings] = useState<Settings>(store.DEFAULT_SETTINGS);
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [screen, setScreen] = useState<Screen>("status");
   const [target, setTarget] = useState<api.Target | null>(null);
   const [current, setCurrent] = useState<Current>({ phase: "idle" });
@@ -39,9 +38,8 @@ export default function App() {
 
   // ── load everything from storage (and again whenever background.js changes it)
   const reload = useCallback(async () => {
-    const [a, s, h] = await Promise.all([store.getAuth(), store.getSettings(), store.getHistory()]);
+    const [a, s] = await Promise.all([store.getAuth(), store.getSettings()]);
     setSettings(s);
-    setHistory(h);
     setAuth(a);
     return a;
   }, []);
@@ -148,7 +146,7 @@ export default function App() {
   if (boot === "pair") return <><Header /><PairScreen notice={notice} onSubmit={submitCode} /></>;
 
   const verdict = current.phase === "done" ? current.verdict : undefined;
-  const recordedAt = verdict ? history.find((h) => h.url === verdict.url)?.ts : undefined;
+  const recordedAt = verdict?.ts;      // pages are saved to the account as they are checked
 
   function statusView() {
     if (!settings.realtime) {
@@ -188,10 +186,9 @@ export default function App() {
   function body() {
     switch (screen) {
       case "status": return statusView();
-      case "activity": return <ActivityScreen current={verdict} history={history} monitoring={settings.realtime} onViewHistory={() => setScreen("history")} />;
+      case "activity": return <ActivityScreen current={verdict} monitoring={settings.realtime} onOpenApp={() => api.openApp("history")} />;
       case "manual_scan": return <ManualScanScreen onScan={manualScan} />;
       case "manual_result": return manual ? <ManualResultScreen v={manual} onScanAnother={() => setScreen("manual_scan")} onViewDetails={() => openDetails(manual, "manual_result")} /> : null;
-      case "history": return <HistoryScreen history={history} onViewDetails={(r) => openDetails(r, "history")} onClear={async () => { await store.clearHistory(); setHistory([]); }} />;
       case "settings": return <SettingsScreen settings={settings} email={auth?.user.email} onSave={async (s) => { await store.saveSettings(s); setSettings(s); }} onDisconnect={async () => { if (auth) await api.disconnect(auth.token); setNotice(undefined); setBoot("pair"); }} />;
       case "details": return detail ? <DetailsScreen v={detail.v} onBack={goStatus} /> : null;
     }

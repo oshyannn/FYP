@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import ForgotPassword from "./pages/ForgotPassword";
-import Home from "./pages/Home";
-import Register from "./pages/Register";
-import ResetPassword from "./pages/ResetPassword";
-import StaffLogin from "./pages/StaffLogin";
-import StaffRequestAccess from "./pages/StaffRequestAccess";
-import UserLogin from "./pages/UserLogin";
-import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import StaffApp from "./pages/staff/StaffApp";
+import UserApp from "./pages/user/UserApp";
+import Register from "./pages/auth/Register";
+import ResetPassword from "./pages/auth/ResetPassword";
+import StaffLogin from "./pages/auth/StaffLogin";
+import StaffRequestAccess from "./pages/auth/StaffRequestAccess";
+import UserLogin from "./pages/auth/UserLogin";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import type { Flow, Screen, Session } from "./types";
 
 export default function App() {
@@ -46,7 +47,13 @@ export default function App() {
   if (booting) {
     return <div className="h-full flex items-center justify-center text-sm text-slate-500">Loading…</div>;
   }
-  if (session && screen === "home") return <Home session={session} onLogout={loggedOut} />;
+  if (session && screen === "home") {
+    return session.portal === "staff" ? (
+      <StaffApp session={session} onLogout={loggedOut} />
+    ) : (
+      <UserApp session={session} onLogout={loggedOut} />
+    );
+  }
 
   const verifyFlow: Flow = flow ?? { email: "", portal: "user" };
   switch (screen) {

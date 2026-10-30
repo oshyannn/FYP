@@ -11,11 +11,6 @@ export interface Verdict {
   ts: number;
 }
 
-export interface HistoryRecord extends Verdict {
-  id: string;
-  kind: "auto" | "manual";
-}
-
 export interface Settings {
   realtime: boolean; // master switch: check every page you open
   autoscan: boolean; // popup scans the current page by itself when opened

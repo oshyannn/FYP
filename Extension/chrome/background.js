@@ -75,9 +75,9 @@ chrome.runtime.onStartup?.addListener(refreshBadge);
 chrome.runtime.onInstalled.addListener(refreshBadge);
 refreshBadge();
 
-// Scan history shown in the popup (newest first, max 200). TODO(supabase): also send each record to the backend.
-const HISTORY_MAX = 200;
-let historyChain = Promise.resolve();            // writes are queued so two quick scans cannot overwrite each other
+// Scan history is NOT kept in the browser any more: every recorded scan is saved to the signed-in account (POST /api/scans)
+// and is read in the desktop app, which needs a login. Anything an older version left in this browser is removed.
+try { Promise.resolve(chrome.storage.local.remove("history")).catch(() => {}); } catch {}
 function toStatus(d) {
     if (!d || !d.has_data) return "unknown";
     return d.status === "Safe" ? "safe" : d.status === "Suspicious" ? "suspicious" : "malicious";   // "Restricted" (adult) counts as blocked
@@ -89,56 +89,68 @@ function toVerdict(url, d) {
         source: String((d && d.source) || ""), adult: !!d && d.status === "Restricted", ts: Date.now(),
     };
 }
-function recordHistory(url, d, kind) {
-    historyChain = historyChain.then(async () => {
-        try {
-            const list = (await chrome.storage.local.get("history")).history || [];
-            const v = toVerdict(url, d);
-            if (kind !== "manual" && list.some((h) => h.url === url && v.ts - h.ts < 60000)) return;   // same page opened again within a minute
-            list.unshift({ ...v, id: v.ts + "-" + Math.random().toString(36).slice(2, 8), kind });
-            await chrome.storage.local.set({ history: list.slice(0, HISTORY_MAX) });
-        } catch (err) { console.error("could not save history:", err); }
-    });
-}
-
 function reasonText(data) {
     const r = Array.isArray(data.reasons) ? data.reasons.slice(0, 2).join(" ") : "";
     return r.length > 180 ? r.slice(0, 177) + "..." : r;
 }
 
-// opts.record: also store the verdict in the popup history (page loads and manual scans, not background look-ups of referrers)
-// opts.force: ignore the 5-minute cache (manual "Scan again")
+// opts.record: save the scan to the signed-in account, so it shows in the desktop app's Detection History (page loads and
+//   manual scans are recorded, background look-ups of referrers and downloads are not).
+// opts.kind: "auto" | "manual" | "redirect" (how the scan started). opts.force: ignore the 5-minute cache (manual "Scan again").
+const SCAN_KINDS = ["auto", "manual", "redirect"];
+const authHeaders = (token) => ({ "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) });
+
+async function notPaired() {                                   // token revoked/expired (or never paired): ask for a new pairing code
+    await chrome.storage.local.remove("auth");
+    const e = new Error("Not paired with the desktop app."); e.code = "unauthenticated"; e.status = 401;
+    throw e;
+}
+async function readVerdict(r) {
+    if (r.status === 401) await notPaired();
+    const data = await r.json();
+    if (!r.ok) { const e = new Error((data && (data.message || (data.error && data.error.message))) || "Analysis failed."); e.status = r.status; throw e; }
+    return data;
+}
+async function fetchVerdict(url, token, opts, signal) {
+    if (opts.record && token) {
+        try {
+            const r = await fetch(API_BASE + "/api/scans", {
+                method: "POST", headers: authHeaders(token), signal,
+                body: JSON.stringify({ url, scan_type: SCAN_KINDS.includes(opts.kind) ? opts.kind : "auto" }),
+            });
+            if (r.status === 401) await notPaired();
+            if (r.ok) {                                          // the saved record carries the detector's full answer
+                const saved = await r.json();
+                const a = saved && saved.scan && saved.scan.analysis;
+                if (a && typeof a === "object" && typeof a.status === "string") return a;
+            }
+            // anything else (rate limit, bad address, detector hiccup): still check the page with the plain endpoint below
+        } catch (err) {
+            if (err.status === 401 || err.name === "AbortError") throw err;
+            console.error("could not save the scan, checking without saving:", err);
+        }
+    }
+    return readVerdict(await fetch(API, { method: "POST", headers: authHeaders(token), body: JSON.stringify({ url }), signal }));
+}
+
 function analyze(url, opts = {}) {
-    const done = (p) => (opts.record ? p.then((d) => { recordHistory(url, d, opts.kind || "auto"); return d; }) : p);
     const hit = cache.get(url);
-    if (!opts.force && hit && Date.now() - hit.t < CACHE_MS) return done(Promise.resolve(hit.data));
-    if (!opts.force && pending.has(url)) return done(pending.get(url));
+    // a page opened again within the cache window is not saved twice; a manual scan is always saved
+    if (!opts.force && hit && Date.now() - hit.t < CACHE_MS && !(opts.record && opts.kind === "manual")) return Promise.resolve(hit.data);
+    const key = (opts.record ? "r:" : "n:") + url;
+    if (!opts.force && pending.has(key)) return pending.get(key);
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), DEEP_MS);
     const p = getToken()
-        .then((token) => fetch(API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
-            body: JSON.stringify({ url }),
-            signal: ctl.signal,
-        }))
-        .then(async (r) => {
-            if (r.status === 401) {                                  // token revoked/expired (or never paired): ask for a new pairing code
-                await chrome.storage.local.remove("auth");
-                const e = new Error("Not paired with the desktop app."); e.code = "unauthenticated"; e.status = 401; throw e;
-            }
-            const data = await r.json();
-            if (!r.ok) { const e = new Error((data && (data.message || (data.error && data.error.message))) || "Analysis failed."); e.status = r.status; throw e; }
-            return data;
-        })
+        .then((token) => fetchVerdict(url, token, opts, ctl.signal))
         .then((data) => {
             if (cache.size > 500) cache.clear();
             cache.set(url, { t: Date.now(), data });
             return data;
         })
-        .finally(() => { clearTimeout(timer); if (pending.get(url) === p) pending.delete(url); });
-    pending.set(url, p);
-    return done(p);
+        .finally(() => { clearTimeout(timer); if (pending.get(key) === p) pending.delete(key); });
+    pending.set(key, p);
+    return p;
 }
 
 async function isAllowed(url) {
@@ -283,6 +295,26 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     return true;
 });
 
+// The popup's "See more in app" button: open the desktop app on a page (safebrowse://history). Only our own popup may ask,
+// and only these fixed page names are ever sent to the app.
+const APP_PAGES = ["history", "scanner", "dashboard"];
+chrome.runtime.onMessage.addListener((msg, sender) => {
+    if (sender.id !== chrome.runtime.id || !msg || msg.type !== "open-app") return;
+    if (!String(sender.url || "").startsWith(chrome.runtime.getURL("popup/"))) return;
+    const page = APP_PAGES.includes(msg.page) ? msg.page : "dashboard";
+    chrome.tabs.create({ url: "safebrowse://" + page }, (tab) => {
+        if (chrome.runtime.lastError || !tab) return;
+        // Chrome leaves an empty tab behind when it hands a link to another program. Close it once the app has had time to open.
+        setTimeout(() => {
+            chrome.tabs.get(tab.id, (t) => {
+                if (chrome.runtime.lastError || !t) return;
+                const u = t.url || t.pendingUrl || "";
+                if (u === "" || u === "about:blank" || u.startsWith("safebrowse:") || u.startsWith("chrome://newtab")) chrome.tabs.remove(tab.id, () => void chrome.runtime.lastError);
+            });
+        }, 6000);
+    });
+});
+
 // ---------------------------------------------------------------- 2. redirects: check where you ended up
 // A server redirect only fires onBeforeNavigate for the FIRST address; onCommitted reports the final one.
 chrome.webNavigation?.onCommitted.addListener(async (d) => {
@@ -292,7 +324,7 @@ chrome.webNavigation?.onCommitted.addListener(async (d) => {
     if (!(await getSettings()).realtime) return;
     if (await isAllowed(d.url)) return;
     try {
-        act(d.tabId, d.url, await analyze(d.url, { record: true }));
+        act(d.tabId, d.url, await analyze(d.url, { record: true, kind: "redirect" }));
     } catch (err) {
         console.error("API error while checking redirect target:", err);
     }

@@ -4,6 +4,7 @@ import type { ApiResult } from "./types";
 export const api = {
   get: (path: string) => window.sb.api("GET", path),
   post: (path: string, body?: unknown) => window.sb.api("POST", path, body),
+  patch: (path: string, body?: unknown) => window.sb.api("PATCH", path, body),
   del: (path: string) => window.sb.api("DELETE", path),
 };
 

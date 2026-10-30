@@ -73,3 +73,8 @@ def create_employer_application(user_id, company_name: str, registration_no: str
 
 def update_full_name(user_id, full_name: str) -> None:
     db.run("UPDATE public.users SET full_name = %s WHERE id = %s", (full_name, user_id))
+
+
+def get_profile(user_id):
+    return db.one("SELECT id, email::text AS email, full_name, role::text AS role, is_email_verified, "
+                  "status::text AS status, created_at, last_login_at FROM public.users WHERE id = %s", (user_id,))

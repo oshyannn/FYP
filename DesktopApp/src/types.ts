@@ -41,6 +41,9 @@ declare global {
     sb: {
       api(method: string, path: string, body?: unknown): Promise<ApiResult>;
       restoreSession(): Promise<Session | null>;
+      /** a page the browser extension asked for (safebrowse://history ...), or null */
+      takePendingPage(): Promise<string | null>;
+      onOpenPage(cb: (page: string) => void): () => void;
     };
   }
 }

@@ -30,6 +30,8 @@ export default function Home({ session, onLogout }: Props) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [view, setView] = useState<"home" | "scan" | "feedback" | "staff-feedback">("home");
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null); // a scan the user is reporting as wrongly detected
+  const [scanTab, setScanTab] = useState<"scanner" | "history">("scanner");
+  const [scanKey, setScanKey] = useState(0); // changes when the extension links to a scanner page, so it opens fresh
 
   // Any 401 means the session ended (expired, revoked, password changed): go back to the login screen.
   function expired(status: number) {
@@ -49,6 +51,22 @@ export default function Home({ session, onLogout }: Props) {
   useEffect(() => {
     if (!staff) loadDevices();
   }, []);
+
+  // The browser extension can open the app on a page (safebrowse://history | scanner | dashboard). Home only exists after
+  // login, so a link that arrives while signed out waits until the user has logged in.
+  useEffect(() => {
+    if (staff) return;
+    const open = (page: string) => {
+      if (page === "history" || page === "scanner") {
+        setReportScan(null);
+        setScanTab(page);
+        setScanKey((k) => k + 1);
+        setView("scan");
+      } else if (page === "dashboard") setView("home");
+    };
+    window.sb.takePendingPage?.()?.then((p) => p && open(p));
+    return window.sb.onOpenPage?.(open);
+  }, [staff]);
 
   useEffect(() => {
     if (!pair) return;
@@ -105,6 +123,8 @@ export default function Home({ session, onLogout }: Props) {
   if (view === "scan") {
     return (
       <ScanApp
+        key={scanKey}
+        initialTab={scanTab}
         onBack={() => setView("home")}
         onLogout={onLogout}
         onReport={(s) => {

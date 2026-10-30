@@ -7,6 +7,19 @@ const path = require("node:path");
 const DEV = process.argv.includes("--dev");
 const DEV_URL = "http://127.0.0.1:5173";
 const API_BASE = (process.env.SAFEBROWSE_API || "http://127.0.0.1:5000").replace(/\/+$/, "");
+const PROTOCOL = "safebrowse";                       // the browser extension opens the app with safebrowse://<page>
+const OPEN_PAGES = new Set(["dashboard", "history", "scanner"]);
+let pendingPage = null;                              // a page requested before the window could show it
+
+/** safebrowse://history -> "history"; anything unknown -> null (no other part of the link is ever used) */
+function pageFromProtocolUrl(raw) {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== PROTOCOL + ":") return null;
+    const page = (u.hostname || u.pathname.replace(/^\/+/, "")).toLowerCase();
+    return OPEN_PAGES.has(page) ? page : null;
+  } catch { return null; }
+}
 const sessionFile = () => path.join(app.getPath("userData"), "session.bin");
 
 // ---- authentication state lives ONLY in this process -------------------------------------------------------
@@ -14,7 +27,7 @@ let auth = null;     // { token, portal, persist }
 let pending = null;  // { email, secret }: a sign-up in progress; the secret lets only THIS app be signed in by the link
 
 const METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
-const PATH_OK = /^\/api\/[A-Za-z0-9/_-]{1,100}(\?[A-Za-z0-9=&%._~+-]{0,1200})?$/;   // an optional ?query is allowed (lists, search, paging)
+const PATH_OK = /^\/api\/[A-Za-z0-9/_-]{1,100}(\?[A-Za-z0-9=&%._~+-]{0,1200})?$/;
 const NO_TOKEN = new Set([
   "/api/auth/login", "/api/staff/login", "/api/auth/register", "/api/staff/request-access",
   "/api/auth/verify-email", "/api/auth/complete-signup", "/api/auth/resend-code",
@@ -101,6 +114,12 @@ ipcMain.handle("api", async (_event, req) => {
   return res;
 });
 
+ipcMain.handle("app:take-pending-page", () => {
+  const p = pendingPage;
+  pendingPage = null;
+  return p;
+});
+
 ipcMain.handle("session:restore", async () => {
   if (!auth) {
     const saved = loadSavedSession();
@@ -133,12 +152,31 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
+  function showPage(page) {
     const [w] = BrowserWindow.getAllWindows();
-    if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
+    if (w) {
+      if (w.isMinimized()) w.restore();
+      w.focus();
+      if (page) w.webContents.send("open-page", page);
+    } else if (page) pendingPage = page;
+  }
+  app.on("second-instance", (_event, argv) => {
+    const link = argv.find((a) => typeof a === "string" && a.startsWith(PROTOCOL + "://"));
+    showPage(link ? pageFromProtocolUrl(link) : null);
   });
+  app.on("open-url", (event, url) => {               // macOS
+    event.preventDefault();
+    showPage(pageFromProtocolUrl(url));
+  });
+  const firstLink = process.argv.find((a) => typeof a === "string" && a.startsWith(PROTOCOL + "://"));
+  if (firstLink) pendingPage = pageFromProtocolUrl(firstLink);
   app.whenReady().then(() => {
     app.setAppUserModelId("com.safebrowse.desktop");
+    try {
+      if (process.defaultApp) {                        // started with `electron .` (development)
+        if (process.argv.length >= 2) app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+      } else app.setAsDefaultProtocolClient(PROTOCOL);
+    } catch { /* the link feature is optional */ }
     if (!DEV) Menu.setApplicationMenu(null);
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     if (DEV) {
@@ -154,3 +192,5 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 }
+
+module.exports = { pageFromProtocolUrl };
