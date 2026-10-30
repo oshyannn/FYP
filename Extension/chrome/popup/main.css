@@ -247,6 +247,9 @@
   .mt-1 {
     margin-top: var(--spacing);
   }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
+  }
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
@@ -339,6 +342,9 @@
   }
   .max-w-\[280px\] {
     max-width: 280px;
+  }
+  .max-w-full {
+    max-width: 100%;
   }
   .min-w-0 {
     min-width: 0px;
@@ -605,6 +611,9 @@
   }
   .py-3 {
     padding-block: calc(var(--spacing) * 3);
+  }
+  .py-6 {
+    padding-block: calc(var(--spacing) * 6);
   }
   .py-8 {
     padding-block: calc(var(--spacing) * 8);

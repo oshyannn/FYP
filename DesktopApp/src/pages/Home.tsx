@@ -20,6 +20,12 @@ interface Props {
   onLogout: () => void;
 }
 
+/** First 16 hex chars of SHA-256(lower-case email): the same value the extension puts in its link. */
+async function accountTag(email: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email.trim().toLowerCase()));
+  return Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // Signed-in home. Normal users reach the URL scanner and detection history from here; the extension is paired here too.
 export default function Home({ session, onLogout }: Props) {
   const { user, portal } = session;
@@ -31,6 +37,7 @@ export default function Home({ session, onLogout }: Props) {
   const [view, setView] = useState<"home" | "scan" | "feedback" | "staff-feedback">("home");
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null); // a scan the user is reporting as wrongly detected
   const [scanTab, setScanTab] = useState<"scanner" | "history">("scanner");
+  const [mismatch, setMismatch] = useState(false); // the extension's account is not the account signed in here
   const [scanKey, setScanKey] = useState(0); // changes when the extension links to a scanner page, so it opens fresh
 
   // Any 401 means the session ended (expired, revoked, password changed): go back to the login screen.
@@ -56,7 +63,21 @@ export default function Home({ session, onLogout }: Props) {
   // login, so a link that arrives while signed out waits until the user has logged in.
   useEffect(() => {
     if (staff) return;
-    const open = (page: string) => {
+    let alive = true;
+    const open = async (req: { page: string; acct: string | null }) => {
+      const { page, acct } = req;
+      // The link names the account the extension saves to (a one-way hash, no personal data). If another account is
+      // signed in here, open nothing: the person must not see someone else's history by pressing "See more in app".
+      if (acct && (await accountTag(user.email)) !== acct) {
+        if (alive) {
+          setReportScan(null);
+          setView("home");
+          setMismatch(true);
+        }
+        return;
+      }
+      if (!alive) return;
+      setMismatch(false);
       if (page === "history" || page === "scanner") {
         setReportScan(null);
         setScanTab(page);
@@ -64,9 +85,17 @@ export default function Home({ session, onLogout }: Props) {
         setView("scan");
       } else if (page === "dashboard") setView("home");
     };
-    window.sb.takePendingPage?.()?.then((p) => p && open(p));
-    return window.sb.onOpenPage?.(open);
-  }, [staff]);
+    const take = () =>
+      window.sb.takePendingPage?.()?.then((r) => {
+        if (r) open(r);
+      });
+    take();
+    const off = window.sb.onOpenPage?.(() => take()); // the request itself is read once, from the main process
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, [staff, user.email]);
 
   useEffect(() => {
     if (!pair) return;
@@ -166,6 +195,20 @@ export default function Home({ session, onLogout }: Props) {
             Authentication works. The {staff ? "staff" : "user"} screens will be built on top of this one.
           </p>
         </section>
+
+        {mismatch && !staff && (
+          <section className="bg-amber-50 border border-amber-300 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-amber-900">Different account</h2>
+            <p className="text-sm text-amber-900 mt-1 mb-4">
+              The browser extension saves scans to a different SafeBrowse account than the one signed in here, so its
+              history was not opened. Log out and sign in with the extension's account to see it.
+            </p>
+            <div className="flex gap-3 max-w-md">
+              <SecondaryButton onClick={logout}>Log out and switch account</SecondaryButton>
+              <SecondaryButton onClick={() => setMismatch(false)}>Stay signed in</SecondaryButton>
+            </div>
+          </section>
+        )}
 
         {!staff && (
           <section className="bg-white border border-slate-200 rounded-2xl p-6">
