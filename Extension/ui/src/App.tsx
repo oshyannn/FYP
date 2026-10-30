@@ -3,7 +3,7 @@ import * as api from "./api";
 import * as store from "./store";
 import { Footer, Header, NavBar, type Screen } from "./ui";
 import {
-  ActivityScreen, CheckingScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
+  ActivityScreen, CheckingScreen, HistoryScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
   ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SuspiciousScreen,
 } from "./screens";
 import type { Auth, Settings, Verdict } from "./types";
@@ -186,7 +186,8 @@ export default function App() {
   function body() {
     switch (screen) {
       case "status": return statusView();
-      case "activity": return <ActivityScreen current={verdict} monitoring={settings.realtime} onOpenApp={() => api.openApp("history")} />;
+      case "activity": return <ActivityScreen current={verdict} monitoring={settings.realtime} email={auth?.user.email} onOpenApp={() => api.openApp("history")} />;
+      case "history": return <HistoryScreen email={auth?.user.email} onOpenApp={() => api.openApp("history")} />;
       case "manual_scan": return <ManualScanScreen onScan={manualScan} />;
       case "manual_result": return manual ? <ManualResultScreen v={manual} onScanAnother={() => setScreen("manual_scan")} onViewDetails={() => openDetails(manual, "manual_result")} /> : null;
       case "settings": return <SettingsScreen settings={settings} email={auth?.user.email} onSave={async (s) => { await store.saveSettings(s); setSettings(s); }} onDisconnect={async () => { if (auth) await api.disconnect(auth.token); setNotice(undefined); setBoot("pair"); }} />;

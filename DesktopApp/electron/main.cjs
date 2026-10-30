@@ -6,18 +6,28 @@ const path = require("node:path");
 
 const DEV = process.argv.includes("--dev");
 const DEV_URL = "http://127.0.0.1:5173";
+const DIST_INDEX = path.join(__dirname, "..", "dist", "index.html");
+// No built app yet (`npm run build` not run)? Then use the Vite dev server, also when the app was started by a
+// safebrowse:// link (that start has no --dev flag). Without this the window stays blank.
+const USE_DEV_SERVER = DEV || !fs.existsSync(DIST_INDEX);
 const API_BASE = (process.env.SAFEBROWSE_API || "http://127.0.0.1:5000").replace(/\/+$/, "");
 const PROTOCOL = "safebrowse";                       // the browser extension opens the app with safebrowse://<page>
 const OPEN_PAGES = new Set(["dashboard", "history", "scanner"]);
 let pendingPage = null;                              // a page requested before the window could show it
 
-/** safebrowse://history -> "history"; anything unknown -> null (no other part of the link is ever used) */
+/**
+ * safebrowse://history?acct=<16 hex> -> { page: "history", acct: "<16 hex>" | null }; anything unknown -> null.
+ * acct is a short one-way hash of the extension account's email: it carries no personal data, it only lets the app
+ * check that the signed-in account is the one the extension is saving to.
+ */
 function pageFromProtocolUrl(raw) {
   try {
     const u = new URL(raw);
     if (u.protocol !== PROTOCOL + ":") return null;
     const page = (u.hostname || u.pathname.replace(/^\/+/, "")).toLowerCase();
-    return OPEN_PAGES.has(page) ? page : null;
+    if (!OPEN_PAGES.has(page)) return null;
+    const a = (u.searchParams.get("acct") || "").toLowerCase();
+    return { page, acct: /^[0-9a-f]{16}$/.test(a) ? a : null };
   } catch { return null; }
 }
 const sessionFile = () => path.join(app.getPath("userData"), "session.bin");
@@ -144,9 +154,16 @@ function createWindow() {
     },
   });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  win.webContents.on("will-navigate", (e, url) => { if (!(DEV && url.startsWith(DEV_URL))) e.preventDefault(); });
-  if (DEV) win.loadURL(DEV_URL);
-  else win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  win.webContents.on("will-navigate", (e, url) => { if (!(USE_DEV_SERVER && url.startsWith(DEV_URL))) e.preventDefault(); });
+  if (USE_DEV_SERVER) {
+    win.loadURL(DEV_URL).catch(() => {
+      const html = "<body style='font-family:sans-serif;padding:40px;color:#1e3a5f'><h2>SafeBrowse cannot start</h2>" +
+        "<p>The app has not been built yet and the development server is not running.</p>" +
+        "<p>Run <b>npm run build</b> once in the DesktopApp folder (then SafeBrowse opens on its own from now on), " +
+        "or run <b>npm run dev</b> while developing.</p></body>";
+      win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
+    });
+  } else win.loadFile(DIST_INDEX);
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -157,8 +174,11 @@ if (!app.requestSingleInstanceLock()) {
     if (w) {
       if (w.isMinimized()) w.restore();
       w.focus();
-      if (page) w.webContents.send("open-page", page);
-    } else if (page) pendingPage = page;
+    }
+    if (page) {
+      pendingPage = page;                            // kept until the signed-in home screen takes it (the login screen may be showing)
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send("open-page", page);
+    }
   }
   app.on("second-instance", (_event, argv) => {
     const link = argv.find((a) => typeof a === "string" && a.startsWith(PROTOCOL + "://"));
@@ -177,9 +197,9 @@ if (!app.requestSingleInstanceLock()) {
         if (process.argv.length >= 2) app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
       } else app.setAsDefaultProtocolClient(PROTOCOL);
     } catch { /* the link feature is optional */ }
-    if (!DEV) Menu.setApplicationMenu(null);
+    if (!USE_DEV_SERVER) Menu.setApplicationMenu(null);
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
-    if (DEV) {
+    if (USE_DEV_SERVER) {
       // The built app carries its strict policy in index.html; the dev server needs inline scripts and a websocket.
       const csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
                   "img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws://127.0.0.1:5173; object-src 'none'";

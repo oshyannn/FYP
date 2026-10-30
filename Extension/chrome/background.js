@@ -302,7 +302,24 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.type !== "open-app") return;
     if (!String(sender.url || "").startsWith(chrome.runtime.getURL("popup/"))) return;
     const page = APP_PAGES.includes(msg.page) ? msg.page : "dashboard";
-    chrome.tabs.create({ url: "safebrowse://" + page }, (tab) => {
+    openApp(page);
+});
+
+// The link carries a one-way hash of the extension account's email (no personal data). The app compares it with the
+// account that is signed in there and refuses to open the history when they differ.
+async function accountTag() {
+    try {
+        const { auth } = await chrome.storage.local.get("auth");
+        const email = auth && auth.user && typeof auth.user.email === "string" ? auth.user.email.trim().toLowerCase() : "";
+        if (!email) return "";
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+        return Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+    } catch { return ""; }
+}
+
+async function openApp(page) {
+    const tag = await accountTag();
+    chrome.tabs.create({ url: "safebrowse://" + page + (tag ? "?acct=" + tag : "") }, (tab) => {
         if (chrome.runtime.lastError || !tab) return;
         // Chrome leaves an empty tab behind when it hands a link to another program. Close it once the app has had time to open.
         setTimeout(() => {
@@ -313,7 +330,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
             });
         }, 6000);
     });
-});
+}
 
 // ---------------------------------------------------------------- 2. redirects: check where you ended up
 // A server redirect only fires onBeforeNavigate for the FIRST address; onCommitted reports the final one.

@@ -312,8 +312,8 @@ export function ManualResultScreen({ v, onScanAnother, onViewDetails }: { v: Ver
 }
 
 // ─── Activity ─────────────────────────────────────────────────────────────────────
-export function ActivityScreen({ current, monitoring, onOpenApp }: {
-  current?: Verdict; monitoring: boolean; onOpenApp: () => void;
+export function ActivityScreen({ current, monitoring, email, onOpenApp }: {
+  current?: Verdict; monitoring: boolean; email?: string | null; onOpenApp: () => void;
 }) {
   return (
     <div className="p-4 fade-in">
@@ -349,8 +349,30 @@ export function ActivityScreen({ current, monitoring, onOpenApp }: {
         <div className="text-[11px] text-gray-500 leading-relaxed">
           Every page SafeBrowse checks is saved to your account, not to this browser. Open the SafeBrowse app and sign in to see the full history.
         </div>
+        {email && <div className="text-[10px] text-gray-400 mt-1.5 truncate">Saving to: {email}</div>}
       </div>
       <OutlineBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />See more in app</OutlineBtn>
+    </div>
+  );
+}
+
+// ─── History (the list itself lives in the app, never in the browser) ─────────────
+export function HistoryScreen({ email, onOpenApp }: { email?: string | null; onOpenApp: () => void }) {
+  return (
+    <div className="p-4 fade-in">
+      <SectionLabel>Scan History</SectionLabel>
+      <div className="flex flex-col items-center text-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-6 mb-3">
+        <ClockIcon size={22} className="text-gray-400 mb-2" />
+        <div className="text-[12px] font-semibold text-gray-700 mb-1">Your history is private</div>
+        <div className="text-[11px] text-gray-500 leading-relaxed">
+          Scanned websites are saved to your SafeBrowse account, not to this browser, so nobody else using this computer can see them.
+        </div>
+        {email && <div className="text-[10px] text-gray-400 mt-2 truncate max-w-full">Saving to: {email}</div>}
+      </div>
+      <PrimaryBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />Open SafeBrowse History</PrimaryBtn>
+      <div className="text-[10px] text-gray-400 text-center mt-2 leading-relaxed">
+        The app opens on your account's history. If another account is signed in there, it will tell you instead of showing it.
+      </div>
     </div>
   );
 }
