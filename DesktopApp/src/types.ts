@@ -36,14 +36,27 @@ export interface ApiResult {
   data: any;
 }
 
+/** What the extension link asks for. acct = hash of the extension account's email, hint = masked email. */
+export interface OpenRequest {
+  page: "dashboard" | "history" | "scanner";
+  acct: string | null;
+  scan: string | null;
+  hint: string | null;
+  hasCode: boolean;
+}
+
 declare global {
   interface Window {
     sb: {
       api(method: string, path: string, body?: unknown): Promise<ApiResult>;
       restoreSession(): Promise<Session | null>;
-      /** a page the browser extension asked for (safebrowse://history ...), or null */
-      takePendingPage(): Promise<{ page: string; acct: string | null } | null>;
-      onOpenPage(cb: (req: { page: string; acct: string | null }) => void): () => void;
+      /** the page the browser extension asked for (safebrowse://history ...), or null */
+      takePendingPage(): Promise<OpenRequest | null>;
+      /** signs this app in as the extension's account (after the person confirmed); null if the code no longer works */
+      acceptLink(): Promise<Session | null>;
+      dropLink(): Promise<void>;
+      /** a new request arrived; call takePendingPage() to read it */
+      onOpenPage(cb: () => void): () => void;
     };
   }
 }

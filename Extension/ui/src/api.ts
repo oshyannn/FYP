@@ -1,6 +1,6 @@
 import { API_BASE } from "./config";
 import { clearAuth, setAuth } from "./store";
-import type { Auth, Status, Verdict } from "./types";
+import type { Auth, RecentScan, Status, Verdict } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -93,7 +93,20 @@ export async function scan(url: string, opts: ScanOpts = {}): Promise<Verdict> {
 }
 
 /** Open the SafeBrowse desktop app on a page (safebrowse://history). background.js does it and closes the empty tab Chrome leaves. */
-export const openApp = (page: "history" | "scanner" | "dashboard" = "history") => chrome.runtime.sendMessage({ type: "open-app", page });
+export const openApp = (page: "history" | "scanner" | "dashboard" = "history", scan?: string | null) =>
+  chrome.runtime.sendMessage({ type: "open-app", page, scan: scan ?? undefined });
+
+/** The latest scans of the paired account, read from the server each time (nothing is kept in this browser). */
+export async function recent(token: string, n = 3): Promise<RecentScan[]> {
+  const r = await call(`/api/scans?per_page=${n}`, {}, token);
+  return (r.scans ?? []).map((s: any): RecentScan => ({
+    id: String(s.id),
+    url: String(s.url),
+    status: s.risk_level === "safe" || s.risk_level === "suspicious" || s.risk_level === "malicious" ? s.risk_level : "unknown",
+    score: Number(s.risk_score) || 0,
+    ts: Date.parse(s.scanned_at) || Date.now(),
+  }));
+}
 
 // ---- helpers shared by screens
 export interface Target {

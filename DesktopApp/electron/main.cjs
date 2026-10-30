@@ -13,12 +13,15 @@ const USE_DEV_SERVER = DEV || !fs.existsSync(DIST_INDEX);
 const API_BASE = (process.env.SAFEBROWSE_API || "http://127.0.0.1:5000").replace(/\/+$/, "");
 const PROTOCOL = "safebrowse";                       // the browser extension opens the app with safebrowse://<page>
 const OPEN_PAGES = new Set(["dashboard", "history", "scanner"]);
-let pendingPage = null;                              // a page requested before the window could show it
+let pendingPage = null;                              // a page requested before the window could show it (never holds the code)
+let linkCode = null;                                 // { code, at }: the one-time code from the link, kept until the person decides
 
 /**
- * safebrowse://history?acct=<16 hex> -> { page: "history", acct: "<16 hex>" | null }; anything unknown -> null.
- * acct is a short one-way hash of the extension account's email: it carries no personal data, it only lets the app
- * check that the signed-in account is the one the extension is saving to.
+ * safebrowse://history?acct=<16 hex>&scan=<uuid>&hint=a***@mail.com&code=<one-time code>
+ *   -> { page, acct, scan, hint, code }; anything unknown -> null.
+ * acct is a short one-way hash of the extension account's email, hint a masked copy for the confirmation text, code a
+ * one-minute single-use code that can sign this app in as the extension's account (only after the person confirms).
+ * Every part is validated; nothing else from the link is ever used.
  */
 function pageFromProtocolUrl(raw) {
   try {
@@ -26,8 +29,15 @@ function pageFromProtocolUrl(raw) {
     if (u.protocol !== PROTOCOL + ":") return null;
     const page = (u.hostname || u.pathname.replace(/^\/+/, "")).toLowerCase();
     if (!OPEN_PAGES.has(page)) return null;
-    const a = (u.searchParams.get("acct") || "").toLowerCase();
-    return { page, acct: /^[0-9a-f]{16}$/.test(a) ? a : null };
+    const get = (k, re) => { const v = u.searchParams.get(k) || ""; return re.test(v) ? v : null; };
+    const acct = get("acct", /^[0-9a-f]{16}$/i);
+    return {
+      page,
+      acct: acct && acct.toLowerCase(),
+      scan: get("scan", /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+      hint: get("hint", /^[A-Za-z0-9._%+*@-]{1,80}$/),
+      code: get("code", /^[A-Za-z0-9_-]{20,100}$/),
+    };
   } catch { return null; }
 }
 const sessionFile = () => path.join(app.getPath("userData"), "session.bin");
@@ -130,6 +140,22 @@ ipcMain.handle("app:take-pending-page", () => {
   return p;
 });
 
+// The person confirmed "switch to the extension's account": exchange the one-time code for a login of that account.
+ipcMain.handle("app:accept-link", async () => {
+  const l = linkCode;
+  linkCode = null;
+  if (!l || Date.now() - l.at > 55000) return null;       // the server's code lives 60 s
+  const res = await request("POST", "/api/auth/app-link", { code: l.code }, false);
+  if (res.status === 200 && res.data && typeof res.data.token === "string") {
+    auth = { token: res.data.token, portal: res.data.portal, persist: false };
+    clearSavedSession();                                    // the previous account must not come back on the next start
+    pending = null;
+    return { user: res.data.user, portal: res.data.portal };
+  }
+  return null;
+});
+ipcMain.handle("app:drop-link", () => { linkCode = null; });
+
 ipcMain.handle("session:restore", async () => {
   if (!auth) {
     const saved = loadSavedSession();
@@ -169,15 +195,17 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  function showPage(page) {
+  function showPage(req) {
     const [w] = BrowserWindow.getAllWindows();
     if (w) {
       if (w.isMinimized()) w.restore();
       w.focus();
     }
-    if (page) {
-      pendingPage = page;                            // kept until the signed-in home screen takes it (the login screen may be showing)
-      for (const win of BrowserWindow.getAllWindows()) win.webContents.send("open-page", page);
+    if (req) {
+      const { code, ...page } = req;
+      pendingPage = { ...page, hasCode: !!code };    // kept until the app takes it (the login screen may be showing)
+      linkCode = code ? { code, at: Date.now() } : null;
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send("open-page");
     }
   }
   app.on("second-instance", (_event, argv) => {
@@ -189,7 +217,14 @@ if (!app.requestSingleInstanceLock()) {
     showPage(pageFromProtocolUrl(url));
   });
   const firstLink = process.argv.find((a) => typeof a === "string" && a.startsWith(PROTOCOL + "://"));
-  if (firstLink) pendingPage = pageFromProtocolUrl(firstLink);
+  if (firstLink) {
+    const r = pageFromProtocolUrl(firstLink);
+    if (r) {
+      const { code, ...page } = r;
+      pendingPage = { ...page, hasCode: !!code };
+      linkCode = code ? { code, at: Date.now() } : null;
+    }
+  }
   app.whenReady().then(() => {
     app.setAppUserModelId("com.safebrowse.desktop");
     try {

@@ -8,7 +8,7 @@ import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
 } from "./ui";
-import type { Settings, Verdict } from "./types";
+import type { RecentScan, Settings, Verdict } from "./types";
 
 // ─── Pairing (replaces the old login page: the code comes from the desktop app) ──────────────
 export function PairScreen({ notice, onSubmit }: { notice?: string; onSubmit: (code: string) => Promise<string | null> }) {
@@ -312,8 +312,9 @@ export function ManualResultScreen({ v, onScanAnother, onViewDetails }: { v: Ver
 }
 
 // ─── Activity ─────────────────────────────────────────────────────────────────────
-export function ActivityScreen({ current, monitoring, email, onOpenApp }: {
-  current?: Verdict; monitoring: boolean; email?: string | null; onOpenApp: () => void;
+export function ActivityScreen({ current, recent, error, monitoring, onViewDetails, onOpenApp }: {
+  current?: Verdict; recent: RecentScan[] | null; error?: string; monitoring: boolean;
+  onViewDetails: (r: RecentScan) => void; onOpenApp: () => void;
 }) {
   return (
     <div className="p-4 fade-in">
@@ -344,35 +345,28 @@ export function ActivityScreen({ current, monitoring, email, onOpenApp }: {
           <div className="text-[11px] text-gray-400">No page checked yet.</div>
         )}
       </div>
-      <div className="bg-white rounded-xl p-3 border border-gray-200 mb-3">
-        <div className="text-[11px] font-semibold text-gray-700 mb-1">Your scan history is private</div>
-        <div className="text-[11px] text-gray-500 leading-relaxed">
-          Every page SafeBrowse checks is saved to your account, not to this browser. Open the SafeBrowse app and sign in to see the full history.
-        </div>
-        {email && <div className="text-[10px] text-gray-400 mt-1.5 truncate">Saving to: {email}</div>}
+      <SectionLabel>Recently Detected</SectionLabel>
+      <div className="space-y-1.5 mb-3 -mt-1.5">
+        {recent === null && !error && <div className="text-[11px] text-gray-400 py-2">Loading…</div>}
+        {error && <div className="text-[11px] text-red-600 py-2">{error}</div>}
+        {recent !== null && !error && recent.length === 0 && <div className="text-[11px] text-gray-400 py-2">Nothing recorded yet. Pages you visit are checked automatically.</div>}
+        {(recent ?? []).slice(0, 3).map((r) => (
+          <div key={r.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
+            <div className="shrink-0"><StatusIcon s={r.status} size={13} /></div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-mono text-gray-700 truncate" title={r.url}>{hostOf(r.url)}</div>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-[9px] font-bold ${statusColor(r.status)}`}>{statusLabel(r.status)}</span>
+                <span className="text-[10px] font-mono text-gray-400">{clock(r.ts)}</span>
+              </div>
+            </div>
+            <button onClick={() => onViewDetails(r)} className="text-[10px] text-[#0f2a4a] font-semibold hover:underline underline-offset-2 flex items-center gap-0.5 shrink-0">
+              <ExternalLinkIcon size={10} />View
+            </button>
+          </div>
+        ))}
       </div>
       <OutlineBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />See more in app</OutlineBtn>
-    </div>
-  );
-}
-
-// ─── History (the list itself lives in the app, never in the browser) ─────────────
-export function HistoryScreen({ email, onOpenApp }: { email?: string | null; onOpenApp: () => void }) {
-  return (
-    <div className="p-4 fade-in">
-      <SectionLabel>Scan History</SectionLabel>
-      <div className="flex flex-col items-center text-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-6 mb-3">
-        <ClockIcon size={22} className="text-gray-400 mb-2" />
-        <div className="text-[12px] font-semibold text-gray-700 mb-1">Your history is private</div>
-        <div className="text-[11px] text-gray-500 leading-relaxed">
-          Scanned websites are saved to your SafeBrowse account, not to this browser, so nobody else using this computer can see them.
-        </div>
-        {email && <div className="text-[10px] text-gray-400 mt-2 truncate max-w-full">Saving to: {email}</div>}
-      </div>
-      <PrimaryBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />Open SafeBrowse History</PrimaryBtn>
-      <div className="text-[10px] text-gray-400 text-center mt-2 leading-relaxed">
-        The app opens on your account's history. If another account is signed in there, it will tell you instead of showing it.
-      </div>
     </div>
   );
 }

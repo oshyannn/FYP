@@ -4,6 +4,7 @@ Users           POST /api/auth/register | verify-email | resend-code | login | f
 Employer/admin  POST /api/staff/login | request-access | forgot-password        (separate endpoints, separate rules)
 Account         GET/PATCH /api/me,  POST /api/me/password,  POST /api/auth/logout
 Extension       POST /api/extension/pairing-code (desktop)  ->  POST /api/extension/pair (extension)
+                POST /api/extension/app-link (extension) -> POST /api/auth/app-link (desktop): one-time code, signs the app in as the extension's account
                 GET /api/extension/devices, DELETE /api/extension/devices/<id>   (desktop, to revoke an extension)
 
 There is deliberately NO endpoint that creates an admin. An employer is an ordinary user until an
@@ -351,6 +352,31 @@ def pair_extension():
     audit.log("extension_paired", "extension", user["id"], {"label": label})
     return jsonify({"token": token, "expires_in": config.EXT_SESSION_DAYS * 86400,
                     "user": {"full_name": user["full_name"], "email": user["email"]}})
+
+
+@bp.post("/extension/app-link")
+@limiter.limit("20 per minute")
+@auth_required("extension")
+def extension_app_link():
+    """Called by the extension's "See more in app". Returns a one-minute, single-use code the desktop app can exchange
+    for a login of THIS extension's account (the app asks the person to confirm before it uses it)."""
+    code = tokens.issue_app_link(g.user["id"], 60)
+    audit.log("app_link_issued", "extension", g.user["id"])
+    return jsonify({"code": code, "expires_in": 60})
+
+
+@bp.post("/auth/app-link")
+@limiter.limit("10 per minute; 60 per hour")
+def app_link_login():
+    """Called by the desktop app with a code from the extension. Signs the app in as the extension's account."""
+    code = _s(_body(), "code", 100)
+    uid = tokens.consume_app_link(code) if code else None
+    user = users.get_by_id(uid) if uid else None
+    if not user or user["status"] != "active" or user["role"] != "user":
+        audit.log("app_link_failed", "auth", uid)
+        return _err("invalid_code", BAD_CODE, 400)
+    audit.log("app_link_login", "auth", user["id"])
+    return jsonify(_new_session(user, "user"))
 
 
 @bp.get("/extension/devices")

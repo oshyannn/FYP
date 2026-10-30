@@ -121,3 +121,21 @@ def consume_handoff(user_id, challenge: str) -> bool:
                  "AND purpose = 'signup_handoff'::public.token_purpose AND consumed_at IS NULL AND expires_at > now() "
                  "RETURNING id", (user_id, code_hash("handoff", challenge)))
     return row is not None
+
+
+# ---- extension -> desktop app link: a one-minute, single-use code that lets the app sign in as the extension's account ----
+# Stored under the existing 'signup_handoff' purpose with its own hash scope, so no database migration is needed.
+def issue_app_link(user_id, ttl_seconds: int) -> str:
+    code = new_token()
+    db.run("INSERT INTO public.auth_tokens (user_id, token_hash, purpose, expires_at) "
+           "VALUES (%s, %s, 'signup_handoff'::public.token_purpose, now() + %s * interval '1 second')",
+           (user_id, code_hash("app-link", code), ttl_seconds))
+    return code
+
+
+def consume_app_link(code: str):
+    """Atomically uses the code up and returns its user_id (None if invalid, expired or already used)."""
+    row = db.one("UPDATE public.auth_tokens SET consumed_at = now() WHERE token_hash = %s "
+                 "AND purpose = 'signup_handoff'::public.token_purpose AND consumed_at IS NULL AND expires_at > now() "
+                 "RETURNING user_id", (code_hash("app-link", code),))
+    return row["user_id"] if row else None
