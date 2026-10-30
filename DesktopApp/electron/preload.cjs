@@ -6,10 +6,13 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("sb", {
   api: (method, path, body) => ipcRenderer.invoke("api", { method, path, body }),
   restoreSession: () => ipcRenderer.invoke("session:restore"),
-  // pages the browser extension asked for (safebrowse://history ...); only { page: <fixed page name>, acct: <hash or null> } ever arrives
+  // the page the browser extension asked for (safebrowse://history ...): { page, acct, scan, hint, hasCode } or null.
+  // The one-time login code stays in the main process; the page can only say "accept" or "drop".
   takePendingPage: () => ipcRenderer.invoke("app:take-pending-page"),
+  acceptLink: () => ipcRenderer.invoke("app:accept-link"),
+  dropLink: () => ipcRenderer.invoke("app:drop-link"),
   onOpenPage: (cb) => {
-    const handler = (_event, req) => cb(req);
+    const handler = () => cb();
     ipcRenderer.on("open-page", handler);
     return () => ipcRenderer.removeListener("open-page", handler);
   },

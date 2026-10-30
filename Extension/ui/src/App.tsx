@@ -3,10 +3,10 @@ import * as api from "./api";
 import * as store from "./store";
 import { Footer, Header, NavBar, type Screen } from "./ui";
 import {
-  ActivityScreen, CheckingScreen, HistoryScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
+  ActivityScreen, CheckingScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
   ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SuspiciousScreen,
 } from "./screens";
-import type { Auth, Settings, Verdict } from "./types";
+import type { Auth, RecentScan, Settings, Verdict } from "./types";
 
 type Boot = "loading" | "pair" | "ready";
 type Current =
@@ -35,6 +35,8 @@ export default function App() {
   const [manual, setManual] = useState<Verdict | null>(null);
   const [detail, setDetail] = useState<{ v: Verdict; back: Screen } | null>(null);
   const scanned = useRef(false);
+  const [recent, setRecent] = useState<RecentScan[] | null>(null);
+  const [recentErr, setRecentErr] = useState("");
 
   // ── load everything from storage (and again whenever background.js changes it)
   const reload = useCallback(async () => {
@@ -60,6 +62,30 @@ export default function App() {
       if (!a) setBoot("pair");
     });
   }, [reload]);
+
+  // ── the account's latest scans for the Activity tab: read from the server each time, never kept in the browser
+  const verdictTs = current.phase === "done" ? current.verdict.ts : 0;
+  useEffect(() => {
+    if (boot !== "ready" || !auth || screen !== "activity") return;
+    let alive = true;
+    setRecentErr("");
+    api.recent(auth.token, 3).then(
+      (r) => alive && setRecent(r),
+      (e) => {
+        if (!alive) return;
+        if (e instanceof api.ApiError && e.status === 401) {
+          setNotice("Your session ended. Generate a new pairing code in the desktop app.");
+          setBoot("pair");
+        } else {
+          setRecent([]);
+          setRecentErr((e as Error).message);
+        }
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [boot, auth, screen, verdictTs]);
 
   // ── scanning the current page
   const scanCurrent = useCallback(async (force: boolean) => {
@@ -186,8 +212,7 @@ export default function App() {
   function body() {
     switch (screen) {
       case "status": return statusView();
-      case "activity": return <ActivityScreen current={verdict} monitoring={settings.realtime} email={auth?.user.email} onOpenApp={() => api.openApp("history")} />;
-      case "history": return <HistoryScreen email={auth?.user.email} onOpenApp={() => api.openApp("history")} />;
+      case "activity": return <ActivityScreen current={verdict} recent={recent} error={recentErr} monitoring={settings.realtime} onViewDetails={(r) => api.openApp("history", r.id)} onOpenApp={() => api.openApp("history")} />;
       case "manual_scan": return <ManualScanScreen onScan={manualScan} />;
       case "manual_result": return manual ? <ManualResultScreen v={manual} onScanAnother={() => setScreen("manual_scan")} onViewDetails={() => openDetails(manual, "manual_result")} /> : null;
       case "settings": return <SettingsScreen settings={settings} email={auth?.user.email} onSave={async (s) => { await store.saveSettings(s); setSettings(s); }} onDisconnect={async () => { if (auth) await api.disconnect(auth.token); setNotice(undefined); setBoot("pair"); }} />;

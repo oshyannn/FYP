@@ -87,6 +87,7 @@ function toVerdict(url, d) {
         url, status: toStatus(d), score: Number(d && d.risk_score) || 0,
         reasons: Array.isArray(d && d.reasons) ? d.reasons.map(String).slice(0, 12) : [],
         source: String((d && d.source) || ""), adult: !!d && d.status === "Restricted", ts: Date.now(),
+        scanId: d && typeof d.scan_id === "string" && d.scan_id ? d.scan_id : null,   // the saved record, so "See more in app" can open it
     };
 }
 function reasonText(data) {
@@ -122,7 +123,7 @@ async function fetchVerdict(url, token, opts, signal) {
             if (r.ok) {                                          // the saved record carries the detector's full answer
                 const saved = await r.json();
                 const a = saved && saved.scan && saved.scan.analysis;
-                if (a && typeof a === "object" && typeof a.status === "string") return a;
+                if (a && typeof a === "object" && typeof a.status === "string") return { ...a, scan_id: String(saved.scan.id || "") };
             }
             // anything else (rate limit, bad address, detector hiccup): still check the page with the plain endpoint below
         } catch (err) {
@@ -302,24 +303,40 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.type !== "open-app") return;
     if (!String(sender.url || "").startsWith(chrome.runtime.getURL("popup/"))) return;
     const page = APP_PAGES.includes(msg.page) ? msg.page : "dashboard";
-    openApp(page);
+    const scan = typeof msg.scan === "string" && /^[0-9a-f-]{36}$/i.test(msg.scan) ? msg.scan : "";
+    openApp(page, scan);
 });
 
-// The link carries a one-way hash of the extension account's email (no personal data). The app compares it with the
-// account that is signed in there and refuses to open the history when they differ.
-async function accountTag() {
+// The link names the extension's account so the app can check it against the account signed in there:
+//   acct = one-way hash of the email, hint = masked email (for the question "switch account?"),
+//   code = a one-minute, single-use code from the server that lets the app sign in as THIS account, but only after the
+//          person answers "yes" in the app. No password, token or history is ever put in the link.
+async function openApp(page, scan) {
+    let acct = "", hint = "", code = "";
     try {
         const { auth } = await chrome.storage.local.get("auth");
         const email = auth && auth.user && typeof auth.user.email === "string" ? auth.user.email.trim().toLowerCase() : "";
-        if (!email) return "";
-        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
-        return Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
-    } catch { return ""; }
-}
-
-async function openApp(page) {
-    const tag = await accountTag();
-    chrome.tabs.create({ url: "safebrowse://" + page + (tag ? "?acct=" + tag : "") }, (tab) => {
+        if (email) {
+            const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+            acct = Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+            const [local, domain] = email.split("@");
+            hint = local.slice(0, 2) + "***@" + (domain || "");
+        }
+        if (auth && auth.token) {
+            try {
+                const r = await fetch(API_BASE + "/api/extension/app-link", { method: "POST", headers: authHeaders(auth.token) });
+                if (r.status === 401) await notPaired();
+                else if (r.ok) code = String(((await r.json()) || {}).code || "");
+            } catch { /* offline: the app can still check the account, it just cannot offer to switch */ }
+        }
+    } catch { /* the link is still opened */ }
+    const q = new URLSearchParams();
+    if (acct) q.set("acct", acct);
+    if (hint) q.set("hint", hint);
+    if (scan) q.set("scan", scan);
+    if (code) q.set("code", code);
+    const qs = q.toString();
+    chrome.tabs.create({ url: "safebrowse://" + page + (qs ? "?" + qs : "") }, (tab) => {
         if (chrome.runtime.lastError || !tab) return;
         // Chrome leaves an empty tab behind when it hands a link to another program. Close it once the app has had time to open.
         setTimeout(() => {

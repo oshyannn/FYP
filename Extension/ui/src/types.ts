@@ -9,6 +9,16 @@ export interface Verdict {
   source: string;
   adult: boolean; // backend status "Restricted" (adult-content block list)
   ts: number;
+  scanId?: string | null; // the saved record in the account (lets "See more in app" open its detailed analysis)
+}
+
+/** One row of the account's recent scans, read live from the server (never stored in the browser). */
+export interface RecentScan {
+  id: string;
+  url: string;
+  status: Status;
+  score: number;
+  ts: number;
 }
 
 export interface Settings {
