@@ -4,8 +4,54 @@
 export type Level = "safe" | "suspicious" | "malicious" | "unknown";
 export type ScanType = "auto" | "manual" | "redirect";
 
+/** One source the detector asked (list, PhishTank, Safe Browsing, look-alike, domain age, AI 1, AI 2). */
+export interface CheckItem {
+  id: string;
+  name: string;
+  group: "list" | "api" | "rule" | "ai";
+  state: "match" | "clear" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
+  detail: string;
+  score: number | null;
+  effect: "risk" | "trust" | "none";
+}
+/** One kind of page threat found by AI 2 (fake login, fake bank / payment, hidden download ...). */
+export interface ThreatCategory {
+  id: string;
+  label: string;
+  percent: number;
+  level: "low" | "medium" | "high";
+  triggered: boolean;
+  description: string;
+  evidence: string[];
+}
+export interface AiResult {
+  name: string;
+  state: "ok" | "no_opinion" | "skipped";
+  percent: number | null; // phishing probability in percent (AI 1, AI 2)
+  score: number | null; // risk score 0..100 that this model contributes
+  level: "none" | "low" | "elevated" | "high";
+  description: string;
+  categories?: ThreatCategory[];
+  signals?: string[];
+  download?: { kind: string | null; file: string } | null;
+}
+export interface FinalResult {
+  status: string;
+  score: number | null;
+  list_api: { score: number | null; text: string };
+  ai: { score: number | null; text: string };
+  notes: string[];
+  method: string;
+  summary: string;
+}
+
 export interface Analysis {
   status?: string;
+  checks?: CheckItem[];
+  ai1?: AiResult;
+  ai2?: AiResult;
+  ai_combined?: AiResult;
+  final?: FinalResult;
   risk_score?: number;
   has_data?: boolean;
   source?: string;
@@ -52,6 +98,7 @@ export function reasonsOf(a?: Analysis): string[] {
 
 /** Phishing probability in percent, or null if the model gave no opinion. */
 export function mlProbability(a?: Analysis): number | null {
+  if (a?.ai1 && a.ai1.state !== "skipped") return a.ai1.percent ?? null;
   if (typeof a?.ml_probability === "number") {
     const p = a.ml_probability;
     return Math.round(p <= 1 ? p * 100 : p);
@@ -115,7 +162,36 @@ export function guidance(level: Level): string {
 
 export interface Card { title: string; icon: string; text: string }
 
+function structuredCards(rec: ScanRecord): Card[] {
+  const a = rec.analysis!;
+  const proto = protocolOf(rec.url);
+  const checks = a.checks ?? [];
+  const used = checks.filter((c) => c.group !== "ai" && (c.state === "match" || c.state === "clear")).length;
+  const hits = checks.filter((c) => c.group !== "ai" && c.state === "match" && c.effect === "risk");
+  const total = checks.filter((c) => c.group !== "ai").length;
+  const ai1 = a.ai1;
+  const ai2 = a.ai2;
+  return [
+    {
+      title: "URL Analysis",
+      icon: "🔍",
+      text: proto === "https" ? "Uses a secure connection (HTTPS)." : proto === "http" ? "No HTTPS: the connection is not encrypted." : "The address was entered without http:// or https://.",
+    },
+    {
+      title: "Lists & APIs",
+      icon: "🛡️",
+      text: hits.length ? `Reported by ${hits.map((h) => h.name).join(", ")}.` : `${used} of ${total} sources checked: no record found.`,
+    },
+    {
+      title: "AI Detection",
+      icon: "🤖",
+      text: `AI 1 (URL) ${pctText(ai1?.percent)} · AI 2 (page) ${pctText(ai2?.percent)} · combined ${scoreOrDash(a.ai_combined?.score)}.`,
+    },
+  ];
+}
+
 export function summaryCards(rec: ScanRecord): Card[] {
+  if (hasStructured(rec.analysis)) return structuredCards(rec);
   const a = rec.analysis;
   const proto = protocolOf(rec.url);
   const ml = mlProbability(a);
@@ -161,5 +237,62 @@ export function detailSections(rec: ScanRecord): Section[] {
       icon: "🤖",
       rows: [{ label: "Phishing probability", value: ml === null ? "No opinion from the model" : `${ml}%` }],
     },
+  ];
+}
+
+
+// ---- structured detector output (new records). Older saved scans do not have these fields: every helper falls back. ----
+
+export function hasStructured(a?: Analysis): boolean {
+  return Array.isArray(a?.checks) && a!.checks!.length > 0;
+}
+
+export const STATE_LABEL: Record<CheckItem["state"], string> = {
+  match: "Found",
+  clear: "No record",
+  unavailable: "Unavailable",
+  not_configured: "Not configured",
+  skipped: "Not needed",
+  no_opinion: "No opinion",
+};
+
+/** Tailwind classes for a source's badge: red = evidence against the site, green = trusted list, grey = nothing / not used. */
+export function checkTone(c: CheckItem): string {
+  if (c.state === "match") return c.effect === "trust" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200";
+  if (c.state === "clear") return "bg-slate-50 text-slate-600 border-slate-200";
+  if (c.state === "unavailable" || c.state === "not_configured") return "bg-amber-50 text-amber-700 border-amber-200";
+  return "bg-slate-50 text-slate-400 border-slate-200";
+}
+
+export function checkLabel(c: CheckItem): string {
+  return c.state === "match" && c.effect === "trust" ? "Trusted" : STATE_LABEL[c.state];
+}
+
+/** Bar colour for a 0..100 risk number (same 30 / 70 limits the detector uses). null = no value. */
+export function riskTone(score: number | null | undefined): { bar: string; text: string } {
+  if (score == null) return { bar: "bg-slate-300", text: "text-slate-500" };
+  if (score >= 70) return { bar: "bg-red-500", text: "text-red-600" };
+  if (score >= 30) return { bar: "bg-amber-500", text: "text-amber-600" };
+  return { bar: "bg-green-500", text: "text-green-600" };
+}
+
+/** Bar colour for a page-threat percentage (these use their own 20 / 50 limits, see page_threats.py). */
+export function threatTone(level: ThreatCategory["level"]): { bar: string; text: string } {
+  return level === "high" ? { bar: "bg-red-500", text: "text-red-600" } : level === "medium" ? { bar: "bg-amber-500", text: "text-amber-600" } : { bar: "bg-green-500", text: "text-green-600" };
+}
+
+export const pctText = (p: number | null | undefined): string => (p == null ? "No opinion" : `${Math.round(p)}%`);
+export const scoreOrDash = (s: number | null | undefined): string => (s == null ? "—" : `${Math.round(s)}/100`);
+
+export interface BreakdownBar { label: string; score: number | null; note: string }
+
+/** The three numbers that explain the verdict: lists / APIs, AI models, and the final result. */
+export function breakdownBars(rec: ScanRecord): BreakdownBar[] {
+  const f = rec.analysis?.final;
+  if (!f) return [];
+  return [
+    { label: "Lists / APIs", score: f.list_api.score, note: f.list_api.score == null ? "No evidence from lists or APIs" : "Highest score from lists, PhishTank, Google Safe Browsing and domain rules" },
+    { label: "AI models (AI 1 + AI 2)", score: f.ai.score, note: f.ai.score == null ? "No AI result" : "Both AI models combined" },
+    { label: "Final risk", score: rec.risk_level === "unknown" ? null : rec.risk_score, note: "Lists / APIs and AI together" },
   ];
 }

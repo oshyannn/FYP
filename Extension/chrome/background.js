@@ -85,9 +85,15 @@ function toStatus(d) {
 function toVerdict(url, d) {
     return {
         url, status: toStatus(d), score: Number(d && d.risk_score) || 0,
-        reasons: Array.isArray(d && d.reasons) ? d.reasons.map(String).slice(0, 12) : [],
+        reasons: Array.isArray(d && d.reasons) ? d.reasons.map(String).slice(0, 30) : [],
         source: String((d && d.source) || ""), adult: !!d && d.status === "Restricted", ts: Date.now(),
         scanId: d && typeof d.scan_id === "string" && d.scan_id ? d.scan_id : null,   // the saved record, so "See more in app" can open it
+        // every source, both AI models (with their % and descriptions), the AI combination and the final combination (see detector.py)
+        checks: Array.isArray(d && d.checks) ? d.checks.slice(0, 20) : undefined,
+        ai1: d && d.ai1 && typeof d.ai1 === "object" ? d.ai1 : undefined,
+        ai2: d && d.ai2 && typeof d.ai2 === "object" ? d.ai2 : undefined,
+        aiCombined: d && d.ai_combined && typeof d.ai_combined === "object" ? d.ai_combined : undefined,
+        final: d && d.final && typeof d.final === "object" ? d.final : undefined,
     };
 }
 function reasonText(data) {
