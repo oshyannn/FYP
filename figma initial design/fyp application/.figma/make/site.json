@@ -1,0 +1,10 @@
+{
+  "description": "SafeBrowse provides real-time malicious URL detection for users, employers, and admins, ensuring safe browsing by scanning and managing URLs effectively.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
