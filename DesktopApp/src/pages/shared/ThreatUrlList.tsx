@@ -8,6 +8,8 @@ import {
   THREAT_TYPE_OPTIONS, threatStatusLabel, threatStatusTone, threatTypeLabel, threatTypeTone,
 } from "../../lib/threats";
 import type { ThreatItem, ThreatStats, ThreatStatus } from "../../lib/threats";
+import MySubmissions from "../staff/submissions/MySubmissions";
+import SubmitThreatModal from "../staff/submissions/SubmitThreatModal";
 
 interface Props {
   /** undefined = a normal user (read only, approved entries only) */
@@ -28,6 +30,7 @@ const TABS: { key: ThreatStatus; label: string }[] = [
 export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   const staff = !!staffRole;
   const isAdmin = staffRole === "admin";
+  const employer = staffRole === "employer";
   const [tab, setTab] = useState<ThreatStatus>(staff ? "pending_review" : "active");
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
@@ -42,6 +45,12 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   const [view, setView] = useState<ThreatItem | null>(null);
   const [confirm, setConfirm] = useState<{ item: ThreatItem; decision: Decision } | null>(null);
   const [busy, setBusy] = useState(false);
+  // employer only: the "Submit Threat URL" form and the "My Submissions" list
+  const [section, setSection] = useState<"list" | "mine">("list");
+  const [showSubmit, setShowSubmit] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [mineKey, setMineKey] = useState(0);
+  const [minePending, setMinePending] = useState(0);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -70,6 +79,14 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!employer) return;
+    api.get("/api/staff/threat-submissions/mine?per_page=1").then((res) => {
+      if (res.status === 401) onSessionEnd();
+      else if (res.status === 200) setMinePending(res.data.counts.pending as number);
+    });
+  }, [employer, mineKey]);
 
   async function act() {
     if (!confirm || busy) return;
@@ -104,14 +121,90 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const cols = staff ? ["URL", "Threat Type", "Risk Score", "Detections", "Status", "Last Detected", "Action"] : ["URL", "Threat Type", "Risk Score", "Detections", "Last Detected", "Action"];
 
-  return (
-    <div className="max-w-6xl space-y-5">
+  const header = (
+    <div className="flex items-start justify-between gap-4 flex-wrap">
       <div>
         <h2 className="text-xl font-bold text-slate-900">{staff ? "Threat URL Management" : "Threat URL List"}</h2>
         <p className="text-slate-500 text-sm mt-0.5">
           {staff ? "Review detected URLs and manage the Global Threat List." : "Websites that have been identified as security threats."}
         </p>
       </div>
+      {employer && (
+        <button
+          onClick={() => setShowSubmit(true)}
+          className="shrink-0 bg-[#1e3a5f] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a] transition-colors flex items-center gap-2"
+        >
+          <span className="text-base leading-none">+</span> Submit Threat URL
+        </button>
+      )}
+    </div>
+  );
+
+  const sectionSwitch = employer && (
+    <div className="inline-flex gap-1 p-1 bg-slate-100 rounded-lg" role="tablist">
+      {(
+        [
+          ["list", "Global Threat List", 0],
+          ["mine", "My Submissions", minePending],
+        ] as const
+      ).map(([key, label, count]) => (
+        <button
+          key={key}
+          role="tab"
+          aria-selected={section === key}
+          onClick={() => setSection(key)}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 ${section === key ? "bg-white text-[#1e3a5f] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          {label}
+          {count > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+
+  const submitBanner = submitted && (
+    <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm" role="status">
+      <span className="text-lg">📋</span>
+      <div>
+        <p className="font-medium">Your submission has been sent to the Admin Approval Queue.</p>
+        <p className="text-xs text-blue-600 mt-0.5">
+          An admin will review your submission. You can track its status in <b>My Submissions</b>.
+        </p>
+      </div>
+    </div>
+  );
+
+  const submitModal = showSubmit && (
+    <SubmitThreatModal
+      onClose={() => setShowSubmit(false)}
+      onSessionEnd={onSessionEnd}
+      onSubmitted={() => {
+        setShowSubmit(false);
+        setSubmitted(true);
+        setSection("mine");
+        setMineKey((k) => k + 1);
+        window.setTimeout(() => setSubmitted(false), 6000);
+      }}
+    />
+  );
+
+  if (employer && section === "mine") {
+    return (
+      <div className="max-w-6xl space-y-5">
+        {header}
+        {sectionSwitch}
+        {submitBanner}
+        <MySubmissions onSessionEnd={onSessionEnd} reloadKey={mineKey} />
+        {submitModal}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl space-y-5">
+      {header}
+      {sectionSwitch}
+      {submitBanner}
 
       {error && <Alert kind="error">{error}</Alert>}
       {done && <Alert kind="success">{done}</Alert>}
@@ -292,6 +385,8 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
           </div>
         </div>
       )}
+
+      {submitModal}
     </div>
   );
 }

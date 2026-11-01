@@ -37,6 +37,10 @@ def init_web(app):
     app.register_blueprint(feedback_bp)
     from web.controllers.dashboard import bp as dashboard_bp
     app.register_blueprint(dashboard_bp)
+    from web.controllers.whitelist import bp as whitelist_bp
+    app.register_blueprint(whitelist_bp)
+    from web.controllers.submissions import bp as submissions_bp
+    app.register_blueprint(submissions_bp)
 
     @app.before_request
     def _load_user():

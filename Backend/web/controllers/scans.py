@@ -21,7 +21,7 @@ from flask import Blueprint, g, jsonify, request
 from aidev.core.features import get_host, normalize
 from aidev.detection.detector import analyze
 from web.controllers.common import body, err, s
-from web.db_models import scans
+from web.db_models import scans, whitelist
 from web.extensions import limiter
 from web.guards import auth_required
 
@@ -56,6 +56,33 @@ def _int(name: str, default: int, lo: int, hi: int) -> int:
         return default
 
 
+def _trusted_scope(host: str):
+    """'user' / 'global' when the host is on the caller's whitelist (or the administrator's), else None.
+    A whitelist problem must never stop a scan."""
+    try:
+        return whitelist.trusted_scope(g.user["id"], host)
+    except Exception:
+        log.exception("whitelist lookup failed")
+        return None
+
+
+def _apply_whitelist(result: dict, level: str, score: float, threat: str, scope):
+    """A trusted website is shown as safe, unless the detector found it malicious: that is never overridden."""
+    if not scope or level == "safe":
+        return result, level, score, threat
+    whose = "the administrator's whitelist" if scope == "global" else "your whitelist"
+    out = dict(result)
+    reasons = list(out.get("reasons") or [])
+    if level == "malicious":
+        reasons.insert(0, f"This website is on {whose}, but it is not trusted because the detector found it malicious.")
+        out.update(reasons=reasons, whitelist_ignored=scope)
+        return out, level, score, threat
+    reasons.insert(0, f"Trusted: this website is on {whose}.")
+    out.update(status="Safe", risk_score=0, source="whitelist", reasons=reasons, whitelisted=scope,
+               detector_status=result.get("status"), detector_score=result.get("risk_score"))
+    return out, "safe", 0.0, "none"
+
+
 @bp.post("/scans")
 @limiter.limit("30 per minute; 300 per hour")
 @auth_required("user", "extension")
@@ -82,6 +109,7 @@ def create_scan():
     level = LEVELS.get(str(result.get("status", "")).lower(), "unknown")
     score = min(100.0, max(0.0, float(result.get("risk_score") or 0)))
     threat = result.get("threat_type") if result.get("threat_type") in THREAT_TYPES else ("none" if level == "safe" else "unknown")
+    result, level, score, threat = _apply_whitelist(result, level, score, threat, _trusted_scope(host))
     if g.user["portal"] == "extension":
         requested = s(data, "scan_type", 10)
         scan_type = requested if requested in SCAN_TYPES else "auto"

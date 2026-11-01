@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import type { AppRoute } from "../../App";
 import AppLayout from "../../components/layout/AppLayout";
 import { USER_NAV } from "../../components/layout/nav";
 import type { ScanRecord } from "../../lib/analysis";
@@ -11,16 +10,15 @@ import DetailedAnalysis from "./scan/DetailedAnalysis";
 import DetectionHistory from "./scan/DetectionHistory";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
+import Whitelist from "../shared/Whitelist";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "feedback" | "profile";
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "feedback" | "profile";
 
 interface Props {
   session: Session;
   onLogout: () => void;
-  /** a page the browser extension asked for (already checked to be for this account) */
-  route?: AppRoute | null;
 }
 
 const TITLES: Record<Page, string> = {
@@ -30,12 +28,13 @@ const TITLES: Record<Page, string> = {
   details: "Detailed Analysis",
   history: "Detection History",
   threats: "Threat URL List",
+  whitelist: "Trusted Websites",
   feedback: "Feedback",
   profile: "Profile",
 };
 
 // The signed-in area for normal users. Screens are chosen here; each screen only gets what it needs.
-export default function UserApp({ session, onLogout, route }: Props) {
+export default function UserApp({ session, onLogout }: Props) {
   const [name, setName] = useState(session.user.full_name);
   const user = { ...session.user, full_name: name };
   const [page, setPage] = useState<Page>("dashboard");
@@ -48,28 +47,17 @@ export default function UserApp({ session, onLogout, route }: Props) {
     setPage("feedback");
   };
 
-  // The browser extension can open the app on a page: the dashboard, the detection history, the scanner, or the detailed
-  // analysis of one saved scan. App.tsx has already made sure the link is for this account.
+  // the browser extension can open the app on a page (safebrowse://dashboard | history | scanner)
   useEffect(() => {
-    if (!route) return;
-    setReportScan(null);
-    if (route.scan) {
-      let alive = true;
-      api.get(`/api/scans/${route.scan}`).then((res) => {
-        if (!alive) return;
-        if (res.status === 200) {
-          setScan(res.data.scan as ScanRecord);
-          setCameFrom("history");
-          setPage("details");
-        } else if (res.status === 401) onLogout();
-        else setPage("history"); // not found (e.g. deleted): the history is the next best place
-      });
-      return () => {
-        alive = false;
-      };
-    }
-    setPage(route.page);
-  }, [route]);
+    const go = (p: string) => {
+      if (p === "dashboard" || p === "history" || p === "scanner") {
+        setReportScan(null);
+        setPage(p);
+      }
+    };
+    window.sb.takePendingPage().then((p) => p && go(p));
+    return window.sb.onOpenPage(go);
+  }, []);
 
   async function logout() {
     await api.post("/api/auth/logout");
@@ -116,6 +104,8 @@ export default function UserApp({ session, onLogout, route }: Props) {
     content = <Profile onSessionEnd={onLogout} onNameChanged={setName} />;
   } else if (page === "feedback") {
     content = <Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />;
+  } else if (page === "whitelist") {
+    content = <Whitelist role="user" onSessionEnd={onLogout} />;
   } else if (page === "threats") {
     content = <ThreatUrlList onSessionEnd={onLogout} />;
   } else if (page === "history") {
