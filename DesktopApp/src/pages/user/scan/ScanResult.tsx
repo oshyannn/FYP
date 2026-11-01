@@ -1,4 +1,5 @@
-import { LEVEL_STYLE, summaryCards } from "../../../lib/analysis";
+import RiskBar from "../../../components/RiskBar";
+import { LEVEL_STYLE, breakdownBars, riskTone, scoreOrDash, summaryCards } from "../../../lib/analysis";
 import type { ScanRecord } from "../../../lib/analysis";
 
 interface Props {
@@ -63,6 +64,26 @@ export default function ScanResult({ scan, onBack, onDetails, onDashboard, onRep
           </div>
         ))}
       </div>
+
+      {breakdownBars(scan).length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <p className="text-sm font-semibold text-slate-800 mb-1">How this score was reached</p>
+          <p className="text-xs text-slate-500 mb-4">Lists and APIs and the two AI models are combined into one final risk.</p>
+          <div className="space-y-4">
+            {breakdownBars(scan).map((b) => (
+              <RiskBar
+                key={b.label}
+                label={b.label}
+                value={b.score}
+                display={scoreOrDash(b.score)}
+                tone={b.label === "Final risk" ? { bar: c.bar, text: c.text } : riskTone(b.score)}
+                note={b.note}
+                small
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <button

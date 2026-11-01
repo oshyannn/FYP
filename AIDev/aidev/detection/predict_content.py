@@ -12,6 +12,8 @@ Returned dict:
     download       file name of a program file, or None
     download_kind  "direct" = the address itself IS the file (answered with a download)
                    "auto"   = the HTML page tries to start the download by itself (meta refresh, script, hidden iframe)
+    features       the raw page features (content_features.extract) when the page text was read, else None.
+                   page_threats.assess() turns them into per-kind percentages (fake login, fake bank, downloads ...).
 None = no opinion (page unreachable / not HTML / JavaScript-only and no download): never 0 / safe.
 predict() never raises. Results are cached for 10 minutes. CONTENT_CHECK=0 in the environment switches it off.
 """
@@ -77,8 +79,14 @@ def signals(f: dict) -> list[str]:
         out.append("asks for a password and sends it to a different website")
     elif f["has_password_field"] and (f["form_null_action"] or f["form_script_or_mail_action"]):
         out.append("password form that submits to a script or nowhere")
+    if f.get("n_sensitive_inputs", 0) >= 1:
+        out.append("asks for card, bank, OTP, ID or recovery-phrase details" + (" and sends them to a different website" if f["form_external_action"] else ""))
     if f["brand_in_title_not_domain"]:
         out.append("page title names a well-known brand that this domain does not belong to")
+    if f.get("install_words"):
+        out.append("asks you to install a plug-in or extension, or to update your browser")
+    if f.get("n_download_links", 0) >= 1:
+        out.append("links to program or archive files")
     if f["hidden_iframe"]:
         out.append("contains a hidden iframe")
     if f["obfuscation_density"] > 3:
@@ -89,6 +97,8 @@ def signals(f: dict) -> list[str]:
         out.append("loads most images/scripts from other websites")
     if f["meta_refresh"]:
         out.append("redirects automatically (meta refresh)")
+    if f.get("js_redirect"):
+        out.append("redirects with JavaScript")
     if f["tls_invalid"]:
         out.append("invalid HTTPS certificate")
     if f["redirect_cross_domain"]:
@@ -137,21 +147,23 @@ def _predict(url: str) -> dict | None:
         ms = lambda: round((time.perf_counter() - t0) * 1000, 1)
         if page.download:                                   # the address itself is a program file; nothing to read
             return {"probability": None, "signals": [], "final_url": page.url, "download": page.download,
-                    "download_kind": "direct", "model_version": None, "latency_ms": ms()}
+                    "download_kind": "direct", "model_version": None, "latency_ms": ms(), "features": None}
         if not page.ok or not page.html:
             log.info("content check skipped for %s: %s", url, page.error)
             return None
         auto = auto_download(page.html, page.url)
-        p, sigs, version = None, [], None
+        p, sigs, version, f = None, [], None, None
         b = _load()
-        if b is not None and len(page.html) >= 200:
-            f = cf.extract(page.html, page.url, page.redirects, page.tls_invalid)
-            p = float(b["model"].predict_proba([[f[n] for n in b["feature_names"]]])[0][1])
-            sigs, version = signals(f), b.get("version")
-        if p is None and not auto:
+        if len(page.html) >= 200:
+            f = cf.extract(page.html, page.url, page.redirects, page.tls_invalid)     # features are rule-based: no model needed
+            sigs = signals(f)
+            if b is not None:
+                p = float(b["model"].predict_proba([[f[n] for n in b["feature_names"]]])[0][1])
+                version = b.get("version")
+        if p is None and not auto and f is None:
             return None
         return {"probability": p, "signals": sigs, "final_url": page.url, "download": auto,
-                "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms()}
+                "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f}
     except Exception as exc:
         log.warning("content check failed: %s", exc)
         return None

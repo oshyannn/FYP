@@ -1,5 +1,48 @@
 export type Status = "safe" | "suspicious" | "malicious" | "unknown";
 
+/** One source the detector asked (list, PhishTank, Safe Browsing, look-alike, domain age, AI 1, AI 2). */
+export interface CheckItem {
+  id: string;
+  name: string;
+  group: "list" | "api" | "rule" | "ai";
+  state: "match" | "clear" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
+  detail: string;
+  score: number | null;
+  effect: "risk" | "trust" | "none";
+}
+
+/** One kind of page threat found by AI 2 (fake login, fake bank / payment, hidden download ...). */
+export interface ThreatCategory {
+  id: string;
+  label: string;
+  percent: number;
+  level: "low" | "medium" | "high";
+  triggered: boolean;
+  description: string;
+  evidence: string[];
+}
+
+export interface AiResult {
+  name: string;
+  state: "ok" | "no_opinion" | "skipped";
+  percent: number | null; // phishing probability in percent (AI 1, AI 2)
+  score: number | null; // risk score 0..100 this model contributes
+  level: "none" | "low" | "elevated" | "high";
+  description: string;
+  categories?: ThreatCategory[];
+  signals?: string[];
+}
+
+export interface FinalResult {
+  status: string;
+  score: number | null;
+  list_api: { score: number | null; text: string };
+  ai: { score: number | null; text: string };
+  notes: string[];
+  method: string;
+  summary: string;
+}
+
 /** One answer from POST /analyze, normalised for the UI. */
 export interface Verdict {
   url: string;
@@ -10,6 +53,12 @@ export interface Verdict {
   adult: boolean; // backend status "Restricted" (adult-content block list)
   ts: number;
   scanId?: string | null; // the saved record in the account (lets "See more in app" open its detailed analysis)
+  // structured parts of the detector result (absent when an older backend answered)
+  checks?: CheckItem[];
+  ai1?: AiResult;
+  ai2?: AiResult;
+  aiCombined?: AiResult;
+  final?: FinalResult;
 }
 
 /** One row of the account's recent scans, read live from the server (never stored in the browser). */

@@ -2,7 +2,7 @@
 
 Self-contained map of the workspace so another AI (or teammate) can work on it without opening GitHub.
 **Keep it current:** when a file or folder is added, moved or deleted, update the tree and tables in the same commit.
-Layout version: 2026-10-29 (four parts; DesktopApp URL scanner area `pages/user/` + Backend scan API + Feedback module added).
+Layout version: 2026-11-01 (four parts; DesktopApp URL scanner area `pages/user/` + Backend scan API + Feedback module; detector now returns the structured result `checks` / `ai1` / `ai2` / `ai_combined` / `final`, shown by the desktop scan pages and the extension popup).
 
 ## 1. What the project is
 
@@ -26,9 +26,9 @@ FYP/
 ├── DesktopApp/                  Electron + React + Vite desktop app (own package.json, own node_modules). Moved in unchanged
 │   ├── electron/main.cjs, preload.cjs      Electron main process (API_BASE from env SAFEBROWSE_API, default http://127.0.0.1:5000)
 │   ├── src/                                React: App.tsx, api.ts, types.ts
-│   │   ├── components/                     shared UI; StatusBadge.tsx = verdict badge (used by the scan pages)
+│   │   ├── components/                     shared UI; StatusBadge.tsx = verdict badge (used by the scan pages), RiskBar.tsx = labelled % bar (scan result + detailed analysis)
 │   │   │   └── feedback/                   Badge.tsx, ReplyBox.tsx, ThreadView.tsx (shared by the user and staff feedback screens)
-│   │   ├── lib/analysis.ts                 helpers for scan / analysis results
+│   │   ├── lib/analysis.ts                 helpers for scan / analysis results (reads the structured fields; older saved scans fall back to the old rows)
 │   │   ├── lib/feedback.ts                 feedback types, labels, status tones, PATCH helper
 │   │   └── pages/                          Login, Register, VerifyEmail, ResetPassword, Staff*, Home
 │   │       ├── StaffFeedback.tsx           employer / admin: list, open, reply, set status, close feedback
@@ -42,7 +42,8 @@ FYP/
 ├── AIDev/                       Python. Run commands from here: python -m aidev.<folder>.<module>
 │   ├── aidev/                   the package
 │   │   ├── core/                common.py (all paths + list helpers), features.py (29 URL features, FEATURE_VERSION)
-│   │   ├── detection/           detector.py (analyze), predict.py (URL model), predict_content.py (page model),
+│   │   ├── detection/           detector.py (analyze), predict.py (URL model = AI 1), predict_content.py (page model = AI 2),
+│   │   │                        page_threats.py (AI 2 per-kind %: fake login / fake bank / hidden download / deceptive behaviour / brand),
 │   │   │                        content_features.py, lookalike.py, phishtank.py, safebrowsing.py, rdap.py, pagefetch.py
 │   │   ├── pipeline/            feeds, import_phishtank, import_labeled, import_adult, import_phreshphish, export_history,
 │   │   │                        crawl_pages, build_dataset, train, train_content
@@ -74,7 +75,7 @@ FYP/
 └── Extension/
     ├── chrome/                  Load unpacked in Chrome. manifest.json, background.js (service worker, API_BASE), content.js,
     │                            blocked/checking/prompt .html+.js, pages/ui.css, popup/ (BUILT React popup), icons/, README.md
-    ├── ui/                      React/Tailwind popup source: src/, build.mjs (writes ../chrome/popup), package.json
+    ├── ui/                      React/Tailwind popup source: src/ (breakdown.tsx = sources, AI 1, AI 2, combined, final), build.mjs (writes ../chrome/popup), package.json
     └── testsite/                local test pages + server.py (port 8000) + make_files.py
 ```
 
@@ -127,12 +128,15 @@ Never run `python AIDev/aidev/...py` directly; use `python -m aidev.<folder>.<mo
 - `Backend/web/db_models/` are database tables; ML models are `AIDev/models/*.joblib`.
 - `API_BASE` is duplicated in `Extension/chrome/background.js` and `Extension/ui/src/config.ts`; keep them equal.
 - `tools/` and `scripts/` are manual helpers; nothing in production imports them.
+- Every source must appear in `checks` whether it found something or not (states: match / clear / unavailable / not_configured / skipped / no_opinion). Do not put the words "unavailable" or "could not be read" in a reason that is NOT a failure: `analyze()` retries results containing them after 5 minutes instead of caching them.
+- The per-kind page-threat percentages (`ai2.categories`) are rule-based indicators computed from the same page features as the content model; they explain the result and never change the verdict. The verdict still comes only from the model probability and the download check.
 
 ## 6. Where to change what
 
 | Task | Look in |
 |---|---|
 | Change how a verdict is decided / add a signal | `AIDev/aidev/detection/detector.py` (+ new module in `detection/`) |
+| What the screens show about HOW a verdict was reached (every list / API, AI 1, AI 2 %, AI combined, final) | produced by `detector.py` (`checks`, `ai1`, `ai2`, `ai_combined`, `final`; one entry per source in `PROVIDERS`), page-threat % in `AIDev/aidev/detection/page_threats.py`; shown by `DesktopApp/src/pages/user/scan/{ScanResult,DetailedAnalysis}.tsx` (+ `lib/analysis.ts`) and `Extension/ui/src/breakdown.tsx` (+ `Extension/chrome/background.js` `toVerdict`). Adding a new source = one line in `PROVIDERS` and one `ck.add(...)` in `_analyze` |
 | Add or change a URL feature | `AIDev/aidev/core/features.py`, bump `FEATURE_VERSION`, run `aidev.pipeline.train` |
 | Page-content feature | `AIDev/aidev/detection/content_features.py`, then `aidev.pipeline.train_content` |
 | Trust or block a domain by hand | `AIDev/lists/whitelist.txt`, `blacklist.txt`, `not_trusted.txt`, `protected_domains.txt` |

@@ -4,6 +4,7 @@ import {
   SearchIcon, ShieldCheckIcon, ShieldXIcon, SpinnerIcon,
 } from "./icons";
 import { clock, hostOf, stamp, statusLabel } from "./api";
+import { AnalysisBlocks, Breakdown } from "./breakdown";
 import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
@@ -303,6 +304,12 @@ export function ManualResultScreen({ v, onScanAnother, onViewDetails }: { v: Ver
         <ScoreBar score={v.score} status={v.status} />
         <div className="mt-2.5 text-[11px] text-gray-600 leading-relaxed">{msg}</div>
       </div>
+      {v.final && (
+        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3">
+          <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2">How this score was reached</div>
+          <Breakdown v={v} />
+        </div>
+      )}
       <div className="flex gap-2">
         <OutlineBtn onClick={onViewDetails} className="flex-1"><ExternalLinkIcon size={11} />View Details</OutlineBtn>
         <PrimaryBtn onClick={onScanAnother} className="flex-1">Scan Another</PrimaryBtn>
@@ -454,17 +461,21 @@ export function DetailsScreen({ v, onBack }: { v: Verdict; onBack: () => void })
               <span className={`text-[11px] font-mono font-semibold text-right break-all ${r.hl ? statusColor(v.status) : "text-gray-700"}`}>{r.value}</span>
             </div>
           ))}
-          <div className="border-t border-gray-100 pt-2">
-            <div className="text-[9px] text-gray-400 uppercase tracking-wide mb-1.5">Why this result</div>
-            <div className="space-y-1">
-              {v.reasons.length === 0 && <div className="text-[10px] text-gray-400">No detailed reasons were returned.</div>}
-              {v.reasons.map((r, i) => (
-                <div key={i} className={`text-[10px] font-mono px-2 py-1 rounded ${v.status === "malicious" ? "text-red-600 bg-red-50" : v.status === "suspicious" ? "text-orange-600 bg-orange-50" : "text-gray-600 bg-gray-50"}`}>
-                  {r}
-                </div>
-              ))}
+        </div>
+      </div>
+
+      {/* every list / API, AI 1, AI 2 (with the page-threat percentages), AI combined, final combination */}
+      <AnalysisBlocks v={v} />
+
+      <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3">
+        <div className="text-[9px] text-gray-400 uppercase tracking-wide mb-1.5">Why this result</div>
+        <div className="space-y-1">
+          {v.reasons.length === 0 && <div className="text-[10px] text-gray-400">No detailed reasons were returned.</div>}
+          {v.reasons.map((r, i) => (
+            <div key={i} className={`text-[10px] font-mono px-2 py-1 rounded ${v.status === "malicious" ? "text-red-600 bg-red-50" : v.status === "suspicious" ? "text-orange-600 bg-orange-50" : "text-gray-600 bg-gray-50"}`}>
+              {r}
             </div>
-          </div>
+          ))}
         </div>
       </div>
       <OutlineBtn onClick={onBack} className="w-full"><ArrowLeftIcon size={11} />Back to Extension</OutlineBtn>
