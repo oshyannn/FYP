@@ -1,0 +1,10 @@
+{
+  "description": "Enhance your online safety with real-time URL monitoring, automatic threat detection, and manual scanning, ensuring secure browsing experiences.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

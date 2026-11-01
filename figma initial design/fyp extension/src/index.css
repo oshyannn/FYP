@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+@theme inline {
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --navy: #0f2a4a;
+  --navy-mid: #1a3a5c;
+  --navy-light: #1e4976;
+  --safe: #16a34a;
+  --safe-bg: #dcfce7;
+  --suspicious: #ea580c;
+  --suspicious-bg: #fff7ed;
+  --malicious: #dc2626;
+  --malicious-bg: #fef2f2;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+/* Pulse animation for monitoring dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+/* Spin animation for scanning */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin-slow { animation: spin-slow 1.2s linear infinite; }
+
+/* Fade in */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.25s ease-out; }
+
+/* Scan progress */
+@keyframes scan-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.scan-bar { animation: scan-progress 1.8s ease-in-out forwards; }
