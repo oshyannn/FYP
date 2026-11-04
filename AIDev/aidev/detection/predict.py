@@ -20,10 +20,11 @@ from aidev.core.features import FEATURE_NAMES, FEATURE_VERSION, extract
 log = logging.getLogger(__name__)
 _BUNDLE = None
 _LOAD_FAILED = False
+_LOAD_ERROR = None
 
 
 def _load():
-    global _BUNDLE, _LOAD_FAILED
+    global _BUNDLE, _LOAD_FAILED, _LOAD_ERROR
     if _BUNDLE is not None or _LOAD_FAILED:
         return _BUNDLE
     try:
@@ -34,8 +35,24 @@ def _load():
         _BUNDLE = b
     except Exception as exc:
         _LOAD_FAILED = True
+        _LOAD_ERROR = _explain(exc)
         log.warning("ML model unavailable: %s", exc)
     return _BUNDLE
+
+
+def _explain(exc: Exception) -> str:
+    """Short, path-free reason for the screens (the full error is in the backend log)."""
+    if isinstance(exc, FileNotFoundError):
+        return "the model file AIDev/models/model.joblib was not found (create it with: python -m aidev.pipeline.train)"
+    if isinstance(exc, ValueError) and "retrain" in str(exc):
+        return "features.py changed since the model was trained (run: python -m aidev.pipeline.train)"
+    return f"the model file could not be loaded ({type(exc).__name__}; see the backend log)"
+
+
+def status() -> tuple[bool, str | None]:
+    """(model loaded, reason it is not loaded). Lets the screens say WHY AI 1 has no result."""
+    _load()
+    return _BUNDLE is not None, _LOAD_ERROR
 
 
 def predict(url: str) -> dict | None:

@@ -46,12 +46,14 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 
 const badgeClass = (c: CheckItem) =>
   c.state === "match" ? (c.effect === "trust" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200")
+    : c.state === "info" ? "bg-sky-50 text-sky-700 border-sky-200"
     : c.state === "clear" ? "bg-gray-50 text-gray-600 border-gray-200"
     : c.state === "unavailable" || c.state === "not_configured" ? "bg-orange-50 text-orange-600 border-orange-200"
     : "bg-gray-50 text-gray-400 border-gray-200";
 
 const badgeText = (c: CheckItem) =>
   c.state === "match" ? (c.effect === "trust" ? "Trusted" : "Found")
+    : c.state === "info" ? "Info"
     : c.state === "clear" ? "No record"
     : c.state === "unavailable" ? "Unavailable"
     : c.state === "not_configured" ? "Not configured"
@@ -127,6 +129,27 @@ function Threats({ cats }: { cats: ThreatCategory[] }) {
   );
 }
 
+/** The honest summary: how sure we are, what speaks against / for the site, what could not be checked. */
+export function AssessmentBlock({ v }: { v: Verdict }) {
+  const a = v.final?.assessment;
+  if (!a) return null;
+  const list = (title: string, items: string[], cls: string) => items.length === 0 ? null : (
+    <div>
+      <div className={`text-[9px] font-semibold uppercase tracking-wide mb-0.5 ${cls}`}>{title}</div>
+      <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-gray-600">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>
+    </div>
+  );
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] font-semibold text-gray-800">{a.label} <span className="font-normal text-gray-400">({a.confidence} confidence)</span></div>
+      <div className="text-[10px] text-gray-600 leading-relaxed">{a.summary}</div>
+      {list("Against this site", a.concerns, "text-red-600")}
+      {list("Speaks for this site / checked and clear", a.supporting, "text-green-700")}
+      {list("Could not be checked", a.not_checked, "text-orange-600")}
+    </div>
+  );
+}
+
 /** The three numbers that explain a verdict. Also used on the scan result screen. */
 export function Breakdown({ v }: { v: Verdict }) {
   const f = v.final;
@@ -168,6 +191,7 @@ export function AnalysisBlocks({ v }: { v: Verdict }) {
       {v.final && (
         <Block title="Final result: lists / APIs + AI">
           <Breakdown v={v} />
+          <div className="border-t border-gray-100 pt-2"><AssessmentBlock v={v} /></div>
           <div className="border-t border-gray-100 pt-2 space-y-1.5 text-[10px] text-gray-600 leading-relaxed">
             <div><span className="font-semibold text-gray-700">Lists / APIs: </span>{v.final.list_api.text}</div>
             <div><span className="font-semibold text-gray-700">AI models: </span>{v.final.ai.text}</div>

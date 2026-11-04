@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import RiskBar from "../../../components/RiskBar";
 import StatusBadge from "../../../components/StatusBadge";
 import {
-  LEVEL_STYLE, breakdownBars, checkLabel, checkTone, detailSections, guidance, hasStructured, pctText, reasonsOf, riskTone,
+  CONFIDENCE_TEXT, LEVEL_STYLE, assessmentOf, breakdownBars, checkLabel, checkTone, detailSections, guidance, hasStructured, pctText, reasonsOf, riskTone,
   scanTypeLabel, scoreOrDash, scoreText, threatTone,
 } from "../../../lib/analysis";
 import type { AiResult, CheckItem, ScanRecord } from "../../../lib/analysis";
@@ -82,6 +82,7 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
   const sections = detailSections(scan);
   const ai2 = a?.ai2;
   const cats = ai2?.categories ?? [];
+  const asm = assessmentOf(scan);
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -231,8 +232,33 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
         )}
         <div className="flex items-center gap-4">
           <StatusBadge level={scan.risk_level} />
-          <p className="text-sm text-slate-600">{guidance(scan.risk_level)}</p>
+          <p className="text-sm text-slate-600">{asm ? asm.label : guidance(scan.risk_level)}</p>
         </div>
+        {asm && (
+          <div className="mt-4 space-y-3 text-sm">
+            <p className="text-slate-700">
+              {asm.summary} <span className="text-xs text-slate-400">({CONFIDENCE_TEXT[asm.confidence]})</span>
+            </p>
+            {asm.concerns.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-red-600 mb-1">Against this site</p>
+                <ul className="list-disc pl-5 space-y-0.5 text-slate-700">{asm.concerns.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              </div>
+            )}
+            {asm.supporting.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-green-700 mb-1">Speaks for this site / checked and clear</p>
+                <ul className="list-disc pl-5 space-y-0.5 text-slate-700">{asm.supporting.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              </div>
+            )}
+            {asm.not_checked.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-amber-700 mb-1">Could not be checked</p>
+                <ul className="list-disc pl-5 space-y-0.5 text-slate-700">{asm.not_checked.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        )}
         {a?.final && (
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
             <p className="text-sm text-slate-700">

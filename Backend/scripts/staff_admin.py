@@ -1,7 +1,8 @@
-"""Create the first admin and approve employers (until the admin dashboard exists). Run from Backend/:
+"""Create the first admin, approve employers, and reset a password as a last resort. Run from Backend/:
 
     python -m scripts.staff_admin create-admin you@example.com "Your Name"
     python -m scripts.staff_admin approve-employer employer@example.com
+    python -m scripts.staff_admin reset-password someone@example.com
 
 Only this script (and later admin pages) can create privileged roles: the database trigger refuses
 admin/employer inserts and promotions unless app.privileged_role_write is switched on inside the transaction.
@@ -62,6 +63,34 @@ def approve_employer(email_raw: str) -> None:
     print(f"{email} is now an employer and can log in at /staff/login")
 
 
+def reset_password(email_raw: str) -> None:
+    """Last resort for a locked-out account, for example the only administrator. Normally people use "Forgot password"
+    or an administrator's "Send Password Reset Email". The new password is typed here and never printed."""
+    email, err = clean_email(email_raw)
+    if err:
+        sys.exit(err)
+    with db.transaction() as c:
+        row = c.execute("SELECT id, full_name, status::text AS status FROM public.users "
+                        "WHERE email = %s AND status::text <> 'deleted'", (email,)).fetchone()
+    if not row:
+        sys.exit("No account with that address (deleted accounts cannot be reset).")
+    pw = getpass.getpass("New password: ")
+    if pw != getpass.getpass("Repeat password: "):
+        sys.exit("Passwords do not match.")
+    errs = password_errors(pw, email, row["full_name"] or "")
+    if errs:
+        sys.exit(" ".join(errs))
+    with db.transaction() as c:
+        c.execute("UPDATE public.users SET password_hash = %s, password_changed_at = now(), failed_login_count = 0, "
+                  "locked_until = NULL WHERE id = %s", (hash_password(pw), row["id"]))
+        c.execute("UPDATE public.sessions SET revoked_at = now() WHERE user_id = %s AND revoked_at IS NULL", (row["id"],))
+        c.execute("INSERT INTO public.activity_logs (user_id, action, module, details) "
+                  "VALUES (%s, 'password_reset_via_script', 'auth', '{}'::jsonb)", (row["id"],))
+    print(f"Password for {email} changed. All its sessions were ended.")
+    if row["status"] != "active":
+        print(f"Note: the account status is '{row['status']}', so it still cannot sign in.")
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -70,8 +99,15 @@ if __name__ == "__main__":
     a.add_argument("name")
     e = sub.add_parser("approve-employer")
     e.add_argument("email")
+    r = sub.add_parser("reset-password")
+    r.add_argument("email")
     args = p.parse_args()
     if not config.DATABASE_URL:
         sys.exit("Set DATABASE_URL in Backend/.env first.")
     db.init_pool(config.DATABASE_URL)
-    create_admin(args.email, args.name) if args.cmd == "create-admin" else approve_employer(args.email)
+    if args.cmd == "create-admin":
+        create_admin(args.email, args.name)
+    elif args.cmd == "approve-employer":
+        approve_employer(args.email)
+    else:
+        reset_password(args.email)

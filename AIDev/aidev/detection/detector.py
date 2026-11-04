@@ -23,6 +23,13 @@ import os
 import time
 
 from aidev.detection import phishtank
+from concurrent.futures import ThreadPoolExecutor
+
+from aidev.detection import cert_history
+from aidev.detection import domain_age
+from aidev.detection import official_site
+from aidev.detection import popularity
+from aidev.detection import predict as ai1_model
 from aidev.detection import rdap
 from aidev.detection import predict_content
 from aidev.detection import lookalike
@@ -89,6 +96,7 @@ def _phishtank(url: str) -> phishtank.PhishTankVerdict:
 # a 2% false-positive rate, while 0.3 gives ~39%. Probabilities below ML_SUSPICIOUS_PROB therefore
 # map to scores below the Suspicious threshold, and the model alone can never exceed Suspicious.
 ML_SUSPICIOUS_PROB = 0.7
+ESTABLISHED_SAFE = os.getenv("ESTABLISHED_SAFE", "1") != "0"   # old + popular + nothing reported -> Safe
 
 # The content model reads the page itself (forms, title vs domain, hidden iframes...). Measured on pages you crawled
 # yourself (model_content_metrics.json, eval_mode own-pages-test, AUC 0.76):
@@ -199,7 +207,10 @@ PROVIDERS = (
     ("phishtank", "PhishTank", "api"),
     ("safebrowsing", "Google Safe Browsing", "api"),
     ("lookalike", "Look-alike domain check", "rule"),
-    ("domain_age", "Domain age (RDAP)", "rule"),
+    ("domain_age", "Domain age (RDAP / WHOIS / web archive)", "rule"),
+    ("popularity", "Popularity rank (Tranco top 300,000)", "rule"),
+    ("certs", "Certificate history (CT logs) and certificate owner", "rule"),
+    ("wikidata", "Official-website cross-check (Wikidata)", "rule"),
     ("ai1", "AI 1: URL model", "ai"),
     ("ai2", "AI 2: page content model", "ai"),
 )
@@ -210,7 +221,7 @@ AI2_BASE = ("Downloads the page and reads it: forms, password and card fields, p
             "and downloads that start by themselves.")
 FINAL_METHOD = ("The final score is the highest score of the lists / APIs and the AI models. When two independent signals agree "
                 "(for example a PhishTank record and the URL model, or both AI models) it is raised to the Malicious level (70). "
-                "A site is only called Safe when a trusted list vouches for it; otherwise 'nothing found' stays Unknown.")
+                "A site is called Safe only with positive evidence: a trusted list, or an established site (old, widely visited, nothing reported). Otherwise 'nothing found' stays Unknown, with an explanation of what was and was not checked.")
 
 
 class _Checks:
@@ -257,12 +268,21 @@ def _ai_off(why: str) -> dict:
             "ai_combined": {"name": AI_COMBINED_NAME, "state": "skipped", "score": None, "percent": None, "level": "none", "description": why}}
 
 
+def _ai1_why() -> str:
+    try:
+        loaded, reason = ai1_model.status()
+    except Exception:
+        return "the model could not be checked"
+    return "the address could not be scored" if loaded else (reason or "the model is not loaded")
+
+
 def _ai1_block(ml: dict | None, ml_score: int | None, shared: bool) -> dict:
     base = "Reads only the text of the address (length, symbols, keywords, brand names, domain structure), not the page itself."
     if ml is None:
+        why = _ai1_why()
         return {"name": AI1_NAME, "state": "no_opinion", "available": False, "probability": None, "percent": None, "score": None,
-                "level": "none", "description": base + " It gave no opinion (the model file is missing or the address could not be "
-                                                   "scored). That is not a sign that the site is safe."}
+                "level": "none", "description": base + f" It gave no opinion: {why}. That is not a sign that the site is safe, and "
+                                                   "it does not count for or against the site."}
     p = ml["probability"]
     if p >= ML_SUSPICIOUS_PROB:
         verdict = "The address looks like known phishing addresses."
@@ -287,10 +307,15 @@ def _ai2_block(content: dict | None, ai2_score: int | None, skipped_why: str | N
                 "description": base + " The page could not be read (unreachable, not plain HTML, or built by JavaScript), so there is "
                                       "no page result. That is not a sign that the site is safe."}
     p = content.get("probability")
-    cats = page_threats.assess(content.get("features"), content.get("download"), content.get("download_kind"))
+    cats = page_threats.assess(content.get("features"), content.get("download"), content.get("download_kind"), content.get("page_signals"))
     dl = {"kind": content.get("download_kind"), "file": content.get("download")} if content.get("download") else None
     if p is None:
-        head = " The page model gave no probability (model file missing or page almost empty), so only the checks below were used."
+        try:
+            loaded, reason = predict_content.status()
+        except Exception:
+            loaded, reason = True, None
+        head = (f" The page model gave no probability ({reason if not loaded else 'the page has almost no text to judge'}), "
+                "so only the rule-based checks below were used.")
     elif p >= CONTENT_SUSPICIOUS_PROB:
         head = f" Phishing probability {_pct(p)}%. The page looks like known phishing pages."
     elif p >= 0.5:
@@ -351,14 +376,54 @@ def _list_api_text(checks: list[dict]) -> str:
     return text + (" Not used: " + "; ".join(unused) + "." if unused else "")
 
 
-def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb: dict, notes: list[str]) -> dict:
+def _assessment(status: str, score, checks: list[dict], ai_comb: dict, ctx: dict) -> dict:
+    """The honest answer for the person: what speaks for the site, what speaks against it, what could not be checked, and how
+    sure we are. Replaces a bare "not enough data"."""
+    supporting, concerns, missing = [], [], []
+    for c in checks:
+        if c["state"] == "match" and c["effect"] == "risk":
+            concerns.append(f"{c['name']}: {c['detail']}")
+        elif c["state"] == "match" and c["effect"] == "trust":
+            supporting.append(f"{c['name']}: {c['detail']}")
+        elif c["state"] in ("clear", "info") and c["group"] in ("api", "rule", "ai"):
+            supporting.append(f"{c['name']}: {c['detail']}")
+        elif c["state"] in ("unavailable", "not_configured", "no_opinion"):
+            missing.append(f"{c['name']}: {c['detail']}")
+    if any(c["group"] == "list" and c["state"] == "clear" for c in checks) and not any(c["group"] == "list" and c["state"] == "match" for c in checks):
+        supporting.insert(0, "Local lists: not on any blacklist or feed")
+    n_risk = len(concerns)
+    trusted = any(c["state"] == "match" and c["effect"] == "trust" and c["id"] == "whitelist" for c in checks)
+    if status == "Malicious":
+        label, conf = "Dangerous", "high" if n_risk >= 2 else "medium"
+        text = "Do not enter any information on this site. " + ("Several independent sources agree." if n_risk >= 2 else "The evidence comes mostly from one source.")
+    elif status == "Suspicious":
+        label, conf = "Suspicious: be careful", "medium"
+        text = "Some warning signs were found but not enough to call the site malicious. Do not enter passwords or payment details unless you are sure it is the real site."
+    elif status == "Safe" and trusted:
+        label, conf, text = "Trusted site", "high", "A trusted list vouches for this site."
+    elif status == "Safe":
+        label, conf = ("Looks legitimate (established site)", "medium") if ctx.get("established") else ("Looks safe", "medium")
+        text = ("It is an old, widely visited site and nothing reports it. This is strong evidence but not a guarantee: "
+                "even real sites can be hacked, so still check the address before you log in.")
+    elif score is None and not ctx.get("checked", False):
+        label, conf = "Could not be checked", "low"
+        text = "Too many sources could not be reached to say anything about this site. Try again later; until then treat it as unverified."
+    else:
+        label, conf = "No warning signs found", "low" if len(missing) >= 3 else "medium"
+        text = ("Nothing reports this site and nothing on it looks dangerous, but nothing vouches for it either (it is not a well-known, "
+                "long-running site), so it is not confirmed safe. Be careful with passwords and payments.")
+    return {"label": label, "confidence": conf, "summary": text, "supporting": supporting, "concerns": concerns, "not_checked": missing}
+
+
+def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb: dict, notes: list[str], ctx: dict | None = None) -> dict:
     api_text = _list_api_text(checks)
-    head = "No final verdict: not enough evidence from any source." if score is None else f"Final risk {int(round(score))}/100 ({status})."
+    asm = _assessment(status, score, checks, ai_comb, ctx or {})
+    head = (f"{asm['label']}: {asm['summary']}" if score is None else f"Final risk {int(round(score))}/100 ({status}). {asm['label']}: {asm['summary']}")
     summary = " ".join([head, "Lists / APIs: " + api_text, "AI models: " + ai_comb["description"]]
                        + (["Combined: " + " ".join(notes)] if notes else []))
     return {"status": status, "score": score, "list_api": {"score": list_api_score, "text": api_text},
             "ai": {"score": ai_comb.get("score"), "text": ai_comb["description"]}, "notes": list(notes), "method": FINAL_METHOD,
-            "summary": summary}
+            "assessment": asm, "summary": summary}
 
 
 def _checked_reasons(checks: list[dict], existing: list[str]) -> list[str]:
@@ -371,15 +436,15 @@ def _checked_reasons(checks: list[dict], existing: list[str]) -> list[str]:
     for c in checks:
         if c["group"] == "api" and c["state"] == "clear":
             out.append(f"{c['name']}: checked, no record found")
-        elif c["group"] == "rule" and c["state"] == "clear":
+        elif c["group"] == "rule" and c["state"] in ("clear", "info"):
             if not any(c["detail"] in r for r in existing):         # the rule may already have explained itself
                 out.append(f"{c['name']}: {c['detail']}")
         elif c["state"] == "not_configured":
             out.append(f"{c['name']}: not configured (no API key), so it was not used")
         elif c["id"] == "domain_age" and c["state"] == "no_opinion":
-            out.append("Domain age (RDAP): no registration data for this domain")
+            out.append(f"Domain age: {c['detail']}")
         elif c["id"] == "ai1" and c["state"] == "no_opinion":
-            out.append("AI 1 (URL model): no opinion (model file missing or address could not be scored)")
+            out.append(f"AI 1 (URL model): no opinion, {c['detail'].replace('No opinion: ', '')}")
     return out
 
 
@@ -573,30 +638,77 @@ def _analyze(raw_url: str) -> dict:
     # their name looks like, so this works where the URL text (model) and look-alike rules see nothing.
     # Old domain + only a weak model suspicion -> relax. Lookup failure (or a ccTLD without RDAP) changes nothing.
     age_new = False
-    if not non_ml and not shared:
-        info = rdap.lookup(reg)
-        age = info.age_days if info.succeeded else None
-        if age is not None and age < 30:
+    age_days = None
+    age_kind = None
+    rank_ = None
+    wd_ = cert_ = None
+    if not shared and la_score is None and max(non_ml, default=0) < 60:
+        with ThreadPoolExecutor(max_workers=3) as ex:                  # three independent look-ups, asked at the same time
+            f_age, f_cert, f_wd = ex.submit(domain_age.lookup, reg), ex.submit(cert_history.lookup, reg), ex.submit(official_site.lookup, reg, host)
+            ai_, cert_, wd_ = f_age.result(), f_cert.result(), f_wd.result()
+        age_days = ai_.days if ai_.succeeded else None
+        age_kind = ai_.kind
+        via = {"rdap": "RDAP", "whois": "WHOIS", "archive": "the Internet Archive"}.get(ai_.method or "", "")
+        old_enough = age_days is not None and age_days >= (730 if age_kind == "registered" else 1095)
+        if age_days is not None and age_kind == "registered" and age_days < 30 and not non_ml:
             age_new = True
             score = max(score or 0, 55 if (ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS) else 45)
             non_ml.append(45)
             api_parts.append(45)
-            reasons.append(f"Domain was registered only {age} days ago and is on no list (new domains are common in phishing)")
-            ck.add("domain_age", "match", f"Registered only {age} days ago and on no list (new domains are common in phishing)", 45, "risk")
-        elif age is not None and age >= 730 and score is not None and score >= THRESHOLD_SUSPICIOUS:
+            reasons.append(f"Domain was registered only {age_days} days ago and is on no list (new domains are common in phishing)")
+            ck.add("domain_age", "match", f"Registered only {age_days} days ago ({via}) and on no list (new domains are common in phishing)", 45, "risk")
+        elif old_enough and not non_ml and score is not None and score >= THRESHOLD_SUSPICIOUS:
             score = THRESHOLD_SUSPICIOUS - 1
-            reasons.append(f"Domain is {age // 365} years old, which outweighs the model's weak suspicion")
-            ck.add("domain_age", "clear", f"Domain is {age // 365} years old, which outweighs the model's weak suspicion")
-        elif age is not None:
-            ck.add("domain_age", "clear", f"Registered {_age_text(age)} ago")
+            reasons.append(f"Domain is at least {age_days // 365} years old, which outweighs the model's weak suspicion")
+            ck.add("domain_age", "info", f"At least {age_days // 365} years old ({via}), which outweighs the model's weak suspicion")
+        elif age_days is not None and age_kind == "registered":
+            ck.add("domain_age", "info", f"Registered {_age_text(age_days)} ago ({via})")
+        elif age_days is not None:
+            ck.add("domain_age", "info", f"At least {_age_text(age_days)} old: the Internet Archive first saved this site "
+                                         f"{ai_.created:%Y-%m-%d}. The registration date itself could not be found ({ai_.note.split('(', 1)[-1].rstrip(')')})")
         else:
-            ck.add("domain_age", "no_opinion", "No registration data (not provided for this domain ending, or the lookup failed)")
+            ck.add("domain_age", "no_opinion", f"No registration date found. {ai_.note[:1].upper() + ai_.note[1:]}.")
+        if not cert_.succeeded:
+            ck.add("certs", "no_opinion", "Certificate history could not be read (crt.sh busy or offline, and the site's certificate could not be read)")
+        else:
+            bits = []
+            if cert_.first_seen is not None:
+                bits.append(f"first HTTPS certificate {cert_.first_seen:%Y-%m-%d} ({_age_text(cert_.days)} ago), {cert_.n_certs} certificate(s)"
+                            + (f" from {', '.join(cert_.issuers[:3])}" if cert_.issuers else ""))
+            else:
+                bits.append("no certificate history found")
+            bits.append(f"the site's certificate names the organisation '{cert_.org}' (the issuer checked who is behind the site)" if cert_.org
+                        else "the site's certificate names no organisation (a free / domain-only certificate)")
+            ck.add("certs", "info", (lambda t: t[:1].upper() + t[1:])("; ".join(bits)))
+        if not wd_.succeeded:
+            ck.add("wikidata", "no_opinion", "Wikidata did not answer")
+        elif wd_.found:
+            who = wd_.label or wd_.qid
+            ck.add("wikidata", "match", f"Wikidata lists this domain as the official website of '{who}'" + (f" ({wd_.description})" if wd_.description else ""), 10, "trust")
+        else:
+            ck.add("wikidata", "info", "No Wikidata entry lists this domain as an official website (normal for small or local sites; it says nothing against the site)")
+        rank_ = popularity.rank(reg)
+        if rank_ is not None:
+            ck.add("popularity", "info", f"Rank #{rank_:,} among the 300,000 most visited websites (Tranco). Throw-away phishing domains are never this popular.")
+        elif popularity.available():
+            ck.add("popularity", "info", "Not among the 300,000 most visited websites (normal for small or local sites)")
+        else:
+            ck.add("popularity", "no_opinion", "The Tranco list file (AIDev/data/tranco_top.txt) is missing, so popularity was not checked")
     elif shared:
         ck.add("domain_age", "skipped", "Not used on public hosting platforms (the domain belongs to the platform)")
+        ck.add("popularity", "skipped", "Not used on public hosting platforms")
+        ck.add("certs", "skipped", "Not used on public hosting platforms")
+        ck.add("wikidata", "skipped", "Not used on public hosting platforms")
     elif la_score is not None:
         ck.add("domain_age", "skipped", "Already used inside the look-alike check")
+        ck.add("popularity", "skipped", "Not needed: the look-alike check already has evidence about this site")
+        ck.add("certs", "skipped", "Not needed: the look-alike check already has evidence about this site")
+        ck.add("wikidata", "skipped", "Not needed: the look-alike check already has evidence about this site")
     else:
         ck.add("domain_age", "skipped", "Not needed: a list or API already has evidence about this site")
+        ck.add("popularity", "skipped", "Not needed: a list or API already has evidence about this site")
+        ck.add("certs", "skipped", "Not needed: a list or API already has evidence about this site")
+        ck.add("wikidata", "skipped", "Not needed: a list or API already has evidence about this site")
 
     # Page content: download the page and read it. Skipped when a list already says Malicious (saves time) and on shared
     # platforms (training data has none). The same download also shows whether the address is a program-file download
@@ -639,7 +751,7 @@ def _analyze(raw_url: str) -> dict:
     ai2 = _ai2_block(content, ai2_score, ai2_skip)
     ai_comb = _ai_combined(ml_score, ai2_score)
     ck.add("ai1", "no_opinion" if ml_score is None else "match" if ml_score >= THRESHOLD_SUSPICIOUS else "clear",
-           f"Phishing probability {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
+           f"Phishing probability {ai1['percent']}%" if ml is not None else f"No opinion: {_ai1_why()}",
            ml_score, "risk" if ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS else "none")
     if ai2["state"] == "ok":
         hot = [c for c in ai2["categories"] if c["triggered"]]
@@ -685,13 +797,31 @@ def _analyze(raw_url: str) -> dict:
         score = max(score, THRESHOLD_MALICIOUS)
         agree("Automatic download and another independent signal agree")
 
+    # Established site: old AND widely visited AND nothing reported anywhere. Phishing sites live for days and nobody visits them,
+    # so this is positive evidence (not just "nothing found"). Off with ESTABLISHED_SAFE=0.
+    established = False
+    cert_days = cert_.days if (cert_ is not None and cert_.succeeded) else None
+    old_ok = age_days is not None and age_days >= (730 if age_kind == "registered" else 1095)
+    official = wd_ is not None and wd_.succeeded and wd_.found and ((age_days or 0) >= 365 or (cert_days or 0) >= 365)
+    quiet = (ESTABLISHED_SAFE and not shared and not non_ml and not download_direct and (score is None or score < THRESHOLD_SUSPICIOUS)
+             and not (ai2["state"] == "ok" and any(c["triggered"] for c in ai2["categories"])))
+    if quiet and ((rank_ is not None and old_ok) or official):
+        established = True
+        score = 15 if score is None else max(score, 15)
+        if rank_ is not None and old_ok:
+            ck.add("popularity", "match", f"Rank #{rank_:,} of 300,000 and at least {age_days // 365} years old, with nothing reported: an established site", 15, "trust")
+            reasons.append(f"Established site: at least {age_days // 365} years old, rank #{rank_:,} among the most visited sites, "
+                           "and no list, API or model reports anything")
+        if official:
+            reasons.append(f"Official website of '{wd_.label or wd_.qid}' according to Wikidata, the domain is not new, and nothing reports it")
+
     list_api_score = max(api_parts, default=None)
 
     def finish(status: str, final_score, source: str, pt_for_result=None) -> dict:
         checks = ck.as_list()
         reasons.extend(_checked_reasons(checks, reasons))
         extra = {"checks": checks, "ai1": ai1, "ai2": ai2, "ai_combined": ai_comb,
-                 "final": _final_block(status, final_score, checks, list_api_score, ai_comb, notes)}
+                 "final": _final_block(status, final_score, checks, list_api_score, ai_comb, notes, {"established": established, "checked": score is not None})}
         return _result(raw_url, status, final_score, source, reasons, pt_for_result, extra)
 
     if score is None:
@@ -700,6 +830,8 @@ def _analyze(raw_url: str) -> dict:
 
     # "Safe" must rest on evidence of safety. A model that merely sees nothing suspicious cannot
     # vouch for a site (e.g. a phishing page on a normal-looking domain), so that case is Unknown.
+    if established and _status(score) == "Safe":
+        return finish("Safe", score, "established-site")
     if _status(score) == "Safe" and not non_ml:
         reasons.append("No strong phishing signal from the model. This is not a guarantee that the site is safe.")
         return finish("Unknown", None, "model")

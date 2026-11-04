@@ -4,7 +4,7 @@ import {
   SearchIcon, ShieldCheckIcon, ShieldXIcon, SpinnerIcon,
 } from "./icons";
 import { clock, hostOf, stamp, statusLabel } from "./api";
-import { AnalysisBlocks, Breakdown } from "./breakdown";
+import { AnalysisBlocks, AssessmentBlock, Breakdown } from "./breakdown";
 import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
@@ -308,6 +308,7 @@ export function ManualResultScreen({ v, onScanAnother, onViewDetails }: { v: Ver
         <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3">
           <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2">How this score was reached</div>
           <Breakdown v={v} />
+          <div className="border-t border-gray-100 mt-2.5 pt-2.5"><AssessmentBlock v={v} /></div>
         </div>
       )}
       <div className="flex gap-2">
