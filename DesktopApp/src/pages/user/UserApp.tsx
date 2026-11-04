@@ -5,6 +5,7 @@ import { USER_NAV } from "../../components/layout/nav";
 import type { ScanRecord } from "../../lib/analysis";
 import type { Session } from "../../types";
 import Dashboard from "./Dashboard";
+import BrowserActivity from "./activity/BrowserActivity";   // added
 import Feedback from "./feedback/Feedback";
 import DetailedAnalysis from "./scan/DetailedAnalysis";
 import DetectionHistory from "./scan/DetectionHistory";
@@ -14,7 +15,7 @@ import Whitelist from "../shared/Whitelist";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "feedback" | "profile";
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "activity" | "feedback" | "profile";   // added: activity
 
 interface Props {
   session: Session;
@@ -29,6 +30,7 @@ const TITLES: Record<Page, string> = {
   history: "Detection History",
   threats: "Threat URL List",
   whitelist: "Trusted Websites",
+  activity: "Browser Activity",   // added
   feedback: "Feedback",
   profile: "Profile",
 };
@@ -39,7 +41,7 @@ export default function UserApp({ session, onLogout }: Props) {
   const user = { ...session.user, full_name: name };
   const [page, setPage] = useState<Page>("dashboard");
   const [scan, setScan] = useState<ScanRecord | null>(null);
-  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard">("history");
+  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard" | "activity">("history");   // added: activity
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null);
 
   const report = (s: ScanRecord) => {
@@ -64,8 +66,13 @@ export default function UserApp({ session, onLogout }: Props) {
     onLogout();
   }
 
+  // changed: details opened from Browser Activity keep "Browser Activity" highlighted in the sidebar
   const active: string =
-    page === "result" ? "scanner" : page === "details" ? (cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : "history") : page;
+    page === "result"
+      ? "scanner"
+      : page === "details"
+        ? cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history"
+        : page;
 
   let content;
   if (page === "scanner") {
@@ -95,8 +102,10 @@ export default function UserApp({ session, onLogout }: Props) {
     content = (
       <DetailedAnalysis
         scan={scan}
-        backLabel={cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : "Back to Detection History"}
-        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : "history")}
+        backLabel={
+          cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : cameFrom === "activity" ? "Back to Browser Activity" : "Back to Detection History"
+        }
+        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history")}
         onReport={() => report(scan)}
       />
     );
@@ -108,6 +117,17 @@ export default function UserApp({ session, onLogout }: Props) {
     content = <Whitelist role="user" onSessionEnd={onLogout} />;
   } else if (page === "threats") {
     content = <ThreatUrlList onSessionEnd={onLogout} />;
+  } else if (page === "activity") {   // added
+    content = (
+      <BrowserActivity
+        onSessionEnd={onLogout}
+        onOpen={(s) => {
+          setScan(s);
+          setCameFrom("activity");
+          setPage("details");
+        }}
+      />
+    );
   } else if (page === "history") {
     content = (
       <DetectionHistory

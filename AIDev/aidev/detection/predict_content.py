@@ -28,12 +28,14 @@ from urllib.parse import urljoin, urlsplit
 import joblib
 
 from aidev.detection import content_features as cf
+from aidev.detection import page_signals
 from aidev.detection import pagefetch
 from aidev.core.common import CONTENT_MODEL_PATH
 
 log = logging.getLogger(__name__)
 _BUNDLE = None
 _LOAD_FAILED = False
+_LOAD_ERROR: str | None = None
 _cache: dict[str, tuple[float, dict | None]] = {}
 
 # Targets the page sends the browser to by itself. A link the person has to click is NOT counted here.
@@ -53,7 +55,7 @@ def enabled() -> bool:
 
 
 def _load():
-    global _BUNDLE, _LOAD_FAILED
+    global _BUNDLE, _LOAD_FAILED, _LOAD_ERROR
     if _BUNDLE is not None or _LOAD_FAILED:
         return _BUNDLE
     try:
@@ -64,8 +66,26 @@ def _load():
         _BUNDLE = b
     except Exception as exc:
         _LOAD_FAILED = True
+        _LOAD_ERROR = _explain(exc)
         log.info("content model unavailable: %s", exc)
     return _BUNDLE
+
+
+def _explain(exc: Exception) -> str:
+    """Short, path-free reason for the screens."""
+    if isinstance(exc, FileNotFoundError):
+        return "the model file AIDev/models/model_content.joblib was not found"
+    if isinstance(exc, ValueError) and "retrain" in str(exc):
+        return "content_features.py changed since the model was trained (run: python -m aidev.pipeline.train_content)"
+    return f"the model file could not be loaded ({type(exc).__name__})"
+
+
+def status() -> tuple[bool, str | None]:
+    """(loaded, reason it is not loaded) for the screens."""
+    if not enabled():
+        return False, "switched off (CONTENT_CHECK=0)"
+    _load()
+    return _BUNDLE is not None, _LOAD_ERROR
 
 
 def available() -> bool:
@@ -147,7 +167,7 @@ def _predict(url: str) -> dict | None:
         ms = lambda: round((time.perf_counter() - t0) * 1000, 1)
         if page.download:                                   # the address itself is a program file; nothing to read
             return {"probability": None, "signals": [], "final_url": page.url, "download": page.download,
-                    "download_kind": "direct", "model_version": None, "latency_ms": ms(), "features": None}
+                    "download_kind": "direct", "model_version": None, "latency_ms": ms(), "features": None, "page_signals": None}
         if not page.ok or not page.html:
             log.info("content check skipped for %s: %s", url, page.error)
             return None
@@ -163,7 +183,8 @@ def _predict(url: str) -> dict | None:
         if p is None and not auto and f is None:
             return None
         return {"probability": p, "signals": sigs, "final_url": page.url, "download": auto,
-                "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f}
+                "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f,
+                "page_signals": page_signals.extract(page.html, page.url)}
     except Exception as exc:
         log.warning("content check failed: %s", exc)
         return None

@@ -1,5 +1,5 @@
 import RiskBar from "../../../components/RiskBar";
-import { LEVEL_STYLE, breakdownBars, riskTone, scoreOrDash, summaryCards } from "../../../lib/analysis";
+import { CONFIDENCE_TEXT, LEVEL_STYLE, assessmentOf, breakdownBars, riskTone, scoreOrDash, summaryCards } from "../../../lib/analysis";
 import type { ScanRecord } from "../../../lib/analysis";
 
 interface Props {
@@ -64,6 +64,15 @@ export default function ScanResult({ scan, onBack, onDetails, onDashboard, onRep
           </div>
         ))}
       </div>
+
+      {assessmentOf(scan) && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <p className="text-sm font-semibold text-slate-800">
+            {assessmentOf(scan)!.label} <span className="text-xs font-normal text-slate-400">({CONFIDENCE_TEXT[assessmentOf(scan)!.confidence]})</span>
+          </p>
+          <p className="text-xs text-slate-500 mt-1">{assessmentOf(scan)!.summary}</p>
+        </div>
+      )}
 
       {breakdownBars(scan).length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">

@@ -9,7 +9,7 @@ export interface CheckItem {
   id: string;
   name: string;
   group: "list" | "api" | "rule" | "ai";
-  state: "match" | "clear" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
+  state: "match" | "clear" | "info" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
   detail: string;
   score: number | null;
   effect: "risk" | "trust" | "none";
@@ -35,7 +35,16 @@ export interface AiResult {
   signals?: string[];
   download?: { kind: string | null; file: string } | null;
 }
+export interface Assessment {
+  label: string;
+  confidence: "high" | "medium" | "low";
+  summary: string;
+  supporting: string[];
+  concerns: string[];
+  not_checked: string[];
+}
 export interface FinalResult {
+  assessment?: Assessment;
   status: string;
   score: number | null;
   list_api: { score: number | null; text: string };
@@ -156,7 +165,7 @@ export function guidance(level: Level): string {
     safe: "This URL appears to be safe. No threats detected.",
     suspicious: "This URL shows suspicious characteristics. Exercise caution.",
     malicious: "This URL is malicious. Do not open it.",
-    unknown: "There was not enough data to judge this URL. That is not a guarantee that it is safe.",
+    unknown: "No warning signs were found, but nothing vouches for this site either, so it is not confirmed safe. See the details for what was and was not checked.",
   }[level];
 }
 
@@ -250,6 +259,7 @@ export function hasStructured(a?: Analysis): boolean {
 export const STATE_LABEL: Record<CheckItem["state"], string> = {
   match: "Found",
   clear: "No record",
+  info: "Info",
   unavailable: "Unavailable",
   not_configured: "Not configured",
   skipped: "Not needed",
@@ -259,6 +269,7 @@ export const STATE_LABEL: Record<CheckItem["state"], string> = {
 /** Tailwind classes for a source's badge: red = evidence against the site, green = trusted list, grey = nothing / not used. */
 export function checkTone(c: CheckItem): string {
   if (c.state === "match") return c.effect === "trust" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200";
+  if (c.state === "info") return "bg-sky-50 text-sky-700 border-sky-200";
   if (c.state === "clear") return "bg-slate-50 text-slate-600 border-slate-200";
   if (c.state === "unavailable" || c.state === "not_configured") return "bg-amber-50 text-amber-700 border-amber-200";
   return "bg-slate-50 text-slate-400 border-slate-200";
@@ -296,3 +307,10 @@ export function breakdownBars(rec: ScanRecord): BreakdownBar[] {
     { label: "Final risk", score: rec.risk_level === "unknown" ? null : rec.risk_score, note: "Lists / APIs and AI together" },
   ];
 }
+
+/** The honest answer from the detector (label, how sure, what speaks for / against, what could not be checked). */
+export function assessmentOf(scan: ScanRecord): Assessment | null {
+  return scan.analysis?.final?.assessment ?? null;
+}
+
+export const CONFIDENCE_TEXT: Record<Assessment["confidence"], string> = { high: "High confidence", medium: "Medium confidence", low: "Low confidence" };

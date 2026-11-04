@@ -10,6 +10,8 @@ import EmployerVerification from "./EmployerVerification";
 import StaffFeedback from "../StaffFeedback";
 import StaffDashboard from "./StaffDashboard";
 import UrlApproval from "./approval/UrlApproval";
+import ActivityLogs from "./logs/ActivityLogs";
+import UserManagement from "./users/UserManagement";
 
 interface Props {
   session: Session;
@@ -19,6 +21,8 @@ interface Props {
 const TITLES: Record<string, string> = {
   dashboard: "Dashboard",
   employers: "Employer Verification",
+  users: "User Management",
+  logs: "Activity Logs",
   threats: "Threat URL Management",
   approval: "URL Approval",
   whitelist: "Trusted Websites",
@@ -41,6 +45,8 @@ export default function StaffApp({ session, onLogout }: Props) {
 
   let content;
   if (page === "employers" && admin) content = <EmployerVerification onSessionEnd={onLogout} />;
+  else if (page === "users") content = <UserManagement role={role} onSessionEnd={onLogout} />;
+  else if (page === "logs") content = <ActivityLogs role={role} onSessionEnd={onLogout} />;
   else if (page === "approval") content = <UrlApproval role={role} onSessionEnd={onLogout} />;
   else if (page === "whitelist" && admin) content = <Whitelist role="admin" onSessionEnd={onLogout} />;
   else if (page === "profile") content = <Profile onSessionEnd={onLogout} onNameChanged={setName} />;
@@ -54,7 +60,7 @@ export default function StaffApp({ session, onLogout }: Props) {
       roleLabel={admin ? "Admin" : "Employer"}
       nav={admin ? ADMIN_NAV : EMPLOYER_NAV}
       active={page}
-      title={TITLES[page] ?? "Dashboard"}
+      title={page === "logs" && !admin ? "My Activity Logs" : (TITLES[page] ?? "Dashboard")}
       tone="staff"
       onNavigate={setPage}
       onLogout={logout}

@@ -5,7 +5,7 @@ export interface CheckItem {
   id: string;
   name: string;
   group: "list" | "api" | "rule" | "ai";
-  state: "match" | "clear" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
+  state: "match" | "clear" | "info" | "unavailable" | "not_configured" | "skipped" | "no_opinion";
   detail: string;
   score: number | null;
   effect: "risk" | "trust" | "none";
@@ -33,7 +33,17 @@ export interface AiResult {
   signals?: string[];
 }
 
+export interface Assessment {
+  label: string;
+  confidence: "high" | "medium" | "low";
+  summary: string;
+  supporting: string[];
+  concerns: string[];
+  not_checked: string[];
+}
+
 export interface FinalResult {
+  assessment?: Assessment;
   status: string;
   score: number | null;
   list_api: { score: number | null; text: string };
