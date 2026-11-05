@@ -54,6 +54,7 @@ def is_shared(host: str) -> bool:
     """True if host is (a subdomain of) a shared hosting platform listed in lists/shared_hosts.txt."""
     global _SHARED
     if _SHARED is None:
-        _SHARED = set(lines(LISTS / "shared_hosts.txt"))
+        from aidev.core import list_store          # imported here because list_store itself imports this module
+        _SHARED = set(list_store.small("shared_hosts", LISTS / "shared_hosts.txt"))   # Supabase, else lists/shared_hosts.txt
     host = host.lower().split(":")[0]
     return any(host == s or host.endswith("." + s) for s in _SHARED)

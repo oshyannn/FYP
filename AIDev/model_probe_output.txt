@@ -1,0 +1,182 @@
+model_probe  2026-11-05 18:13   python 3.13.16   scikit-learn 1.9.1   numpy 2.5.4
+
+====================================================================================================
+URL: https://yhdm.one/vod-play/2026872955/hd.html
+
+  AI 1 (URL model: reads only the text of the address)
+    probability of phishing: 85.2%   (model version v1.0.0)
+    starting point (what the forest says with no information): 50.0%
+    + the pushes of all features = 85.2%   (check: differs from the model by 5.55e-16)
+    biggest pushes (percentage points; + raises the phishing probability, - lowers it):
+       +42.3   path_has_risky_ext           value = 1
+        +5.3   path_length                  value = 28
+        +5.1   longest_path_token           value = 10
+        -4.3   num_host_tokens              value = 2
+        +3.1   num_path_segments            value = 3
+        -2.2   num_dots_host                value = 1
+        -1.8   num_subdomains               value = 0
+        -1.8   longest_host_label           value = 4
+        -1.6   risky_tld                    value = 0
+        -1.6   reg_label_length             value = 4
+        -1.6   digit_ratio_host             value = 0
+        +1.4   path_digit_ratio             value = 0.3571
+    all feature values:
+      host_length                  8            path_length                  28
+      num_dots_host                1            num_hyphens_host             0
+      num_digits_host              0            digit_ratio_host             0
+      num_subdomains               0            host_is_ip                   0
+      has_at_symbol                0            num_path_segments            3
+      num_suspicious_words         0            risky_tld                    0
+      host_entropy                 3            has_punycode                 0
+      longest_host_label           4            path_special_chars           0
+      reg_label_length             4            tld_length                   3
+      num_host_tokens              2            avg_token_length             3.5
+      max_consonant_run            4            vowel_ratio_host             0.2857
+      digit_letter_switches        0            brand_mismatch               0
+      path_has_risky_ext           1            path_pct_encoded             0
+      path_digit_ratio             0.3571       longest_path_token           10
+      path_double_slash            0         
+
+  page download: ok=True  final address=https://yhdm.one/vod-play/2026872955/hd.html  redirects=0  certificate invalid=False  html length=12652  note=None
+
+  AI 2 (page model: reads the downloaded HTML, runs no JavaScript)
+    probability of phishing: 59.8%   (model version content-20261019-2254)
+    starting point (what the forest says with no information): 50.0%
+    + the pushes of all features = 59.8%   (check: differs from the model by 6.66e-16)
+    biggest pushes (percentage points; + raises the phishing probability, - lowers it):
+        +8.3   title_matches_domain         value = 0
+        +4.4   n_words                      value = 47
+        -3.6   log_inline_script_len        value = 7.826
+        +3.1   log_text_len                 value = 6.194
+        -2.6   n_links                      value = 20
+        -2.4   null_link_ratio              value = 0.05
+        -2.1   n_iframes                    value = 1
+        +2.0   hidden_iframe                value = 0
+        +1.8   n_scripts                    value = 7
+        +1.7   title_len                    value = 27
+        -1.6   favicon_missing              value = 0
+        -1.6   ext_image_ratio              value = 0
+    all feature values:
+      n_forms                      1            has_password_field           0
+      n_password_fields            0            n_inputs                     1
+      n_hidden_inputs              0            hidden_input_ratio           0
+      form_external_action         0            form_null_action             0
+      form_script_or_mail_action   0            has_submit                   1
+      has_email_field              0            n_links                      20
+      ext_link_ratio               0            null_link_ratio              0.05
+      n_images                     0            ext_image_ratio              0
+      log_text_len                 6.194        n_words                      47
+      n_tags                       115          text_per_tag                 4.252
+      log_html_len                 9.446        title_len                    27
+      title_empty                  0            title_matches_domain         0
+      title_login_word             0            brand_in_title_not_domain    0
+      brand_in_text_not_domain     0            n_sensitive_words            0
+      n_scripts                    7            log_inline_script_len        7.826
+      ext_script_ratio             1            obfuscation_density          0
+      rightclick_blocked           0            n_iframes                    1
+      hidden_iframe                0            meta_refresh                 0
+      favicon_missing              0            favicon_external             0
+      ext_resource_ratio           0.75         n_sensitive_inputs           0
+      js_redirect                  0            n_download_links             0
+      install_words                0            oauth_links                  0
+      thin_page                    0            has_copyright                1
+      n_redirects                  0            redirect_cross_domain        0
+      tls_invalid                  0            has_lang_attr                0
+
+====================================================================================================
+URL: https://www.wikipedia.org/
+
+  AI 1 (URL model: reads only the text of the address)
+    probability of phishing: 33.0%   (model version v1.0.0)
+    starting point (what the forest says with no information): 50.0%
+    + the pushes of all features = 33.0%   (check: differs from the model by 7.77e-16)
+    biggest pushes (percentage points; + raises the phishing probability, - lowers it):
+        -4.6   num_host_tokens              value = 2
+        -3.2   risky_tld                    value = 0
+        -2.8   max_consonant_run            value = 2
+        -2.4   vowel_ratio_host             value = 0.5
+        -2.2   num_dots_host                value = 1
+        -1.9   num_subdomains               value = 0
+        +1.8   host_entropy                 value = 3.335
+        -1.7   digit_ratio_host             value = 0
+        -1.7   tld_length                   value = 3
+        -1.5   num_digits_host              value = 0
+        +1.1   avg_token_length             value = 6
+        -1.0   num_hyphens_host             value = 0
+    all feature values:
+      host_length                  13           path_length                  0
+      num_dots_host                1            num_hyphens_host             0
+      num_digits_host              0            digit_ratio_host             0
+      num_subdomains               0            host_is_ip                   0
+      has_at_symbol                0            num_path_segments            0
+      num_suspicious_words         0            risky_tld                    0
+      host_entropy                 3.335        has_punycode                 0
+      longest_host_label           9            path_special_chars           0
+      reg_label_length             9            tld_length                   3
+      num_host_tokens              2            avg_token_length             6
+      max_consonant_run            2            vowel_ratio_host             0.5
+      digit_letter_switches        0            brand_mismatch               0
+      path_has_risky_ext           0            path_pct_encoded             0
+      path_digit_ratio             0            longest_path_token           0
+      path_double_slash            0         
+
+  page download: ok=True  final address=https://www.wikipedia.org/  redirects=0  certificate invalid=False  html length=122421  note=None
+
+  AI 2 (page model: reads the downloaded HTML, runs no JavaScript)
+    probability of phishing: 11.9%   (model version content-20261019-2254)
+    starting point (what the forest says with no information): 50.0%
+    + the pushes of all features = 11.9%   (check: differs from the model by 2.78e-16)
+    biggest pushes (percentage points; + raises the phishing probability, - lowers it):
+       -14.9   title_matches_domain         value = 1
+        -8.5   n_words                      value = 1351
+        +7.1   n_scripts                    value = 4
+        -7.1   n_links                      value = 383
+        -5.6   log_text_len                 value = 9.27
+        -5.5   ext_link_ratio               value = 0.05541
+        +3.7   form_script_or_mail_action   value = 1
+        -3.3   n_tags                       value = 1195
+        -2.6   log_html_len                 value = 11.72
+        +2.6   ext_script_ratio             value = 0
+        +2.0   hidden_iframe                value = 0
+        -1.4   null_link_ratio              value = 0.01044
+    all feature values:
+      n_forms                      1            has_password_field           0
+      n_password_fields            0            n_inputs                     13
+      n_hidden_inputs              2            hidden_input_ratio           0.1538
+      form_external_action         0            form_null_action             0
+      form_script_or_mail_action   1            has_submit                   1
+      has_email_field              0            n_links                      383
+      ext_link_ratio               0.05541      null_link_ratio              0.01044
+      n_images                     7            ext_image_ratio              0.8571
+      log_text_len                 9.27         n_words                      1351
+      n_tags                       1195         text_per_tag                 8.881
+      log_html_len                 11.72        title_len                    29
+      title_empty                  0            title_matches_domain         1
+      title_login_word             0            brand_in_title_not_domain    0
+      brand_in_text_not_domain     1            n_sensitive_words            0
+      n_scripts                    4            log_inline_script_len        7.425
+      ext_script_ratio             0            obfuscation_density          0
+      rightclick_blocked           0            n_iframes                    0
+      hidden_iframe                0            meta_refresh                 0
+      favicon_missing              0            favicon_external             0
+      ext_resource_ratio           0.6667       n_sensitive_inputs           0
+      js_redirect                  0            n_download_links             0
+      install_words                0            oauth_links                  0
+      thin_page                    0            has_copyright                1
+      n_redirects                  0            redirect_cross_domain        0
+      tls_invalid                  0            has_lang_attr                1
+
+====================================================================================================
+MODEL FACTS
+
+  AI 1 (URL model)
+    type: RandomForestClassifier   trees: 300   max_depth: None   features: 29   classes: [np.int64(0), np.int64(1)]
+    class_weight: balanced_subsample   min_samples_leaf: 2
+    bundle keys: ['feature_names', 'feature_version', 'metrics', 'model', 'version']   version: v1.0.0   feature_version: 3
+    global importance (top 10): host_entropy 0.103, risky_tld 0.092, num_host_tokens 0.089, num_dots_host 0.065, path_length 0.058, num_subdomains 0.054, num_path_segments 0.053, vowel_ratio_host 0.049, digit_ratio_host 0.048, longest_path_token 0.047
+
+  AI 2 (page model)
+    type: RandomForestClassifier   trees: 300   max_depth: None   features: 50   classes: [np.int64(0), np.int64(1)]
+    class_weight: balanced_subsample   min_samples_leaf: 2
+    bundle keys: ['eval_mode', 'feature_names', 'feature_version', 'metrics', 'model', 'version']   version: content-20261019-2254   feature_version: 2
+    global importance (top 10): n_scripts 0.092, title_matches_domain 0.079, log_html_len 0.072, n_words 0.066, title_len 0.065, ext_link_ratio 0.065, n_links 0.061, log_inline_script_len 0.058, n_tags 0.049, log_text_len 0.043

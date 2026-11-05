@@ -16,6 +16,7 @@ const INFO = [
 
 export default function UrlScanner({ onScanned, onSessionEnd }: Props) {
   const [url, setUrl] = useState("");
+  const [useAi, setUseAi] = useState(false);   // added: optional AI check for addresses a list already decided
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,7 +24,7 @@ export default function UrlScanner({ onScanned, onSessionEnd }: Props) {
     if (!url.trim() || scanning) return;
     setScanning(true);
     setError("");
-    const res = await api.post("/api/scans", { url: url.trim() });
+    const res = await api.post("/api/scans", { url: url.trim(), use_ai: useAi });   // changed: use_ai added
     setScanning(false);
     if (res.status === 401) {
       onSessionEnd();
@@ -76,6 +77,24 @@ export default function UrlScanner({ onScanned, onSessionEnd }: Props) {
           rows={3}
           className="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/10 transition-colors resize-none font-mono"
         />
+
+        {/* added: optional, off by default */}
+        <label htmlFor="scan-use-ai" className="mt-4 flex items-start gap-3 cursor-pointer select-none">
+          <input
+            id="scan-use-ai"
+            type="checkbox"
+            checked={useAi}
+            onChange={(e) => setUseAi(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#1e3a5f]"
+          />
+          <span className="text-sm text-slate-700">
+            Also run the AI models, even if this address is already on a blacklist or whitelist
+            <span className="block text-xs text-slate-500 mt-0.5">
+              Optional. The list still decides the final result; the AI result is shown next to it for information. Takes a few seconds longer.
+            </span>
+          </span>
+        </label>
+
         <button
           onClick={scan}
           disabled={scanning || !url.trim()}

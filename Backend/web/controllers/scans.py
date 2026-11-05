@@ -101,7 +101,7 @@ def create_scan():
         return err("validation", "Enter a valid website address.", 400, {"url": "Enter a valid website address."})
 
     try:
-        result = analyze(url)
+        result = analyze(url, use_ai=data.get("use_ai") is True)   # optional: also run the AI models when a list already decided the URL
     except Exception:                                   # a detector problem must not look like a server crash
         log.exception("analyze() failed")
         return err("detector_unavailable", "Detection is temporarily unavailable. Try again.", 503)

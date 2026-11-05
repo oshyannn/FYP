@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 from aidev.core.common import DATA, ROOT, lines
@@ -38,6 +39,10 @@ BIG = {
 }
 SMALL_TYPES = ("whitelist", "blacklist", "shared_hosts", "protected_domains", "not_trusted",
                "trusted_prefixes", "trusted_suffixes", "adult_manual")
+
+
+_down_until = 0.0          # time.monotonic() until which connect() is skipped after a failure
+RETRY_AFTER = 120          # seconds
 
 
 def database_url() -> str | None:
@@ -58,16 +63,29 @@ def database_url() -> str | None:
 
 def connect():
     """Open one short connection, or return None (no driver / no URL / cannot connect). Never raises."""
+    global _down_until
     url = database_url()
     if not url:
+        return None
+    if time.monotonic() < _down_until:          # failed a moment ago: do not wait for another timeout
         return None
     try:
         import psycopg
         # prepare_threshold=None: also works through Supabase's transaction pooler (same as Backend/web/db.py)
         return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT, prepare_threshold=None)
     except Exception as exc:
-        log.warning("Supabase not reachable (%s); lists come from local files", exc.__class__.__name__)
+        _down_until = time.monotonic() + RETRY_AFTER
+        log.warning("Supabase not reachable (%s); lists come from cache/local files "
+                    "(will not retry for %d s)", exc.__class__.__name__, RETRY_AFTER)
         return None
+
+
+def _reset(conn) -> None:
+    """After a failed query the transaction is aborted; roll back so the same connection can be used again."""
+    try:
+        conn.rollback()
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------- small lists
@@ -83,6 +101,7 @@ def small(list_type: str, fallback: Path | None = None, conn=None) -> list[str]:
                             "and is_active order by created_at, value", (list_type,))
                 rows = [r[0] for r in cur.fetchall()]
         except Exception as exc:
+            _reset(conn)
             log.warning("could not read list %s (%s)", list_type, exc.__class__.__name__)
         finally:
             if own:
@@ -107,6 +126,7 @@ def setting(key: str, default, conn=None):
             if row and str(row[0]).strip():
                 return type(default)(str(row[0]).strip()) if default is not None else row[0]
         except Exception as exc:
+            _reset(conn)
             log.warning("could not read setting %s (%s)", key, exc.__class__.__name__)
         finally:
             if own:
@@ -149,13 +169,9 @@ def _remote_status(conn, name: str) -> dict | None:
 def _fetch_big(conn, name: str) -> list[str]:
     table, col, _ = BIG[name]
     order = " order by rank" if name == "trusted_top_sites" else ""
-    out: list[str] = []
-    with conn.cursor(name=f"fetch_{name}") as cur:           # server-side cursor: no 1,000,000-row spike
-        cur.itersize = 50_000
+    with conn.cursor() as cur:
         cur.execute(f"select {col} from {table}{order}")     # table/col come from the BIG constant, not from input
-        for (v,) in cur:
-            out.append(v)
-    return out
+        return [r[0] for r in cur.fetchall()]
 
 
 def big(name: str, conn=None) -> list[str]:
@@ -180,6 +196,7 @@ def big(name: str, conn=None) -> list[str]:
                 return vals
             log.info("list %-18s is empty in Supabase (run: python -m aidev.pipeline.sync_to_supabase big)", name)
         except Exception as exc:
+            _reset(conn)
             log.warning("could not read %s from Supabase (%s)", name, exc.__class__.__name__)
         finally:
             if own:

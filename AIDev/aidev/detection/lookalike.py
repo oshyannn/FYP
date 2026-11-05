@@ -23,6 +23,7 @@ from functools import lru_cache
 
 from aidev.core.common import DATA, LISTS, lines
 from aidev.core import features
+from aidev.core import list_store as store
 from aidev.core.features import RISKY_TLDS
 
 LOOKALIKE_TOP_N = 5000        # popular domains used as the protected set
@@ -102,8 +103,13 @@ class _Protected:
         self.by_label: dict[str, list] = {}
         self.by_skel: dict[str, list] = {}
         self.by_deletion: dict[str, list] = {}
-        manual = lines(LISTS / "protected_domains.txt")
-        popular = lines(DATA / "tranco_top.txt")[:LOOKALIKE_TOP_N]
+        conn = store.connect()                      # Supabase (None = not reachable: the local files are used instead)
+        try:
+            manual = store.small("protected_domains", LISTS / "protected_domains.txt", conn)
+            popular = store.top_sites(LOOKALIKE_TOP_N, conn) or lines(DATA / "tranco_top.txt")[:LOOKALIKE_TOP_N]
+        finally:
+            if conn is not None:
+                conn.close()
         seen: set[str] = set()
         for dom, is_manual in [(d, True) for d in manual] + [(d, False) for d in popular]:
             if dom in seen:
