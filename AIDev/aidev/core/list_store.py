@@ -223,3 +223,28 @@ def feed_urls(conn=None) -> list[str]:
 
 def adult_domains(conn=None) -> list[str]:
     return big("adult_domains", conn)
+
+
+# ---------------------------------------------------- admin-approved threats (Backend table global_urls)
+def admin_threats(conn=None) -> list[tuple[str, str, float]] | None:
+    """Active rows of the Global Threat List: (canonical url, risk_level, risk_score). These are the entries an
+    employer submitted / a scan found and an administrator approved. None = could not read (the caller keeps what it had)."""
+    own = conn is None
+    conn = conn or connect()
+    if conn is None:
+        return None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("select url, risk_level::text, risk_score from global_urls where status = 'active' "
+                        "and risk_level in ('suspicious', 'malicious')")
+            return [(r[0], r[1], float(r[2])) for r in cur.fetchall()]
+    except Exception as exc:
+        _reset(conn)
+        log.warning("could not read the admin-approved threat list (%s)", exc.__class__.__name__)
+        return None
+    finally:
+        if own:
+            try:
+                conn.close()
+            except Exception:
+                pass

@@ -18,7 +18,6 @@ page threat), `ai_combined` and `final` (lists / APIs + AI -> the overall danger
 """
 from __future__ import annotations
 
-import contextvars
 import logging
 import os
 import time
@@ -53,19 +52,34 @@ def _key(url: str) -> str:
 # Every list is read from Supabase (tables detection_lists, trusted_top_sites, threat_feed_urls, adult_domains; see
 # aidev/core/list_store.py). When Supabase is empty or cannot be reached, the same lists are read from the local files,
 # so the detector still works. Run `python -m aidev.pipeline.sync_to_supabase all` to put the local files into Supabase.
-_db = store.connect()
-WHITELIST_TOP_N = store.setting("whitelist_top_n", WHITELIST_TOP_N, _db)
-NOT_TRUSTED = {d.lower() for d in store.small("not_trusted", LISTS / "not_trusted.txt", _db)}
-MANUAL_WHITELIST = {d.lower() for d in store.small("whitelist", LISTS / "whitelist.txt", _db)}
-WHITELIST = set(MANUAL_WHITELIST)
-WHITELIST |= {d.lower() for d in store.top_sites(WHITELIST_TOP_N, _db)} - NOT_TRUSTED
 DEFAULT_TRUSTED_PREFIXES = ("drive.google.com/drive/",)      # your own Drive UI, not shared files
-TRUSTED_PREFIXES = tuple(dict.fromkeys(DEFAULT_TRUSTED_PREFIXES + tuple(store.small("trusted_prefixes", LISTS / "trusted_prefixes.txt", _db))))
-TRUSTED_SUFFIXES = tuple("." + x for x in store.small("trusted_suffixes", LISTS / "trusted_suffixes.txt", _db))
 # Adult content is not malware, so it has its own status ("Restricted") and its own switch.
 # BLOCK_ADULT=0 (environment or .env) turns it off. Your own lists/whitelist.txt always wins.
 BLOCK_ADULT = os.getenv("BLOCK_ADULT", "1").strip().lower() not in {"0", "false", "no", "off"}
-ADULT = {d.lower() for d in store.adult_domains(_db) + store.small("adult_manual", LISTS / "adult_manual.txt", _db)}
+
+
+def _load_small(db) -> None:
+    """(Re)reads every hand-managed list. The big lists (adult, feed) are loaded once at start-up."""
+    global WHITELIST_TOP_N, NOT_TRUSTED, MANUAL_WHITELIST, WHITELIST, TRUSTED_PREFIXES, TRUSTED_SUFFIXES, ADULT
+    global BLACKLIST_DOMAINS
+    WHITELIST_TOP_N = store.setting("whitelist_top_n", WHITELIST_TOP_N, db)
+    NOT_TRUSTED = {d.lower() for d in store.small("not_trusted", LISTS / "not_trusted.txt", db)}
+    MANUAL_WHITELIST = {d.lower() for d in store.small("whitelist", LISTS / "whitelist.txt", db)}
+    WHITELIST = set(MANUAL_WHITELIST)
+    WHITELIST |= {d.lower() for d in store.top_sites(WHITELIST_TOP_N, db)} - NOT_TRUSTED
+    TRUSTED_PREFIXES = tuple(dict.fromkeys(DEFAULT_TRUSTED_PREFIXES + tuple(store.small("trusted_prefixes", LISTS / "trusted_prefixes.txt", db))))
+    TRUSTED_SUFFIXES = tuple("." + x for x in store.small("trusted_suffixes", LISTS / "trusted_suffixes.txt", db))
+    ADULT = ADULT_BIG | {d.lower() for d in store.small("adult_manual", LISTS / "adult_manual.txt", db)}
+    BLACKLIST_DOMAINS = {d.lower() for d in store.small("blacklist", LISTS / "blacklist.txt", db)}
+
+
+_db = store.connect()
+ADULT_BIG = {d.lower() for d in store.adult_domains(_db)}
+FEED_URLS = {_key(u) for u in store.feed_urls(_db)}
+_load_small(_db)
+if _db is not None:
+    _db.close()
+del _db
 
 
 def _is_adult(host: str) -> bool:
@@ -73,11 +87,74 @@ def _is_adult(host: str) -> bool:
     return any(".".join(parts[i:]) in ADULT for i in range(len(parts) - 1))
 
 
-BLACKLIST_DOMAINS = {d.lower() for d in store.small("blacklist", LISTS / "blacklist.txt", _db)}
-FEED_URLS = {_key(u) for u in store.feed_urls(_db)}
-if _db is not None:
-    _db.close()
-del _db
+# --- admin-approved threats (Global Threat List) --------------------------------------------------------------------
+# Entries an employer submitted / a scan found and an administrator approved (Backend table global_urls, status 'active').
+# They beat every whitelist, Tranco included. An entry for a site's front page ("https://example.com/") covers the whole
+# domain and its subdomains; an entry with a path covers exactly that address. The list is re-read every ADMIN_TTL seconds,
+# so an approval or a removal takes effect without restarting the Backend.
+ADMIN_TTL = 30
+_admin = {"at": 0.0, "exact": {}, "domain": {}}
+
+
+def _admin_refresh(force: bool = False) -> None:
+    now = time.time()
+    if not force and now - _admin["at"] < ADMIN_TTL:
+        return
+    _admin["at"] = now                              # also after a failure: do not retry on every request
+    rows = store.admin_threats()
+    if rows is None:
+        return                                      # keep what we had
+    exact, domain = {}, {}
+    for url, level, score in rows:
+        key = _key(url)
+        host, _, path = key.partition("/")
+        entry = (level, score)
+        exact[key] = entry
+        if not path:
+            domain[host] = entry
+    _admin["exact"], _admin["domain"] = exact, domain
+
+
+def _admin_hit(url: str, host: str):
+    """(level, score, matched) when an administrator-approved entry covers this address, else None."""
+    _admin_refresh()
+    key = _key(url)
+    hit = _admin["exact"].get(key)
+    if hit:
+        return hit[0], hit[1], key
+    parts = host.split(".")
+    for i in range(len(parts) - 1):
+        cand = ".".join(parts[i:])
+        hit = _admin["domain"].get(cand)
+        if hit:
+            return hit[0], hit[1], cand
+    return None
+
+
+def refresh_threats() -> None:
+    """Re-reads the administrator-approved threat list now (called after an approval or a removal)."""
+    _admin_refresh(force=True)
+
+
+def reload_lists() -> None:
+    """Re-reads the hand-managed lists and the admin-approved threats now (the Backend calls this after an administrator
+    changes a list). Does nothing when Supabase cannot be reached, so a network problem never empties the lists."""
+    db = store.connect()
+    if db is None:
+        log.warning("reload_lists: Supabase not reachable, keeping the lists in memory")
+        return
+    try:
+        _load_small(db)
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+    _admin_refresh(force=True)
+    _result_cache.clear()
+    log.info("lists reloaded: whitelist %d, not_trusted %d, blacklist %d", len(WHITELIST), len(NOT_TRUSTED), len(BLACKLIST_DOMAINS))
+
+
 # Build the look-alike index and the shared-hosts set now (they also read Supabase), not during the first request.
 lookalike.check("warm-up.invalid")
 is_shared("warm-up.invalid")
@@ -123,7 +200,7 @@ DOWNLOAD_AUTO_SCORE = 55
 # How long a finished verdict is reused (seconds). Verdicts built on a failed lookup are retried sooner.
 RESULT_TTL = {"Malicious": 6 * 3600, "Restricted": 6 * 3600, "Suspicious": 3600, "Safe": 3600, "Unknown": 3600}
 RESULT_TTL_PARTIAL = 300
-_INSTANT_SOURCES = {"blacklist", "whitelist", "trusted-suffix", "adult-list"}     # lookups in memory: not worth caching
+_INSTANT_SOURCES = {"blacklist", "admin-list", "whitelist", "trusted-suffix", "adult-list"}     # lookups in memory: not worth caching
 _result_cache: dict[str, tuple[float, dict]] = {}
 
 
@@ -206,7 +283,7 @@ def _status(score: float) -> str:
 # Every old field (status, risk_score, has_data, source, reasons ...) keeps its meaning.
 # ---------------------------------------------------------------------------------------------------------------------
 PROVIDERS = (
-    ("blacklist", "Manual blacklist", "list"),
+    ("blacklist", "Blacklist (manual list, administrator-approved threats)", "list"),
     ("feed", "OpenPhish / URLhaus feed", "list"),
     ("adult", "Adult-site list", "list"),
     ("whitelist", "Trusted list (top sites, your own list, institutional endings)", "list"),
@@ -415,97 +492,41 @@ def _result(url, status, score, source, reasons, pt=None, extra=None) -> dict:
     return out
 
 
-def _ai_for_listed(url: str, status: str, ck: _Checks) -> tuple[dict, list[str]]:
-    """Optional: run AI 1 and AI 2 on a URL that a local list has already decided. Returns the AI blocks and the notes for the result.
-    The list result stays the final result; a note says when the AI models disagree with it."""
-    norm = normalize(url)
-    host = get_host(norm)
-    shared = is_shared(host)
-    ml = ml_predict(f"https://{host}/" if shared else norm)
-    ml_score = None if ml is None else _ml_to_score(ml["probability"])
-    content = content_score = download_score = None
-    skip = None
-    if shared:
-        skip = "Skipped: this is a public hosting platform, and the page model was not trained on such pages."
-    elif not predict_content.enabled():
-        skip = "Switched off (CONTENT_CHECK=0)."
-    else:
-        content = predict_content.predict(norm)
-        if content is not None:
-            if content.get("download") and content.get("download_kind") != "direct":
-                download_score = DOWNLOAD_AUTO_SCORE
-            if content.get("probability") is not None:
-                content_score = _content_to_score(content["probability"])
-    ai2_score = max([x for x in (content_score, download_score) if x is not None], default=None)
-    ai1, ai2, comb = _ai1_block(ml, ml_score, shared), _ai2_block(content, ai2_score, skip), _ai_combined(ml_score, ai2_score)
-    # everything computed: only now record it, so a failure above leaves the result exactly as it was without the option
-    ck.add("ai1", "no_opinion" if ml_score is None else "match" if ml_score >= THRESHOLD_SUSPICIOUS else "clear",
-           f"Phishing probability {ai1['percent']}%" if ml is not None else f"No opinion: {_ai1_why()}",
-           ml_score, "risk" if ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS else "none")
-    if ai2["state"] == "ok":
-        hot = [c for c in ai2["categories"] if c["triggered"]]
-        hit = ai2_score is not None and ai2_score >= THRESHOLD_SUSPICIOUS
-        ck.add("ai2", "match" if hit else "clear",
-               (f"Phishing probability {ai2['percent']}%" if ai2["percent"] is not None else "Page read, no probability from the model")
-               + (" · " + ", ".join(f"{c['label']} {c['percent']}%" for c in hot) if hot else ""),
-               ai2_score, "risk" if hit else "none")
-    else:
-        ck.add("ai2", ai2["state"], ai2["description"].replace(AI2_BASE + " ", ""))
-    notes = ["The optional AI check was switched on: the AI models ran even though a list decided this URL. "
-             "The list result stays the final result; the AI result is shown for information."]
-    s = comb.get("score")
-    if status == "Safe" and s is not None and s >= THRESHOLD_SUSPICIOUS:
-        notes.append("The AI models disagree with the trusted list: they see warning signs on this site. Treat it with care.")
-    elif status in ("Malicious", "Restricted") and s is not None and s < THRESHOLD_SUSPICIOUS:
-        notes.append("The AI models see no strong warning sign, but the list result stays.")
-    elif s is None:
-        notes.append("Neither AI model could score this site.")
-    return {"ai1": ai1, "ai2": ai2, "ai_combined": comb}, notes
-
-
 def _by_list(url, status, score, source, reasons, ck: _Checks, why: str, category: str | None = None) -> dict:
-    """A result decided by a local list: the APIs and the AI models were not needed, and are listed as skipped.
-    With the optional switch on (analyze(..., use_ai=True)) the two AI models still run, for information only."""
-    notes: list[str] = []
-    ai_on = _use_ai_on_lists.get()
-    if ai_on:
-        try:
-            extra, notes = _ai_for_listed(url, status, ck)
-        except Exception:                                  # the option must never break a list result
-            log.exception("optional AI check failed")
-            ai_on = False
+    """A result decided by a local list: the APIs and the AI models were not needed, and are listed as skipped."""
     ck.skip_rest(why)
-    if not ai_on:
-        extra = _ai_off(why)
+    extra = _ai_off(why)
     checks = ck.as_list()
     extra["checks"] = checks
-    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], notes)
-    if ai_on:
-        extra["ai_optional"] = True
+    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], [])
     r = _result(url, status, score, source, reasons, None, extra)
     if category:
         r["category"] = category
     return r
 
 
-# Optional: run the two AI models even when a local list already decided the URL (see _ai_for_listed). Off unless asked for.
-_use_ai_on_lists: contextvars.ContextVar = contextvars.ContextVar("use_ai_on_lists", default=False)
+def _admin_result(raw_url: str, level: str, score: float, matched: str) -> dict:
+    malicious = level == "malicious"
+    status, final = ("Malicious", 100) if malicious else ("Suspicious", int(min(THRESHOLD_MALICIOUS - 1, max(THRESHOLD_SUSPICIOUS, score))))
+    d = f"On the administrator-approved threat list ({matched})"
+    ck = _Checks()
+    ck.add("blacklist", "match", d, final, "risk")
+    return _by_list(raw_url, status, final, "admin-list", [d], ck,
+                    "Not needed: the administrator-approved threat list already decided this result.")
 
 
-def analyze(raw_url: str, use_ai: bool = False) -> dict:
-    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again.
-    use_ai=True also runs AI 1 and AI 2 on a URL that a list (blacklist, whitelist ...) has already decided: the list result stays
-    the final result and the AI result is added for information. A URL no list knows is always analysed with the AI models."""
+def analyze(raw_url: str) -> dict:
+    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again."""
     key = normalize(raw_url)
     now = time.time()
+    host = get_host(key)
+    admin = _admin_hit(key, host) if host else None
+    if admin:                                       # before the cache: an approval must work at once
+        return _admin_result(raw_url, *admin)
     hit = _result_cache.get(key)
     if hit and hit[0] > now:
         return {**hit[1], "url": raw_url, "cached": True}
-    token = _use_ai_on_lists.set(bool(use_ai))
-    try:
-        result = _analyze(raw_url)
-    finally:
-        _use_ai_on_lists.reset(token)
+    result = _analyze(raw_url)
     if result.get("source") not in _INSTANT_SOURCES and "Invalid URL" not in result.get("reasons", []):
         partial = any(("unavailable" in r) or ("could not be read" in r) for r in result.get("reasons", []))
         ttl = RESULT_TTL_PARTIAL if partial else RESULT_TTL.get(result["status"], 3600)

@@ -14,6 +14,7 @@ from flask import Blueprint, g, jsonify, request
 
 from aidev.core.features import get_host, normalize
 from web.controllers.common import body, err, int_arg, s
+from web import detector_sync
 from web.db_models import audit, scans, submissions
 from web.extensions import limiter
 from web.guards import auth_required, role_required
@@ -127,4 +128,5 @@ def review_submission(sub_id):
     if outcome == "conflict":
         return err("conflict", "This submission has already been reviewed.", 409)
     audit.log(f"threat_submission_{decision}", "threat_list", g.user["id"], {"submission_id": str(sub_id)})
+    detector_sync.refresh_threats()                 # an approved submission is blocked by the detector at once
     return jsonify({"submission": _json(submissions.get(sub_id), admin=True)})

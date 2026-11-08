@@ -10,6 +10,7 @@ from flask import Blueprint, g, jsonify, request
 from web.controllers.common import body, err, int_arg, s
 from web.extensions import limiter
 from web.guards import auth_required, role_required
+from web import detector_sync
 from web.db_models import audit, threats
 
 bp = Blueprint("threats", __name__, url_prefix="/api")
@@ -60,4 +61,5 @@ def review_threat(gid):
     if outcome == "conflict":
         return err("conflict", "This entry is already in that state.", 409)
     audit.log(f"threat_{decision}", "threat_list", g.user["id"], {"global_url_id": str(gid)})
+    detector_sync.refresh_threats()                 # an approval / removal changes what the detector blocks
     return jsonify({"threat": _json(threats.get(gid))})

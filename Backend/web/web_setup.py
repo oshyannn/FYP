@@ -43,6 +43,8 @@ def init_web(app):
     app.register_blueprint(submissions_bp)
     from web.controllers.user_admin import bp as user_admin_bp
     app.register_blueprint(user_admin_bp)
+    from web.controllers.system_lists import bp as system_lists_bp
+    app.register_blueprint(system_lists_bp)
     from web.controllers.activity import bp as activity_bp
     app.register_blueprint(activity_bp)
     from web.controllers.browser_activity import bp as browser_activity_bp
