@@ -8,8 +8,9 @@ DELETE /api/staff/users/<id>                administrator only
 POST   /api/staff/users/<id>/password-reset sends the person a 6-digit reset code by email
 
 Who sees and changes whom is in db_models/user_admin.py (VIEW_ROLES / ACT_ROLES):
-  administrator: sees users, employers and administrators, changes users and employers. Administrator accounts are
-                 read-only for now (changing one will need another administrator's approval).
+  administrator: sees users, employers and administrators, changes users and employers directly. For another
+                 administrator's account it can only REQUEST a deactivation, activation or deletion; a third
+                 administrator has to approve (see staff_accounts.py).
   employer:      sees and changes users only, and cannot delete.
 Nobody can change their own account here. Every account JSON carries "actions": what THIS person may do with it,
 so the screen never has to repeat these rules.
@@ -23,7 +24,7 @@ from flask import Blueprint, g, jsonify, request
 import config
 from web import mailer
 from web.controllers.common import body, err, int_arg, s
-from web.db_models import audit, sessions, tokens, user_admin
+from web.db_models import audit, sessions, staff_accounts, tokens, user_admin
 from web.extensions import limiter
 from web.guards import auth_required, role_required
 
@@ -45,26 +46,52 @@ def _actions(r) -> dict:
     status = _status(r["status"])
     can = (str(r["id"]) != str(actor["id"]) and status != "deleted"
            and r["role"] in user_admin.ACT_ROLES[actor["role"]])
+    other_admin = (actor["role"] == "admin" and r["role"] == "admin" and str(r["id"]) != str(actor["id"])
+                   and status != "deleted")
     return {
         "edit": can,
         "deactivate": can and status in ("active", "pending"),
         "activate": can and status == "inactive",
         "delete": can and actor["role"] == "admin",
         "reset_password": can and status == "active",
+        # another administrator's account: asking is allowed, a third administrator decides
+        "request_deactivate": other_admin and status == "active",
+        "request_activate": other_admin and status == "inactive",
+        "request_delete": other_admin,
     }
 
 
-def _json(r, detail: bool = False) -> dict:
+def _pending_map(rows) -> dict:
+    """Open requests for the administrator accounts among these rows. Empty before the setup script has been run."""
+    ids = [r["id"] for r in rows if r["role"] == "admin"]
+    if not ids:
+        return {}
+    try:
+        return staff_accounts.pending_for(ids)
+    except Exception:
+        log.exception("could not read pending administrator requests")
+        return {}
+
+
+def _json(r, detail: bool = False, pending: dict | None = None) -> dict:
+    actions = _actions(r)
+    waiting = (pending or {}).get(str(r["id"]))
+    if waiting:                                     # one request at a time per account
+        actions.update(request_deactivate=False, request_activate=False, request_delete=False)
     out = {
         "id": str(r["id"]), "full_name": r["full_name"], "email": r["email"], "role": r["role"],
         "status": _status(r["status"]), "created_at": r["created_at"].isoformat(),
-        "is_self": str(r["id"]) == str(g.user["id"]), "actions": _actions(r),
+        "is_self": str(r["id"]) == str(g.user["id"]), "actions": actions, "pending_change": waiting,
     }
     if detail:
         out.update(email_verified=bool(r["is_email_verified"]),
                    last_login_at=r["last_login_at"].isoformat() if r["last_login_at"] else None,
                    scan_count=int(r["scan_count"]))
     return out
+
+
+def _one(r) -> dict:
+    return _json(r, detail=True, pending=_pending_map([r]))
 
 
 def _find(user_id):
@@ -79,8 +106,8 @@ def _not_allowed(r):
     if r["status"] == "deleted":
         return err("forbidden", "A deleted account is kept for the records and cannot be changed.", 403)
     if r["role"] == "admin":
-        return err("forbidden", "Administrator accounts cannot be changed here yet. A change will need another "
-                   "administrator's approval.", 403)
+        return err("forbidden", "Another administrator's account cannot be changed directly. Send a request: a third "
+                   "administrator has to approve it.", 403)
     return err("forbidden", "You are not allowed to change this account.", 403)
 
 
@@ -96,7 +123,8 @@ def list_users():
     rows, total = user_admin.list_page(g.user["role"], q, role if role in ROLES else "",
                                        "" if deleted or status not in STATUSES else status, deleted,
                                        per_page, (page - 1) * per_page)
-    return jsonify({"users": [_json(r) for r in rows], "total": total, "page": page, "per_page": per_page})
+    pending = _pending_map(rows)
+    return jsonify({"users": [_json(r, pending=pending) for r in rows], "total": total, "page": page, "per_page": per_page})
 
 
 @bp.get("/users/<uuid:user_id>")
@@ -106,7 +134,7 @@ def get_user(user_id):
     r = _find(user_id)
     if not r:
         return err("not_found", "Account not found.", 404)
-    return jsonify({"user": _json(r, detail=True)})
+    return jsonify({"user": _one(r)})
 
 
 @bp.patch("/users/<uuid:user_id>")
@@ -126,7 +154,7 @@ def edit_user(user_id):
     if email is None:
         return err("not_found", "Account not found.", 404)
     audit.log("user_updated", "user_management", g.user["id"], {"user_id": str(user_id), "email": email})
-    return jsonify({"user": _json(_find(user_id), detail=True)})
+    return jsonify({"user": _one(_find(user_id))})
 
 
 @bp.post("/users/<uuid:user_id>/status")
@@ -155,7 +183,7 @@ def set_user_status(user_id):
         sessions.revoke_all_for_user(user_id)           # signed out everywhere, now
     audit.log("user_activated" if activate else "user_deactivated", "user_management", g.user["id"],
               {"user_id": str(user_id), "email": info})
-    return jsonify({"user": _json(_find(user_id), detail=True)})
+    return jsonify({"user": _one(_find(user_id))})
 
 
 @bp.delete("/users/<uuid:user_id>")

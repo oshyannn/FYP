@@ -56,7 +56,7 @@ export default function StaffLogin({ go, onLoggedIn, notice }: Props) {
         <PrimaryButton type="submit" busy={busy} staff>Staff Login</PrimaryButton>
       </form>
       <p className="text-center text-sm text-slate-500 mt-5">
-        Employer without an account? <LinkButton onClick={() => go("staff-request")}>Request Access</LinkButton>
+        Invited by an administrator? <LinkButton onClick={() => go("staff-accept")}>Activate your account</LinkButton>
       </p>
     </AuthShell>
   );

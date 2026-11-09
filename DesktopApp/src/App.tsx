@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import AcceptInvite from "./pages/auth/AcceptInvite";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import StaffApp from "./pages/staff/StaffApp";
 import UserApp from "./pages/user/UserApp";
 import Register from "./pages/auth/Register";
 import ResetPassword from "./pages/auth/ResetPassword";
 import StaffLogin from "./pages/auth/StaffLogin";
-import StaffRequestAccess from "./pages/auth/StaffRequestAccess";
 import UserLogin from "./pages/auth/UserLogin";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import type { Flow, OpenRequest, Screen, Session } from "./types";
@@ -132,8 +132,8 @@ export default function App() {
         return <ResetPassword flow={verifyFlow} go={go} />;
       case "staff-login":
         return <StaffLogin go={go} onLoggedIn={loggedIn} notice={flow?.notice} />;
-      case "staff-request":
-        return <StaffRequestAccess go={go} />;
+      case "staff-accept":
+        return <AcceptInvite go={go} />;
       case "staff-forgot":
         return <ForgotPassword portal="staff" go={go} />;
       case "staff-reset":

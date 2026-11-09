@@ -18,6 +18,13 @@ interface Props {
 
 type Mode = "manage" | "view" | "edit";
 type Confirm = "deactivate" | "delete" | "reset" | null;
+type RequestAction = "deactivate" | "activate" | "delete";
+
+const REQUEST_TEXT: Record<RequestAction, [string, string]> = {
+  deactivate: ["Request deactivation", "The administrator will be signed out everywhere and cannot sign in, once a third administrator approves."],
+  activate: ["Request activation", "The administrator can sign in again, once a third administrator approves."],
+  delete: ["Request deletion", "The account is marked as deleted and kept for the records, once a third administrator approves. It cannot be restored."],
+};
 
 const btn = "w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50";
 
@@ -25,7 +32,11 @@ const btn = "w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg tex
 function explain(u: AdminUser): string | null {
   if (u.status === "deleted") return "This account was deleted. It is kept for the records and cannot be changed.";
   if (u.is_self) return "This is your own account. Change your details in Profile.";
-  if (u.role === "admin") return "Administrator accounts are read-only here. A change will need another administrator's approval.";
+  if (u.role === "admin") {
+    return u.pending_change
+      ? `A request to ${u.pending_change.action} this account is waiting for a third administrator (asked by ${u.pending_change.requested_by}).`
+      : "Another administrator's account cannot be changed directly. Send a request: a third administrator has to approve it.";
+  }
   if (u.status === "pending") return "This account is pending. It becomes active when the email is verified.";
   return null;
 }
@@ -40,6 +51,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const [requestAction, setRequestAction] = useState<RequestAction | null>(null);
 
   useEffect(() => {
     if (mode !== "view" || detail) return;
@@ -69,6 +81,18 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
     const p = problem(res);
     if (p.fields.full_name) setNameError(p.fields.full_name);
     else setError(p.message);
+  }
+
+  async function sendRequest(action: RequestAction) {
+    setBusy(true);
+    setError("");
+    setRequestAction(null);
+    const res = await api.post("/api/staff/admin-changes", { user_id: u.id, action });
+    setBusy(false);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status !== 201) return setError(problem(res).message);
+    onChanged(`Your request to ${action} ${displayName(u)} was sent. Another administrator has to approve it; nothing changes until then.`);
+    onClose();
   }
 
   async function run(kind: Exclude<Confirm, null> | "activate") {
@@ -194,6 +218,13 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
                       {busy ? "Please wait…" : "Activate Account"}
                     </button>
                   )}
+                  {(["deactivate", "activate", "delete"] as RequestAction[]).map((k) =>
+                    a[`request_${k}` as "request_deactivate" | "request_activate" | "request_delete"] ? (
+                      <button key={k} onClick={() => setRequestAction(k)} disabled={busy} className={`w-full py-2.5 rounded-lg text-sm font-semibold border disabled:opacity-60 ${k === "activate" ? "text-green-700 border-green-300 hover:bg-green-50" : "text-red-600 border-red-300 hover:bg-red-50"}`}>
+                        {REQUEST_TEXT[k][0]}
+                      </button>
+                    ) : null,
+                  )}
                   {a.delete && (
                     <button onClick={() => setConfirm("delete")} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 disabled:opacity-60">
                       Delete Account
@@ -227,6 +258,12 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
               ? "This account never verified its email. It is deleted for good and the address can be used again. If the system still keeps records about it, it is marked as deleted instead."
               : "The account is marked as deleted: it cannot sign in, it is signed out everywhere and it is kept for the records. A deleted account cannot be changed or restored."}
           </p>
+        </ConfirmDialog>
+      )}
+      {requestAction && (
+        <ConfirmDialog title={`${REQUEST_TEXT[requestAction][0]}?`} tone={requestAction === "activate" ? "green" : "red"} confirmLabel="Send request" busy={busy} onConfirm={() => sendRequest(requestAction)} onCancel={() => setRequestAction(null)}>
+          <p className="font-medium text-slate-700 mb-1 break-all">{displayName(u)}</p>
+          <p>{REQUEST_TEXT[requestAction][1]} Nothing changes until then. You cannot approve your own request.</p>
         </ConfirmDialog>
       )}
       {confirm === "reset" && (

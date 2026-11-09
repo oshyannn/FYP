@@ -20,6 +20,8 @@ STAFF_ACTIONS = (
     "threat_submission_create", "threat_submission_approve", "threat_submission_reject",
     "whitelist_add", "whitelist_remove", "whitelist_request_approve", "whitelist_request_reject",
     "user_activated", "user_deactivated", "user_updated", "user_deleted", "user_password_reset_sent",
+    "staff_invite_created", "staff_invite_approved", "staff_invite_rejected", "staff_invite_revoked", "staff_invite_accepted",
+    "admin_change_requested", "admin_change_approved", "admin_change_rejected",
 )
 _IN = ", ".join(f"'{a}'" for a in STAFF_ACTIONS)
 _ACTION = f"(a.action::text IN ({_IN}) OR left(a.action::text, 9) = 'feedback_')"
@@ -101,6 +103,8 @@ def targets(rows) -> list[str]:
             t = _detail(r, "domain") or "Whitelist entry"
         elif a.startswith("user_"):
             t = _detail(r, "email") or "User account"
+        elif a.startswith(("staff_invite_", "admin_change_")):
+            t = _detail(r, "email") or "Staff account"
         elif a.startswith("feedback_"):
             t = "User feedback"
         else:

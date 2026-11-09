@@ -1,28 +1,27 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
+import type { AppRoute } from "../../App";
 import AppLayout from "../../components/layout/AppLayout";
 import { USER_NAV } from "../../components/layout/nav";
 import type { ScanRecord } from "../../lib/analysis";
 import type { Session } from "../../types";
 import Dashboard from "./Dashboard";
-import BrowserActivity from "./activity/BrowserActivity";   // added
 import Feedback from "./feedback/Feedback";
 import DetailedAnalysis from "./scan/DetailedAnalysis";
 import DetectionHistory from "./scan/DetectionHistory";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
-import DetectionLists from "../shared/DetectionLists";
-import SavedUrls from "../shared/SavedUrls";
-import SiteSettings from "../shared/SiteSettings";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "lists" | "saved" | "sites" | "activity" | "feedback" | "profile";   // added: activity
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "feedback" | "profile";
 
 interface Props {
   session: Session;
   onLogout: () => void;
+  /** a page the browser extension asked for (already checked to be for this account) */
+  route?: AppRoute | null;
 }
 
 const TITLES: Record<Page, string> = {
@@ -33,21 +32,17 @@ const TITLES: Record<Page, string> = {
   history: "Detection History",
   threats: "Threat URL List",
   whitelist: "Trusted Websites",
-  lists: "Detection Lists",
-  saved: "Saved URLs",
-  sites: "Site settings",
-  activity: "Browser Activity",   // added
   feedback: "Feedback",
   profile: "Profile",
 };
 
 // The signed-in area for normal users. Screens are chosen here; each screen only gets what it needs.
-export default function UserApp({ session, onLogout }: Props) {
+export default function UserApp({ session, onLogout, route }: Props) {
   const [name, setName] = useState(session.user.full_name);
   const user = { ...session.user, full_name: name };
   const [page, setPage] = useState<Page>("dashboard");
   const [scan, setScan] = useState<ScanRecord | null>(null);
-  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard" | "activity">("history");   // added: activity
+  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard">("history");
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null);
 
   const report = (s: ScanRecord) => {
@@ -55,30 +50,36 @@ export default function UserApp({ session, onLogout }: Props) {
     setPage("feedback");
   };
 
-  // the browser extension can open the app on a page (safebrowse://dashboard | history | scanner)
+  // The browser extension can open the app on a page: the dashboard, the detection history, the scanner, or the detailed
+  // analysis of one saved scan. App.tsx has already made sure the link is for this account.
   useEffect(() => {
-    const go = (p: string) => {
-      if (p === "dashboard" || p === "history" || p === "scanner" || p === "saved" || p === "sites") {
-        setReportScan(null);
-        setPage(p);
-      }
-    };
-    window.sb.takePendingPage().then((p) => p && go(p));
-    return window.sb.onOpenPage(go);
-  }, []);
+    if (!route) return;
+    setReportScan(null);
+    if (route.scan) {
+      let alive = true;
+      api.get(`/api/scans/${route.scan}`).then((res) => {
+        if (!alive) return;
+        if (res.status === 200) {
+          setScan(res.data.scan as ScanRecord);
+          setCameFrom("history");
+          setPage("details");
+        } else if (res.status === 401) onLogout();
+        else setPage("history"); // not found (e.g. deleted): the history is the next best place
+      });
+      return () => {
+        alive = false;
+      };
+    }
+    setPage(route.page);
+  }, [route]);
 
   async function logout() {
     await api.post("/api/auth/logout");
     onLogout();
   }
 
-  // changed: details opened from Browser Activity keep "Browser Activity" highlighted in the sidebar
   const active: string =
-    page === "result"
-      ? "scanner"
-      : page === "details"
-        ? cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history"
-        : page;
+    page === "result" ? "scanner" : page === "details" ? (cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : "history") : page;
 
   let content;
   if (page === "scanner") {
@@ -108,10 +109,8 @@ export default function UserApp({ session, onLogout }: Props) {
     content = (
       <DetailedAnalysis
         scan={scan}
-        backLabel={
-          cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : cameFrom === "activity" ? "Back to Browser Activity" : "Back to Detection History"
-        }
-        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history")}
+        backLabel={cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : "Back to Detection History"}
+        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : "history")}
         onReport={() => report(scan)}
       />
     );
@@ -121,25 +120,8 @@ export default function UserApp({ session, onLogout }: Props) {
     content = <Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />;
   } else if (page === "whitelist") {
     content = <Whitelist role="user" onSessionEnd={onLogout} />;
-  } else if (page === "lists") {
-    content = <DetectionLists onSessionEnd={onLogout} />;
-  } else if (page === "saved") {
-    content = <SavedUrls onSessionEnd={onLogout} />;
-  } else if (page === "sites") {
-    content = <SiteSettings onSessionEnd={onLogout} />;
   } else if (page === "threats") {
     content = <ThreatUrlList onSessionEnd={onLogout} />;
-  } else if (page === "activity") {   // added
-    content = (
-      <BrowserActivity
-        onSessionEnd={onLogout}
-        onOpen={(s) => {
-          setScan(s);
-          setCameFrom("activity");
-          setPage("details");
-        }}
-      />
-    );
   } else if (page === "history") {
     content = (
       <DetectionHistory

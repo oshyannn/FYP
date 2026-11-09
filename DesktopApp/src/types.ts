@@ -19,7 +19,7 @@ export type Screen =
   | "forgot"
   | "reset"
   | "staff-login"
-  | "staff-request"
+  | "staff-accept"
   | "staff-forgot"
   | "staff-reset"
   | "home";

@@ -48,3 +48,16 @@ def send_reset_code(to: str, code: str) -> bool:
                 f"Hello,\n\nYour SafeBrowse password reset code is: {code}\n\n"
                 f"It expires in {config.RESET_CODE_MINUTES} minutes and works once. Never share it with anyone. "
                 "If you did not ask for this, ignore this email; your password stays the same.\n")
+
+
+def send_staff_invite(to: str, name: str, role: str, code: str, hours: int) -> bool:
+    """The email for a staff invitation. Nothing is created until the person uses the code."""
+    what = "an administrator" if role == "admin" else "an employer"
+    pin_line = ("This is an administrator account, so you also need the PIN the person who invited you gave you "
+                "by phone or chat. The PIN is not in this email.\n\n") if role == "admin" else ""
+    return send(to, "You are invited to SafeBrowse",
+                f"Hello {name},\n\nYou were invited to join SafeBrowse as {what}.\n\n"
+                "To activate your account, open the SafeBrowse desktop app, choose Staff login, then "
+                "\"Activate an invited account\". Enter this email address, this 6-digit code and a new password of your choice:\n"
+                f"{code}\n\n{pin_line}The code expires in {hours} hours and works once. Never share it with anyone. "
+                "If you did not expect this invitation, ignore this email: nothing is created until you use the code.\n")

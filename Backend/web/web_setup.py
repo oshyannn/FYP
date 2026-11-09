@@ -43,18 +43,10 @@ def init_web(app):
     app.register_blueprint(submissions_bp)
     from web.controllers.user_admin import bp as user_admin_bp
     app.register_blueprint(user_admin_bp)
-    from web.controllers.system_lists import bp as system_lists_bp
-    app.register_blueprint(system_lists_bp)
-    from web.controllers.site_rules import bp as site_rules_bp
-    app.register_blueprint(site_rules_bp)
-    from web.controllers.saved_urls import bp as saved_urls_bp
-    app.register_blueprint(saved_urls_bp)
-    from web.controllers.lists_view import bp as lists_view_bp
-    app.register_blueprint(lists_view_bp)
     from web.controllers.activity import bp as activity_bp
     app.register_blueprint(activity_bp)
-    from web.controllers.browser_activity import bp as browser_activity_bp
-    app.register_blueprint(browser_activity_bp)
+    from web.controllers.staff_accounts import bp as staff_accounts_bp
+    app.register_blueprint(staff_accounts_bp)
 
     @app.before_request
     def _load_user():
@@ -75,7 +67,7 @@ def init_web(app):
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Vary"] = "Origin"
             resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
         return resp
 
     @app.errorhandler(HTTPException)
