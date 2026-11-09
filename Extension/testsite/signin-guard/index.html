@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>SafeBrowse sign-in guard tests</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#0f172a}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #e2e8f0;padding:8px 10px;text-align:left;vertical-align:top}th{background:#f8fafc}
+code{background:#f1f5f9;padding:1px 5px;border-radius:4px}.ok{color:#15803d}.ask{color:#b45309}</style></head>
+<body>
+<h1>SafeBrowse sign-in guard: test pages</h1>
+<p>Use made-up passwords only (for example <code>test123</code>). Open the extension's service worker console to see the
+<code>[guard]</code> lines. The terminal running <code>serve.py</code> shows what the pretend scammer received.</p>
+<h2>A. Password forms</h2>
+<table>
+<tr><th>#</th><th>Open</th><th>Type a password, press Sign in</th></tr>
+<tr><td>A1</td><td><a href="normal-login.html">normal-login.html</a></td><td class="ok">NO window. Form sent to the same website. Terminal: <code>[site 8000] ... received</code></td></tr>
+<tr><td>A2</td><td><a href="fake-login.html">fake-login.html</a></td><td class="ask">Window "Check before you sign in": password would go to <b>127.0.0.1</b>, page claims to be <b>Google</b>.
+ <b>Don't send</b> = nothing printed in the terminal. <b>Send anyway</b> = terminal shows the scammer received it.</td></tr>
+<tr><td>A3</td><td><a href="fake-brand.html">fake-brand.html</a></td><td class="ask">Window: page says it is <b>Microsoft</b> but you are on localhost (the form itself posts to the same site).</td></tr>
+<tr><td>A4</td><td><a href="fake-login.html">fake-login.html</a> again, choose <b>Always allow this</b></td><td class="ok">Next time: NO window (remembered for 30 days).</td></tr>
+</table>
+<h2>B. "Allow this app" (OAuth) links</h2>
+<p>These open the REAL Google / Microsoft / GitHub consent address with fake app IDs. You will only see the provider's error page: nothing is shared.
+The window appears when the provider's page loads.</p>
+<p><a href="oauth-links.html">oauth-links.html</a>: five links, expected results are on that page.</p>
+<h2>C. Real websites (no test server needed)</h2>
+<table>
+<tr><td>C1</td><td>Sign in to a normal website you trust (for example github.com)</td><td class="ok">NO window.</td></tr>
+<tr><td>C2</td><td>Use "Sign in with Google" on any ordinary site</td><td class="ok">NO window (basic sign-in, result goes to the same site).</td></tr>
+</table>
+</body></html>

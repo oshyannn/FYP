@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SafeBrowse check</title>
+<link rel="stylesheet" href="pages/ui.css">
+<style>
+  body { padding: 0; align-items: stretch; background: #fff; }
+  .card { max-width: none; border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; width: 100%; }
+  .body { text-align: left; padding: 16px 20px 18px; }
+  h1 { font-size: 15px; }
+  .why-line { color: var(--warn); font-weight: 500; }
+  .lines { list-style: none; margin: 10px 0; padding: 0; border-top: 1px solid #e5e7eb; }
+  .lines li { display: flex; justify-content: space-between; gap: 14px; padding: 7px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+  .lines .k { color: #64748b; flex: none; }
+  .lines .v { text-align: right; overflow-wrap: anywhere; font-weight: 500; }
+  .tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag.high { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .tag.medium { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .tag.low { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+  .row button { padding: 9px 12px; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand"><div class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div><div><b>SafeBrowse</b><small>BROWSE SAFE. STAY PROTECTED.</small></div></div>
+  <div class="body">
+    <h1 id="title"></h1>
+    <p class="why-line" id="why"></p>
+    <ul class="lines" id="lines"></ul>
+    <p id="note"></p>
+    <p id="timeout">No answer within 2 minutes counts as the safe choice.</p>
+    <div class="row">
+      <button class="outline" id="always"></button>
+      <button class="outline" id="allow"></button>
+      <button class="primary" id="block" autofocus></button>
+    </div>
+  </div>
+</main>
+<script src="guard.js"></script>
+</body>
+</html>

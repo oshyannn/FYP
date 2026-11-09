@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SafeBrowse",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Checks every website before it opens and blocks phishing and malicious pages. Pair it with the SafeBrowse desktop app.",
 
   "permissions": [
@@ -23,7 +23,7 @@
   },
 
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "sw.js"
   },
 
   "action": {
@@ -34,7 +34,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": ["guard-rules.js", "content.js", "signin-guard.js"],
       "run_at": "document_start",
       "all_frames": true
     }

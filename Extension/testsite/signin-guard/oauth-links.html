@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>OAuth link tests</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem}li{margin:.9rem 0}.ok{color:#15803d}.ask{color:#b45309}code{background:#f1f5f9;padding:1px 5px;border-radius:4px}</style></head>
+<body><h1>OAuth link tests</h1>
+<p>You are on <b>localhost</b>, which is not on a trusted list. Click a link; the provider's page opens, then SafeBrowse decides.
+Fake app IDs: the provider will show an error, nothing is shared.</p>
+<ol>
+<li><a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=TEST-HIGH.apps.googleusercontent.com&response_type=code&scope=https%3A%2F%2Fmail.google.com%2F%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20openid&redirect_uri=http%3A%2F%2F127.0.0.1%3A8001%2Fcb">B1 Google: read Gmail + Drive</a><br>
+<span class="ask">Window: HIGH permissions (Gmail, Drive), result sent to 127.0.0.1. "Go back" returns you to this page.</span></li>
+<li><a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=TEST-BASIC.apps.googleusercontent.com&response_type=code&scope=openid%20email%20profile&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fcb">B2 Google: ordinary sign-in</a><br>
+<span class="ok">NO window (basic permissions, result goes back to localhost = the same site).</span></li>
+<li><a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=TEST-ELSEWHERE.apps.googleusercontent.com&response_type=code&scope=openid%20email&redirect_uri=http%3A%2F%2F127.0.0.1%3A8001%2Fcb">B3 Google: basic sign-in, result sent to ANOTHER site</a><br>
+<span class="ask">Window: "the result would be sent to a different website".</span></li>
+<li><a href="https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000000-0000-0000-0000-000000000000&response_type=code&scope=openid%20offline_access%20https%3A%2F%2Fgraph.microsoft.com%2FMail.Read&redirect_uri=http%3A%2F%2F127.0.0.1%3A8001%2Fcb">B4 Microsoft: read mail + stay signed in</a><br>
+<span class="ask">Window: Mail.Read = HIGH, offline_access = MEDIUM.</span></li>
+<li><a href="https://github.com/login/oauth/authorize?client_id=TESTGITHUBCLIENT&scope=repo%2Cuser&redirect_uri=http%3A%2F%2F127.0.0.1%3A8001%2Fcb">B5 GitHub: full access to repositories</a><br>
+<span class="ask">Window: "repo" = HIGH. (GitHub may ask you to sign in first, or show an error page.)</span></li>
+<li><a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=TEST-POPUP.apps.googleusercontent.com&response_type=code&scope=https%3A%2F%2Fmail.google.com%2F&redirect_uri=http%3A%2F%2F127.0.0.1%3A8001%2Fcb" target="_blank">B6 Same as B1, but opens in a NEW tab (like a popup login)</a><br>
+<span class="ask">Window as B1. "Go back" CLOSES the new tab.</span></li>
+</ol>
+<p>After you choose <b>Always allow this app</b> on a link, that link (same app ID) will no longer ask for 30 days.</p>
+<p><a href="index.html">Back</a></p></body></html>
