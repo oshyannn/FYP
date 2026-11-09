@@ -16,6 +16,8 @@ AIDev/data/*
 !AIDev/data/.gitkeep
 AIDev/models/**/*.joblib
 AIDev/experiments/*.joblib
+AIDev/models/*.joblib*
+
 # (AIDev/models/backup_20261019/model_content.joblib was committed before this rule existed, so git keeps tracking it)
 
 # ---- build output and local files
