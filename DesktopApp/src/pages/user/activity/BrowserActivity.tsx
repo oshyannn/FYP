@@ -33,6 +33,7 @@ export default function BrowserActivity({ onOpen, onSessionEnd }: Props) {
   const [live, setLive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [rescanning, setRescanning] = useState<string | null>(null); // added: id of the row being scanned again
 
   // silent = the automatic refresh: no "Loading…" flash and no error banner for a single missed beat
   const load = useCallback(
@@ -72,6 +73,18 @@ export default function BrowserActivity({ onOpen, onSessionEnd }: Props) {
     if (res.status === 401) return onSessionEnd();
     if (res.status === 200) onOpen(res.data.scan as ScanRecord);
     else setError(problem(res).message);
+  }
+
+  // added: scan the same address again (the detector forgets what it remembered for it) and open the new result
+  async function rescan(r: ScanRecord) {
+    if (rescanning) return;
+    setError("");
+    setRescanning(r.id);
+    const res = await api.post("/api/scans", { url: r.url, fresh: true });
+    setRescanning(null);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status === 201) onOpen(res.data.scan as ScanRecord);
+    else setError(res.status === 429 ? "Too many scans in a short time. Wait a moment and try again." : problem(res).message);
   }
 
   const connected = ext?.connected ?? false;
@@ -146,9 +159,18 @@ export default function BrowserActivity({ onOpen, onSessionEnd }: Props) {
                     <span className={LEVEL_STYLE[r.risk_level].text}>{scoreText(r)}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <button onClick={() => view(r.id)} className="text-[#1e3a5f] text-sm font-medium hover:underline">
-                      View Details in SafeBrowse
-                    </button>
+                    <div className="flex items-center gap-3 whitespace-nowrap">
+                      <button onClick={() => view(r.id)} className="text-[#1e3a5f] text-sm font-medium hover:underline">
+                        View Details in SafeBrowse
+                      </button>
+                      <button
+                        onClick={() => rescan(r)}
+                        disabled={rescanning !== null}
+                        className="text-[#1e3a5f] text-sm font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+                      >
+                        {rescanning === r.id ? "Scanning…" : "Re-scan"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

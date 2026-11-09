@@ -1,6 +1,6 @@
 import { API_BASE } from "./config";
 import { clearAuth, setAuth } from "./store";
-import type { Auth, RecentScan, Status, Verdict } from "./types";
+import type { Auth, RecentScan, SiteMode, SiteRule, SiteState, Status, Verdict } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -93,7 +93,7 @@ export async function scan(url: string, opts: ScanOpts = {}): Promise<Verdict> {
 }
 
 /** Open the SafeBrowse desktop app on a page (safebrowse://history). background.js does it and closes the empty tab Chrome leaves. */
-export const openApp = (page: "history" | "scanner" | "dashboard" = "history", scan?: string | null) =>
+export const openApp = (page: "history" | "scanner" | "dashboard" | "saved" | "sites" = "history", scan?: string | null) =>
   chrome.runtime.sendMessage({ type: "open-app", page, scan: scan ?? undefined });
 
 /** The latest scans of the paired account, read from the server each time (nothing is kept in this browser). */
@@ -111,6 +111,7 @@ export async function recent(token: string, n = 3): Promise<RecentScan[]> {
 // ---- helpers shared by screens
 export interface Target {
   tabId?: number;
+  title?: string; // the tab's title (empty on the warning pages)
   url: string; // the site being shown (for a warning page: the site that was blocked)
   onWarningPage: boolean;
   scannable: boolean;
@@ -140,7 +141,7 @@ export async function currentTarget(): Promise<Target> {
       url = new URL(url).searchParams.get("url") ?? "";
     }
   }
-  return { tabId: tab?.id, url, onWarningPage, scannable: isScannable(url) };
+  return { tabId: tab?.id, title: onWarningPage ? "" : tab?.title ?? "", url, onWarningPage, scannable: isScannable(url) };
 }
 
 export const statusLabel = (s: Status) => (s === "safe" ? "SAFE" : s === "suspicious" ? "SUSPICIOUS" : s === "malicious" ? "MALICIOUS" : "UNKNOWN");
@@ -155,3 +156,30 @@ export function hostOf(url: string): string {
 
 export const clock = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 export const stamp = (ts: number) => new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+
+// ---- the person's own choice per website (background.js owns the rules; see chrome/siterules.js)
+async function site<T>(msg: Record<string, unknown>): Promise<T> {
+  const res: any = await chrome.runtime.sendMessage(msg);
+  if (!res) throw new ApiError("offline", "The extension is still starting. Try again in a moment.");
+  if (!res.ok) throw new ApiError("error", res.error ?? "Something went wrong.", res.status ?? 0);
+  return res as T;
+}
+export const siteGet = async (host: string): Promise<SiteState> => (await site<{ state: SiteState }>({ type: "site-get", host })).state;
+export const siteSet = async (host: string, mode: SiteMode): Promise<SiteState> =>
+  (await site<{ state: SiteState }>({ type: "site-set", host, mode })).state;
+export const siteList = async (): Promise<SiteRule[]> => (await site<{ rules: SiteRule[] }>({ type: "site-list" })).rules;
+
+// ---- starred websites (saved to the account; the desktop app lists them)
+export async function savedCheck(token: string, url: string): Promise<boolean> {
+  const r = await call(`/api/saved-urls/check?url=${encodeURIComponent(url)}`, {}, token);
+  return !!r.saved;
+}
+export async function savedAdd(token: string, url: string, title: string, v?: { status: Status; score: number }): Promise<void> {
+  await call("/api/saved-urls", {
+    method: "POST",
+    body: JSON.stringify({ url, title: title || undefined, ...(v ? { risk_level: v.status, risk_score: v.score } : {}) }),
+  }, token);
+}
+export async function savedRemove(token: string, url: string): Promise<void> {
+  await call(`/api/saved-urls?url=${encodeURIComponent(url)}`, { method: "DELETE" }, token);
+}

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, problem } from "../../api";
 import Badge from "../../components/Badge";
+import ScopeChoice from "../../components/ScopeChoice";
 import StatusBadge from "../../components/StatusBadge";
 import { Alert } from "../../components/ui";
 import { LEVEL_STYLE } from "../../lib/analysis";
 import {
-  THREAT_TYPE_OPTIONS, threatStatusLabel, threatStatusTone, threatTypeLabel, threatTypeTone,
+  isFrontPage, THREAT_TYPE_OPTIONS, threatStatusLabel, threatStatusTone, threatTypeLabel, threatTypeTone,
 } from "../../lib/threats";
-import type { ThreatItem, ThreatStats, ThreatStatus } from "../../lib/threats";
+import type { MatchScope, ThreatItem, ThreatStats, ThreatStatus } from "../../lib/threats";
 import MySubmissions from "../staff/submissions/MySubmissions";
 import SubmitThreatModal from "../staff/submissions/SubmitThreatModal";
 
@@ -17,7 +18,7 @@ interface Props {
   onSessionEnd: () => void;
 }
 
-type Decision = "approve" | "remove";
+type Decision = "approve" | "remove" | "scope";
 const PER_PAGE = 10;
 const selectCls = "px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:border-[#1e3a5f]";
 
@@ -45,6 +46,7 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   const [view, setView] = useState<ThreatItem | null>(null);
   const [confirm, setConfirm] = useState<{ item: ThreatItem; decision: Decision } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<MatchScope>("auto");   // administrators only; "auto" = the original behaviour
   // employer only: the "Submit Threat URL" form and the "My Submissions" list
   const [section, setSection] = useState<"list" | "mine">("list");
   const [showSubmit, setShowSubmit] = useState(false);
@@ -91,10 +93,18 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   async function act() {
     if (!confirm || busy) return;
     setBusy(true);
-    const res = await api.post(`/api/staff/threats/${confirm.item.id}/review`, { decision: confirm.decision });
+    const res =
+      confirm.decision === "scope"
+        ? await api.patch(`/api/staff/threats/${confirm.item.id}/scope`, { match_scope: scope })
+        : await api.post(
+            `/api/staff/threats/${confirm.item.id}/review`,
+            confirm.decision === "approve" && isAdmin && isFrontPage(confirm.item.url) && scope !== "auto"
+              ? { decision: "approve", match_scope: scope }
+              : { decision: confirm.decision },
+          );
     setBusy(false);
     if (res.status === 401) return onSessionEnd();
-    const label = confirm.decision === "approve" ? "approved" : "removed";
+    const label = confirm.decision === "approve" ? "approved" : confirm.decision === "scope" ? "updated" : "removed";
     setConfirm(null);
     setView(null);
     if (res.status === 200) setDone(`Entry ${label}.`);
@@ -106,7 +116,11 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
   function actions(r: ThreatItem): { decision: Decision; label: string; danger?: boolean }[] {
     if (!staff) return [];
     if (r.status === "pending_review") return [{ decision: "approve", label: "Approve" }, { decision: "remove", label: "Reject", danger: true }];
-    if (r.status === "active" && isAdmin) return [{ decision: "remove", label: "Remove", danger: true }];
+    if (r.status === "active" && isAdmin)
+      return [
+        ...(isFrontPage(r.url) ? [{ decision: "scope" as const, label: "Scope" }] : []),
+        { decision: "remove", label: "Remove", danger: true },
+      ];
     if (r.status === "revoked" && isAdmin) return [{ decision: "approve", label: "Reinstate" }];
     return [];
   }
@@ -281,7 +295,7 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
                       {actions(r).map((a) => (
                         <button
                           key={a.label}
-                          onClick={() => { setDone(""); setConfirm({ item: r, decision: a.decision }); }}
+                          onClick={() => { setDone(""); setScope(r.match_scope ?? "auto"); setConfirm({ item: r, decision: a.decision }); }}
                           className={`text-sm font-medium hover:underline ${a.danger ? "text-red-500" : "text-green-700"}`}
                         >
                           {a.label}
@@ -334,6 +348,7 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
                 ["Risk Level", <StatusBadge level={view.risk_level} />],
                 ["Risk Score", <span className={`font-bold ${LEVEL_STYLE[view.risk_level].text}`}>{Math.round(view.risk_score)}/100</span>],
                 ["Status", <Badge tone={threatStatusTone(view.status)}>{threatStatusLabel(view.status)}</Badge>],
+                ...(isFrontPage(view.url) ? [["Blocks", <span className="text-slate-700">{view.match_scope === "exact" ? "This page only" : "Whole site"}</span>] as [string, React.ReactNode]] : []),
                 ["Times detected", <span className="text-slate-700">{view.detection_count}</span>],
                 ["First detected", <span className="text-slate-700">{new Date(view.created_at).toLocaleString()}</span>],
                 ["Last detected", <span className="text-slate-700">{new Date(view.last_verified_at).toLocaleString()}</span>],
@@ -349,7 +364,7 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
               {actions(view).map((a) => (
                 <button
                   key={a.label}
-                  onClick={() => setConfirm({ item: view, decision: a.decision })}
+                  onClick={() => { setScope(view.match_scope ?? "auto"); setConfirm({ item: view, decision: a.decision }); }}
                   className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${a.danger ? "border border-red-300 text-red-600 hover:bg-red-50" : "bg-green-600 text-white hover:bg-green-700"}`}
                 >
                   {a.label}
@@ -364,20 +379,23 @@ export default function ThreatUrlList({ staffRole, onSessionEnd }: Props) {
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="th-confirm">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 id="th-confirm" className="font-semibold text-slate-900 mb-2">
-              {confirm.decision === "approve" ? "Add to the Threat List?" : "Remove from the Threat List?"}
+              {confirm.decision === "approve" ? "Add to the Threat List?" : confirm.decision === "scope" ? "What should this entry block?" : "Remove from the Threat List?"}
             </h3>
             <p className="text-slate-500 text-sm mb-1 font-mono break-all">{confirm.item.url}</p>
+            {isAdmin && isFrontPage(confirm.item.url) && confirm.decision !== "remove" && <ScopeChoice value={scope} onChange={setScope} />}
             <p className="text-slate-500 text-sm mb-5">
               {confirm.decision === "approve"
                 ? "This URL will be shown to all users as a confirmed threat."
-                : "This URL will no longer be shown in the Global Threat List."}
+                : confirm.decision === "scope"
+                  ? "The change applies to the detector within seconds."
+                  : "This URL will no longer be shown in the Global Threat List."}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirm(null)} className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium">Cancel</button>
               <button
                 onClick={act}
                 disabled={busy}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 ${confirm.decision === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 ${confirm.decision !== "remove" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
               >
                 {busy ? "Please wait…" : "Confirm"}
               </button>

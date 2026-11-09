@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   AlertTriangleIcon, ArrowLeftIcon, CheckCircleIcon, ClockIcon, ExternalLinkIcon, GlobeIcon, PowerIcon,
-  SearchIcon, ShieldCheckIcon, ShieldXIcon, SpinnerIcon,
+  SearchIcon, ShieldCheckIcon, ShieldXIcon, SpinnerIcon, StarIcon,
 } from "./icons";
 import { clock, hostOf, stamp, statusLabel } from "./api";
 import { AnalysisBlocks, AssessmentBlock, Breakdown } from "./breakdown";
@@ -9,7 +9,7 @@ import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
 } from "./ui";
-import type { RecentScan, Settings, Verdict } from "./types";
+import type { RecentScan, Settings, SiteMode, SiteRule, SiteState, Verdict } from "./types";
 
 // ─── Pairing (replaces the old login page: the code comes from the desktop app) ──────────────
 export function PairScreen({ notice, onSubmit }: { notice?: string; onSubmit: (code: string) => Promise<string | null> }) {
@@ -480,6 +480,124 @@ export function DetailsScreen({ v, onBack }: { v: Verdict; onBack: () => void })
         </div>
       </div>
       <OutlineBtn onClick={onBack} className="w-full"><ArrowLeftIcon size={11} />Back to Extension</OutlineBtn>
+    </div>
+  );
+}
+
+// ─── Star + Site settings ───────────────────────────────────────────────────────────────────────
+export const MODE_LABEL: Record<SiteMode, string> = {
+  ask: "Warn me every time", once: "Allowed for this visit", hour: "Allowed for 1 hour",
+  session: "Allowed until the browser closes", allow: "Always allowed", block: "Always blocked",
+};
+
+/** Under the status: save the page (star) and open the settings of this website. */
+export function SiteBar({ host, saved, busy, mode, flash, onToggleSaved, onSite }: {
+  host: string; saved: boolean | null; busy: boolean; mode?: SiteMode; flash?: string; onToggleSaved: () => void; onSite: () => void;
+}) {
+  return (
+    <div className="px-4 pb-3 -mt-1 fade-in">
+      <div className="flex gap-2">
+        <button
+          onClick={onToggleSaved}
+          disabled={busy || saved === null}
+          aria-pressed={!!saved}
+          className={`flex-1 py-2 rounded-lg border text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 ${
+            saved ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+        >
+          <StarIcon size={13} filled={!!saved} />{saved ? "Saved" : "Save this page"}
+        </button>
+        <button onClick={onSite} className="flex-1 py-2 rounded-lg border border-gray-300 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+          Site settings{mode && mode !== "ask" ? " •" : ""}
+        </button>
+      </div>
+      <div className="mt-1.5 text-[10px] text-gray-400 truncate" title={host}>
+        {flash ? <span className="text-gray-600 font-medium">{flash}</span> : mode && mode !== "ask" ? <>{host}: <b className="text-gray-600">{MODE_LABEL[mode]}</b></> : "Warnings for this website: every time (default)"}
+      </div>
+    </div>
+  );
+}
+
+const OPTIONS: { mode: SiteMode; title: string; hint: string }[] = [
+  { mode: "ask", title: "Warn me every time", hint: "The default. Dangerous pages are blocked and you are asked again on every visit." },
+  { mode: "hour", title: "Allow for 1 hour", hint: "No warning for an hour, then it asks again." },
+  { mode: "session", title: "Allow until I close the browser", hint: "No warning until the browser is closed." },
+  { mode: "allow", title: "Always allow", hint: "Never warn me about this website. Saved to your account; you can undo it here." },
+  { mode: "block", title: "Always block", hint: "Block this website every time, whatever SafeBrowse finds. Saved to your account." },
+];
+
+function modeNote(st: SiteState): string {
+  if (st.mode === "hour" && st.hour) return `until ${clock(st.hour)}`;
+  if (st.mode === "session") return "until you close the browser";
+  if (st.mode === "once") return "for about 2 minutes";
+  if ((st.mode === "allow" || st.mode === "block") && st.ruleHost && st.ruleHost !== st.host.replace(/^www\./, "")) return `(rule for ${st.ruleHost})`;
+  return "";
+}
+
+export function SiteSettingsScreen({ host, state, rules, error, busy, onSet, onRemoveRule, onOpenApp }: {
+  host: string; state: SiteState | null; rules: SiteRule[] | null; error: string; busy: boolean;
+  onSet: (mode: SiteMode) => void; onRemoveRule: (host: string) => void; onOpenApp: () => void;
+}) {
+  const [pending, setPending] = useState<SiteMode | null>(null);        // "Always allow" asks once more
+  const choose = (m: SiteMode) => (m === "allow" ? setPending("allow") : onSet(m));
+  const current = state?.mode ?? "ask";
+  return (
+    <div className="p-4 fade-in relative">
+      <SectionLabel>This website</SectionLabel>
+      <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 -mt-1.5 mb-3">
+        <UrlLine url={host} />
+        <div className="mt-1.5 text-[11px] text-gray-600">
+          {state ? <><b>{MODE_LABEL[current]}</b> {modeNote(state)}</> : "Loading…"}
+        </div>
+        {state && current !== "ask" && (
+          <PrimaryBtn onClick={() => onSet("ask")} disabled={busy} className="w-full mt-2.5">Restore the warning</PrimaryBtn>
+        )}
+      </div>
+      {error && <div role="alert" className="mb-3 p-2.5 rounded-lg border border-red-200 bg-red-50 text-[11px] text-red-600">{error}</div>}
+
+      <SectionLabel>When SafeBrowse finds a problem here</SectionLabel>
+      <div className="space-y-1.5 -mt-1.5 mb-4">
+        {OPTIONS.map((o) => {
+          const on = current === o.mode;
+          return (
+            <button key={o.mode} onClick={() => choose(o.mode)} disabled={busy || on} aria-pressed={on}
+              className={`w-full text-left rounded-lg border p-2.5 transition-colors disabled:cursor-default ${on ? "border-[#0f2a4a] bg-[#0f2a4a]/5" : "border-gray-200 hover:bg-gray-50"}`}>
+              <div className="flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full border-2 shrink-0 ${on ? "border-[#0f2a4a] bg-[#0f2a4a]" : "border-gray-300"}`} />
+                <span className="text-[12px] font-semibold text-gray-800">{o.title}</span>
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5 ml-5 leading-relaxed">{o.hint}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SectionLabel>Websites I always allow or block</SectionLabel>
+      <div className="-mt-1.5 mb-3">
+        {rules === null ? <div className="text-[11px] text-gray-400">Loading…</div>
+          : rules.length === 0 ? <div className="text-[11px] text-gray-400">None yet.</div>
+          : (
+            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+              {rules.map((r) => (
+                <li key={r.id} className="flex items-center gap-2 px-2.5 py-2">
+                  <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${r.rule === "block" ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>{r.rule}</span>
+                  <span className="text-[11px] font-mono text-gray-700 truncate" title={r.host}>{r.host}</span>
+                  <button onClick={() => onRemoveRule(r.host)} disabled={busy} className="ml-auto text-[10px] font-semibold text-red-500 hover:underline disabled:opacity-40">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+      <OutlineBtn onClick={onOpenApp} className="w-full"><ExternalLinkIcon size={11} />Manage in the desktop app</OutlineBtn>
+
+      {pending === "allow" && (
+        <ConfirmDialog
+          title="Always allow this website?"
+          message={`SafeBrowse will stop warning you about ${host}, even if it is dangerous. The choice is saved to your account and you can undo it here at any time.`}
+          confirmLabel="Always allow"
+          onCancel={() => setPending(null)}
+          onConfirm={() => { setPending(null); onSet("allow"); }}
+        />
+      )}
     </div>
   );
 }

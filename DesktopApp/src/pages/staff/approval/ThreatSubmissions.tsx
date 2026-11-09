@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, problem } from "../../../api";
 import Badge from "../../../components/Badge";
 import ConfirmDialog from "../../../components/ConfirmDialog";
+import ScopeChoice from "../../../components/ScopeChoice";
 import Modal from "../../../components/Modal";
 import Pager from "../../../components/Pager";
 import { Alert } from "../../../components/ui";
@@ -9,6 +10,8 @@ import {
   categoryLabel, categoryTone, reviewLabel, reviewTone, REVIEW_PER_PAGE, scoreBarClass, scoreClass, shortDate, shortDateTime,
 } from "../../../lib/approvals";
 import type { ThreatSubmission } from "../../../lib/approvals";
+import { isFrontPage } from "../../../lib/threats";
+import type { MatchScope } from "../../../lib/threats";
 
 interface Props {
   onSessionEnd: () => void;
@@ -36,6 +39,7 @@ export default function ThreatSubmissions({ onSessionEnd, onChanged }: Props) {
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState<Action | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<MatchScope>("auto");   // "auto" = the original behaviour
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,7 +60,7 @@ export default function ThreatSubmissions({ onSessionEnd, onChanged }: Props) {
     if (!selected || !confirm || busy) return;
     setBusy(true);
     setError("");
-    const res = await api.post(`/api/staff/threat-submissions/${selected.id}/review`, { decision: confirm, note: note.trim() });
+    const res = await api.post(`/api/staff/threat-submissions/${selected.id}/review`, { decision: confirm, note: note.trim(), ...(confirm === "approve" && scope !== "auto" && isFrontPage(selected.url) ? { match_scope: scope } : {}) });
     setBusy(false);
     if (res.status === 401) return onSessionEnd();
     const url = selected.url;
@@ -125,6 +129,7 @@ export default function ThreatSubmissions({ onSessionEnd, onChanged }: Props) {
                         setDone("");
                         setNote("");
                         setConfirm(null);
+                        setScope("auto");
                         setSelected(sub);
                       }}
                       className="text-[#1e3a5f] text-sm font-medium hover:underline"
@@ -239,6 +244,7 @@ export default function ThreatSubmissions({ onSessionEnd, onChanged }: Props) {
           onCancel={() => setConfirm(null)}
         >
           <p className="font-mono mb-1 break-all">{selected.url}</p>
+          {confirm === "approve" && isFrontPage(selected.url) && <ScopeChoice value={scope} onChange={setScope} />}
           <p>
             {confirm === "approve"
               ? "This URL will be immediately published to the Global Threat List, visible to all users."

@@ -12,7 +12,7 @@ const DIST_INDEX = path.join(__dirname, "..", "dist", "index.html");
 const USE_DEV_SERVER = DEV || !fs.existsSync(DIST_INDEX);
 const API_BASE = (process.env.SAFEBROWSE_API || "http://127.0.0.1:5000").replace(/\/+$/, "");
 const PROTOCOL = "safebrowse";                       // the browser extension opens the app with safebrowse://<page>
-const OPEN_PAGES = new Set(["dashboard", "history", "scanner"]);
+const OPEN_PAGES = new Set(["dashboard", "history", "scanner", "saved", "sites"]);
 let pendingPage = null;                              // a page requested before the window could show it (never holds the code)
 let linkCode = null;                                 // { code, at }: the one-time code from the link, kept until the person decides
 
@@ -46,7 +46,7 @@ const sessionFile = () => path.join(app.getPath("userData"), "session.bin");
 let auth = null;     // { token, portal, persist }
 let pending = null;  // { email, secret }: a sign-up in progress; the secret lets only THIS app be signed in by the link
 
-const METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
+const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const PATH_OK = /^\/api\/[A-Za-z0-9/_-]{1,100}(\?[A-Za-z0-9=&%._~+-]{0,1200})?$/;
 const NO_TOKEN = new Set([
   "/api/auth/login", "/api/staff/login", "/api/auth/register", "/api/staff/request-access",

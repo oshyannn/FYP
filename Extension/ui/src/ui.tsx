@@ -6,7 +6,7 @@ import {
 import type { Status } from "./types";
 
 export type Screen =
-  | "status" | "activity" | "manual_scan" | "manual_result" | "settings" | "details";
+  | "status" | "activity" | "manual_scan" | "manual_result" | "settings" | "details" | "site";
 
 // ─── Status helpers (same colours as the Figma design; "unknown" is neutral grey) ─────────────
 export const statusColor = (s: Status) =>
@@ -64,7 +64,7 @@ export function NavBar({ screen, onNav }: { screen: Screen; onNav: (s: Screen) =
     { id: "activity", label: "Activity", icon: <ActivityIcon size={14} /> },
     { id: "manual_scan", label: "Scan URL", icon: <SearchIcon size={14} /> },
   ];
-  const active = screen === "manual_result" ? "manual_scan" : screen === "details" ? "status" : screen;
+  const active = screen === "manual_result" ? "manual_scan" : screen === "details" || screen === "site" ? "status" : screen;
   return (
     <div className="flex border-t border-gray-200 bg-white">
       {tabs.map((t) => (

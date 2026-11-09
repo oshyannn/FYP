@@ -1,6 +1,15 @@
 import type { Level } from "./analysis";
 import type { Tone } from "../components/Badge";
 
+export type MatchScope = "auto" | "exact";
+
+/** True for a front-page address (https://example.com/): the only kind where the scope matters. */
+export function isFrontPage(url: string): boolean {
+  const rest = url.replace(/^[a-z]+:\/\//i, "");
+  const slash = rest.indexOf("/");
+  return slash === -1 || rest.slice(slash).replace(/^\/+$/, "") === "";
+}
+
 export type ThreatStatus = "active" | "pending_review" | "revoked";
 
 export interface ThreatItem {
@@ -14,6 +23,7 @@ export interface ThreatItem {
   detection_count: number;
   created_at: string;
   last_verified_at: string;
+  match_scope?: MatchScope;
 }
 
 export interface ThreatStats {

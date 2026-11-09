@@ -27,6 +27,7 @@ export default function DetectionHistory({ onOpen, onSessionEnd }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rescanning, setRescanning] = useState<string | null>(null); // added: id of the row being scanned again
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -78,6 +79,18 @@ export default function DetectionHistory({ onOpen, onSessionEnd }: Props) {
     if (res.status === 401) return onSessionEnd();
     if (res.status === 200) onOpen(res.data.scan as ScanRecord);
     else setError(problem(res).message);
+  }
+
+  // added: scan the same address again (the detector forgets what it remembered for it) and open the new result
+  async function rescan(r: ScanRecord) {
+    if (rescanning) return;
+    setError("");
+    setRescanning(r.id);
+    const res = await api.post("/api/scans", { url: r.url, fresh: true });
+    setRescanning(null);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status === 201) onOpen(res.data.scan as ScanRecord);
+    else setError(res.status === 429 ? "Too many scans in a short time. Wait a moment and try again." : problem(res).message);
   }
 
   async function remove() {
@@ -197,6 +210,13 @@ export default function DetectionHistory({ onOpen, onSessionEnd }: Props) {
                     <div className="flex items-center gap-3">
                       <button onClick={() => view(r.id)} className="text-[#1e3a5f] text-sm font-medium hover:underline">
                         View
+                      </button>
+                      <button
+                        onClick={() => rescan(r)}
+                        disabled={rescanning !== null}
+                        className="text-[#1e3a5f] text-sm font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+                      >
+                        {rescanning === r.id ? "Scanning…" : "Re-scan"}
                       </button>
                       <button onClick={() => setConfirm([r.id])} className="text-red-500 text-sm font-medium hover:underline">
                         Delete

@@ -10,7 +10,8 @@ const API = API_BASE + "/analyze";
 const ICON = chrome.runtime.getURL("icons/icon128.png");
 const QUICK_MS = 700;                 // answered within this -> decide at once (whitelist/blacklist hits are instant)
 const DEEP_MS = 15000;                // slower check: the user waits on a "checking" page, then fail-open
-const CACHE_MS = 30 * 1000;           // was 5 minutes: an admin change should reach users within about half a minute
+const CACHE_MS = 30 * 1000;           // was 5 minutes: a change by an administrator reaches users within about half a minute
+importScripts("siterules.js");        // the person's own choices per website: siteGate(), siteGateRedirect() and the "site-*" messages
 const cache = new Map();              // url -> { t, data }
 const pending = new Map();            // url -> Promise<data> (one request per URL, shared by every caller)
 const notified = new Set();
@@ -244,6 +245,7 @@ chrome.webNavigation?.onBeforeNavigate.addListener(async (d) => {
     if (!(await getSettings()).realtime) return;     // "Real-Time URL Detection" is off
     await noteNavigation(d);                        // remember navigations a person started (localhost included)
     if (d.frameId !== 0 || !shouldScan(d.url)) return;
+    if (await siteGate(d)) return;                  // the person's own rule for this website (always block / always allow / for a while)
     if (await isAllowed(d.url)) return;
 
     const p = analyze(d.url, { record: true });
@@ -304,7 +306,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
 
 // The popup's "See more in app" button: open the desktop app on a page (safebrowse://history). Only our own popup may ask,
 // and only these fixed page names are ever sent to the app.
-const APP_PAGES = ["history", "scanner", "dashboard"];
+const APP_PAGES = ["history", "scanner", "dashboard", "saved", "sites"];
 chrome.runtime.onMessage.addListener((msg, sender) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.type !== "open-app") return;
     if (!String(sender.url || "").startsWith(chrome.runtime.getURL("popup/"))) return;
@@ -362,6 +364,7 @@ chrome.webNavigation?.onCommitted.addListener(async (d) => {
     const q = d.transitionQualifiers || [];
     if (!q.includes("server_redirect") && !q.includes("client_redirect")) return;
     if (!(await getSettings()).realtime) return;
+    if (await siteGateRedirect(d)) return;
     if (await isAllowed(d.url)) return;
     try {
         act(d.tabId, d.url, await analyze(d.url, { record: true, kind: "redirect" }));

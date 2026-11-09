@@ -76,7 +76,7 @@ def get(sub_id):
     return db.one(f"{_ADMIN} WHERE s.id = %s", (sub_id,))
 
 
-def review(sub_id, reviewer_id, decision: str, note: str) -> str:
+def review(sub_id, reviewer_id, decision: str, note: str, match_scope: str | None = None) -> str:
     """decision: 'approve' (publish to the Global Threat List) | 'reject'. Only a pending submission can be reviewed.
     Returns 'ok', 'not_found' or 'conflict' (already reviewed)."""
     with db.transaction() as c:
@@ -91,17 +91,18 @@ def review(sub_id, reviewer_id, decision: str, note: str) -> str:
             ttype, level = publish_values(row["category"], float(row["risk_score"]))
             gid = c.execute(
                 """INSERT INTO public.global_urls
-                       (url, normalized_url, url_hash, domain, risk_level, risk_score, threat_type, status, created_by)
+                       (url, normalized_url, url_hash, domain, risk_level, risk_score, threat_type, status, created_by, match_scope)
                    VALUES (%(url)s, %(url)s, %(h)s, %(domain)s, %(level)s::public.risk_level, %(score)s,
-                           %(ttype)s::public.threat_type, 'active', %(uid)s)
+                           %(ttype)s::public.threat_type, 'active', %(uid)s, coalesce(%(scope)s::text, 'auto'))
                    ON CONFLICT (url_hash) DO UPDATE SET
                        status      = 'active',
+                       match_scope = coalesce(%(scope)s::text, public.global_urls.match_scope),
                        risk_level  = EXCLUDED.risk_level,
                        threat_type = EXCLUDED.threat_type,
                        risk_score  = GREATEST(public.global_urls.risk_score, EXCLUDED.risk_score)
                    RETURNING id""",
                 {"url": row["url"], "h": row["url_hash"], "domain": row["domain"], "level": level,
-                 "score": row["risk_score"], "ttype": ttype, "uid": row["submitted_by"]}).fetchone()["id"]
+                 "score": row["risk_score"], "ttype": ttype, "uid": row["submitted_by"], "scope": match_scope}).fetchone()["id"]
         c.execute("UPDATE public.threat_submissions SET review_status = %s, review_note = %s, reviewed_by = %s, "
                   "reviewed_at = now(), global_url_id = %s WHERE id = %s",
                   ("approved" if decision == "approve" else "rejected", note or None, reviewer_id, gid, sub_id))

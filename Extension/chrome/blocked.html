@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Website blocked - SafeBrowse</title>
 <link rel="stylesheet" href="pages/ui.css">
+<style>
+.choices { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 0; text-align: left; }
+.choices legend { padding: 0 6px; font-size: 11.5px; color: var(--muted); }
+.choices label, .sure { display: flex; gap: 9px; align-items: flex-start; padding: 6px 2px; cursor: pointer; font-size: 12.5px; color: var(--ink); text-align: left; }
+.choices input, .sure input { margin-top: 3px; }
+.choices small { display: block; color: var(--muted); font-size: 11px; line-height: 1.45; margin-top: 1px; }
+.sure { background: var(--bad-bg); border: 1px solid var(--bad-border); border-radius: 10px; padding: 9px 10px; font-size: 11.5px; line-height: 1.5; color: #7f1d1d; }
+.err { color: var(--bad); font-size: 12px; margin: 0; text-align: left; }
+</style>
 </head>
 <body>
 <main class="card">
@@ -22,8 +31,22 @@
     </div>
     <div class="actions hidden" id="confirm">
       <p style="margin:0"><b style="color:#111827">Continue to this potentially dangerous website?</b><br>SafeBrowse cannot protect you on this website. Malicious content may steal your information.</p>
+      <fieldset class="choices" id="choices">
+        <legend>How long should SafeBrowse stop warning you about <b id="host"></b>?</legend>
+        <label><input type="radio" name="dur" value="once" checked><span><b>Just this visit</b><small>Warns you again after 2 minutes or on your next visit.</small></span></label>
+        <label><input type="radio" name="dur" value="hour"><span><b>For 1 hour</b></span></label>
+        <label><input type="radio" name="dur" value="session"><span><b>Until I close the browser</b></span></label>
+        <label><input type="radio" name="dur" value="allow"><span><b>Always allow this website</b><small>Saved to your account. You can undo it any time in the SafeBrowse popup, Site settings.</small></span></label>
+      </fieldset>
+      <label class="sure hidden" id="sure"><input type="checkbox" id="sure-box"><span>I understand SafeBrowse will <b>never warn me</b> about this website again, even if it is dangerous.</span></label>
+      <p class="err hidden" id="err"></p>
       <button class="primary" id="cancel">Cancel</button>
       <button class="danger" id="yes">Continue anyway (unsafe)</button>
+    </div>
+    <div class="actions hidden" id="userblock-actions">
+      <button class="primary" id="ub-leave">Go Back to Safety</button>
+      <button class="danger" id="ub-remove">Remove my block and continue</button>
+      <p class="err hidden" id="ub-err"></p>
     </div>
   </div>
 </main>

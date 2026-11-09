@@ -1,9 +1,12 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
+import { api, problem } from "../../../api";
 import RiskBar from "../../../components/RiskBar";
 import StatusBadge from "../../../components/StatusBadge";
+import { Alert } from "../../../components/ui";
 import {
   CONFIDENCE_TEXT, LEVEL_STYLE, assessmentOf, breakdownBars, checkLabel, checkTone, detailSections, guidance, hasStructured, pctText, reasonsOf, riskTone,
-  scanTypeLabel, scoreOrDash, scoreText, threatTone,
+  scanTypeLabel, scoreOrDash, scoreText,
 } from "../../../lib/analysis";
 import type { AiResult, CheckItem, ScanRecord } from "../../../lib/analysis";
 
@@ -12,6 +15,8 @@ interface Props {
   backLabel: string;
   onBack: () => void;
   onReport: () => void;
+  onRescanned?: (scan: ScanRecord) => void;   // added: Re-scan shows the new result in place of this one
+  onSessionEnd?: () => void;                  // added
 }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
@@ -57,7 +62,7 @@ function SourceTable({ checks }: { checks: CheckItem[] }) {
   );
 }
 
-function AiModelCard({ title, ai }: { title: string; ai?: AiResult }) {
+function AiModelCard({ title, ai, children }: { title: string; ai?: AiResult; children?: ReactNode }) {
   if (!ai) return null;
   const tone = riskTone(ai.score);
   return (
@@ -70,11 +75,22 @@ function AiModelCard({ title, ai }: { title: string; ai?: AiResult }) {
         note={ai.score == null ? undefined : `Risk score this model adds: ${ai.score}/100`}
       />
       <p className="text-sm text-slate-600 mt-3">{ai.description}</p>
+      {children}
     </Card>
   );
 }
 
-export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: Props) {
+// Rule-based page checks are NOT a model: no percentage bar (it looked like an AI result), just what was found and how strong.
+function ruleStrength(percent: number): { label: string; cls: string } {
+  if (percent >= 70) return { label: "Strong signs", cls: "bg-red-50 text-red-700 border-red-200" };
+  if (percent >= 40) return { label: "Some signs", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (percent > 0) return { label: "Weak signs", cls: "bg-slate-100 text-slate-700 border-slate-200" };
+  return { label: "Nothing found", cls: "bg-green-50 text-green-700 border-green-200" };
+}
+
+export default function DetailedAnalysis({ scan, backLabel, onBack, onReport, onRescanned, onSessionEnd }: Props) {
+  const [rescanning, setRescanning] = useState(false);
+  const [error, setError] = useState("");
   const c = LEVEL_STYLE[scan.risk_level];
   const findings = reasonsOf(scan.analysis);
   const a = scan.analysis;
@@ -83,6 +99,21 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
   const ai2 = a?.ai2;
   const cats = ai2?.categories ?? [];
   const asm = assessmentOf(scan);
+  // sources that could not answer this time (a server that was not running, a lookup that failed, a page that could not be read)
+  const incomplete = (a?.checks ?? []).filter(
+    (k) => (k.state as string) === "unavailable" || ((k.id === "ai1" || k.id === "ai2") && (k.state as string) === "no_opinion"),
+  );
+
+  async function rescan() {
+    if (rescanning) return;
+    setRescanning(true);
+    setError("");
+    const res = await api.post("/api/scans", { url: scan.url, fresh: true });   // fresh: forget remembered answers for this address
+    setRescanning(false);
+    if (res.status === 401) return onSessionEnd?.();
+    if (res.status === 201) onRescanned?.(res.data.scan as ScanRecord);
+    else setError(res.status === 429 ? "Too many scans in a short time. Wait a moment and try again." : problem(res).message);
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -90,7 +121,26 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
         ← {backLabel}
       </button>
 
-      <h2 className="text-xl font-bold text-slate-900">Detailed Security Analysis</h2>
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-xl font-bold text-slate-900">Detailed Security Analysis</h2>
+        {onRescanned && (
+          <button
+            onClick={rescan}
+            disabled={rescanning}
+            className="shrink-0 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+          >
+            {rescanning ? "Scanning…" : "Re-scan"}
+          </button>
+        )}
+      </div>
+
+      {error && <Alert kind="error">{error}</Alert>}
+      {incomplete.length > 0 && (
+        <Alert kind="info">
+          This result is incomplete: {incomplete.map((k) => k.name).join(", ")} could not answer this time. That may be a lookup that failed, a page
+          that could not be read, or a service that was not running. {onRescanned ? "Press Re-scan to ask again; the old answers are not reused." : "Scan the address again to ask again."}
+        </Alert>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -139,50 +189,61 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
           {/* 3. AI 1 */}
           <AiModelCard title="🤖 3. AI 1 · URL Model" ai={a?.ai1} />
 
-          {/* 4. AI 2 with one percentage per kind of page threat */}
-          <Card title="🤖 4. AI 2 · Page Content Model">
-            {ai2 && (
-              <>
-                <RiskBar
-                  label="Phishing probability"
-                  value={ai2.percent}
-                  display={ai2.state === "ok" ? pctText(ai2.percent) : ai2.state === "skipped" ? "Not run" : "No opinion"}
-                  tone={riskTone(ai2.score)}
-                  note={ai2.score == null ? undefined : `Risk score this model adds: ${ai2.score}/100`}
-                />
-                <p className="text-sm text-slate-600 mt-3">{ai2.description}</p>
-              </>
+          {/* 4. AI 2: the model's probability only (the rule-based checks are their own card below) */}
+          <AiModelCard title="🤖 4. AI 2 · Page Content Model" ai={ai2}>
+            {ai2?.state === "ok" && (
+              <p className="text-xs text-slate-400 mt-3">
+                This percentage is the model's overall estimate from many features of the page. The model does not list reasons. The separate
+                rule-based checks in section 5 are not part of it.
+              </p>
             )}
-            {cats.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-slate-100 space-y-4">
-                <p className="text-xs font-medium text-slate-500">What the page scan looks for</p>
-                {cats.map((k) => (
-                  <div key={k.id}>
-                    <RiskBar label={k.label} value={k.percent} display={`${k.percent}%`} tone={threatTone(k.level)} small />
-                    <p className="text-xs text-slate-500 mt-1">{k.description}</p>
-                  </div>
-                ))}
-                <p className="text-xs text-slate-400">
-                  These percentages are rule-based: each one adds up the warning signs found in the page (forms, fields, title, scripts,
-                  downloads). They explain the AI 2 result; they are not separate trained models.
-                </p>
-              </div>
-            )}
-            {(ai2?.signals?.length ?? 0) > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-xs font-medium text-slate-500 mb-2">Warning signs seen on the page</p>
-                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
-                  {ai2!.signals!.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card>
+          </AiModelCard>
 
-          {/* 5. both AI models together */}
+          {/* 5. Rule-based page checks: a different kind of card on purpose (dashed, no AI bars) */}
+          {cats.length > 0 && (
+            <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-5">
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <h3 className="font-semibold text-slate-800">🧰 5. Rule-based page checks</h3>
+                <span className="text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border border-slate-300 text-slate-500 bg-white shrink-0">RULES · NOT AI</span>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                Fixed rules that look for specific tricks in the page text. They are not a trained model and they are not the AI 2 probability.
+                Scripts that only run after the page loads are not seen.
+              </p>
+              <div className="divide-y divide-slate-200">
+                {cats.map((k) => {
+                  const st = ruleStrength(k.percent);
+                  return (
+                    <div key={k.id} className="py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-slate-800">{k.label}</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 ${st.cls}`}>{st.label}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{k.description}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {(ai2?.signals?.length ?? 0) > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 mb-2">Other things noticed on the page</p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                    {ai2!.signals!.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-xs text-slate-400 mt-3">
+                A sign-in page always has a password field, so "Fake login page: weak signs" on a real sign-in page is normal. It matters when the
+                page is not on the website it claims to belong to.
+              </p>
+            </div>
+          )}
+
+          {/* 6. both AI models together */}
           {a?.ai_combined && (
-            <Card title="🤖 5. AI Combined (AI 1 + AI 2)">
+            <Card title="🤖 6. AI Combined (AI 1 + AI 2)">
               <RiskBar
                 label="Combined AI risk"
                 value={a.ai_combined.score}
@@ -215,7 +276,7 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
       )}
 
       {/* final: lists / APIs + AI together */}
-      <Card title={structured ? "6. Final Result: lists / APIs + AI" : "4. Final Result"}>
+      <Card title={structured ? "7. Final Result: lists / APIs + AI" : "4. Final Result"}>
         {structured && (
           <div className="space-y-4 mb-5">
             {breakdownBars(scan).map((b) => (
@@ -290,9 +351,16 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport }: 
         )}
       </Card>
 
-      <button onClick={onReport} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-        Report wrong detection
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button onClick={onReport} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+          Report wrong detection
+        </button>
+        {onRescanned && (
+          <button onClick={rescan} disabled={rescanning} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-60 transition-colors">
+            {rescanning ? "Scanning…" : "Re-scan this address"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

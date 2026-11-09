@@ -5,7 +5,7 @@ from __future__ import annotations
 from web import db
 
 _COLS = ("id, url, domain, risk_level::text AS risk_level, risk_score, threat_type::text AS threat_type, "
-         "status::text AS status, detection_count, created_at, last_verified_at")
+         "status::text AS status, detection_count, created_at, last_verified_at, match_scope")
 _ONLY_THREATS = "risk_level IN ('suspicious', 'malicious')"
 
 
@@ -41,7 +41,7 @@ def get(gid):
     return db.one(f"SELECT {_COLS} FROM public.global_urls WHERE id = %s AND {_ONLY_THREATS}", (gid,))
 
 
-def review(gid, decision: str, is_admin: bool) -> str:
+def review(gid, decision: str, is_admin: bool, match_scope: str | None = None) -> str:
     """decision: 'approve' (-> active) or 'remove' (-> revoked).
     An employer may only act on pending entries; an administrator may also remove active ones and reinstate
     removed ones. Returns 'ok', 'not_found', 'forbidden' or 'conflict'."""
@@ -62,5 +62,13 @@ def review(gid, decision: str, is_admin: bool) -> str:
             if cur == "active" and not is_admin:
                 return "forbidden"
             new = "revoked"
-        c.execute("UPDATE public.global_urls SET status = %s::public.url_status WHERE id = %s", (new, gid))
+        c.execute("UPDATE public.global_urls SET status = %s::public.url_status, "
+                  "match_scope = coalesce(%s::text, match_scope) WHERE id = %s", (new, match_scope if decision == "approve" else None, gid))
     return "ok"
+
+
+def set_scope(gid, scope: str) -> bool:
+    """'auto' (a front-page entry covers the whole domain) or 'exact' (only this address). False when there is no such entry."""
+    row = db.one("UPDATE public.global_urls SET match_scope = %s WHERE id = %s AND risk_level IN ('suspicious', 'malicious') "
+                 "RETURNING id", (scope, gid))
+    return row is not None

@@ -6,6 +6,8 @@ import type { Session } from "../../types";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
+import DetectionLists from "../shared/DetectionLists";
+import SystemLists from "../shared/SystemLists";
 import EmployerVerification from "./EmployerVerification";
 import StaffFeedback from "../StaffFeedback";
 import StaffDashboard from "./StaffDashboard";
@@ -26,6 +28,8 @@ const TITLES: Record<string, string> = {
   threats: "Threat URL Management",
   approval: "URL Approval",
   whitelist: "Trusted Websites",
+  lists: "Detection Lists",
+  rules: "Detection Rules",
   feedback: "User Feedback",
   profile: "Profile",
 };
@@ -49,6 +53,8 @@ export default function StaffApp({ session, onLogout }: Props) {
   else if (page === "logs") content = <ActivityLogs role={role} onSessionEnd={onLogout} />;
   else if (page === "approval") content = <UrlApproval role={role} onSessionEnd={onLogout} />;
   else if (page === "whitelist" && admin) content = <Whitelist role="admin" onSessionEnd={onLogout} />;
+  else if (page === "lists") content = <DetectionLists onSessionEnd={onLogout} />;
+  else if (page === "rules") content = <SystemLists role={role} onSessionEnd={onLogout} />;
   else if (page === "profile") content = <Profile onSessionEnd={onLogout} onNameChanged={setName} />;
   else if (page === "feedback") content = <StaffFeedback onSessionEnd={onLogout} />;
   else if (page === "threats") content = <ThreatUrlList staffRole={role} onSessionEnd={onLogout} />;

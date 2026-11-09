@@ -12,10 +12,13 @@ import DetectionHistory from "./scan/DetectionHistory";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
+import DetectionLists from "../shared/DetectionLists";
+import SavedUrls from "../shared/SavedUrls";
+import SiteSettings from "../shared/SiteSettings";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "activity" | "feedback" | "profile";   // added: activity
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "lists" | "saved" | "sites" | "activity" | "feedback" | "profile";   // added: activity
 
 interface Props {
   session: Session;
@@ -30,6 +33,9 @@ const TITLES: Record<Page, string> = {
   history: "Detection History",
   threats: "Threat URL List",
   whitelist: "Trusted Websites",
+  lists: "Detection Lists",
+  saved: "Saved URLs",
+  sites: "Site settings",
   activity: "Browser Activity",   // added
   feedback: "Feedback",
   profile: "Profile",
@@ -52,7 +58,7 @@ export default function UserApp({ session, onLogout }: Props) {
   // the browser extension can open the app on a page (safebrowse://dashboard | history | scanner)
   useEffect(() => {
     const go = (p: string) => {
-      if (p === "dashboard" || p === "history" || p === "scanner") {
+      if (p === "dashboard" || p === "history" || p === "scanner" || p === "saved" || p === "sites") {
         setReportScan(null);
         setPage(p);
       }
@@ -115,6 +121,12 @@ export default function UserApp({ session, onLogout }: Props) {
     content = <Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />;
   } else if (page === "whitelist") {
     content = <Whitelist role="user" onSessionEnd={onLogout} />;
+  } else if (page === "lists") {
+    content = <DetectionLists onSessionEnd={onLogout} />;
+  } else if (page === "saved") {
+    content = <SavedUrls onSessionEnd={onLogout} />;
+  } else if (page === "sites") {
+    content = <SiteSettings onSessionEnd={onLogout} />;
   } else if (page === "threats") {
     content = <ThreatUrlList onSessionEnd={onLogout} />;
   } else if (page === "activity") {   // added

@@ -4,9 +4,9 @@ import * as store from "./store";
 import { Footer, Header, NavBar, type Screen } from "./ui";
 import {
   ActivityScreen, CheckingScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
-  ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SuspiciousScreen,
+  ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SiteBar, SiteSettingsScreen, SuspiciousScreen,
 } from "./screens";
-import type { Auth, RecentScan, Settings, Verdict } from "./types";
+import type { Auth, RecentScan, Settings, SiteMode, SiteRule, SiteState, Verdict } from "./types";
 
 type Boot = "loading" | "pair" | "ready";
 type Current =
@@ -14,15 +14,6 @@ type Current =
   | { phase: "checking" }
   | { phase: "done"; verdict: Verdict }
   | { phase: "error"; message: string };
-
-/** The same "allowed until the browser closes" list the warning page uses (blocked.js). */
-async function allowHost(url: string) {
-  try {
-    const host = new URL(url).hostname;
-    const s = await chrome.storage.session.get("allowed");
-    await chrome.storage.session.set({ allowed: [...new Set([...(s.allowed || []), host])] });
-  } catch {}
-}
 
 export default function App() {
   const [boot, setBoot] = useState<Boot>("loading");
@@ -37,6 +28,14 @@ export default function App() {
   const scanned = useRef(false);
   const [recent, setRecent] = useState<RecentScan[] | null>(null);
   const [recentErr, setRecentErr] = useState("");
+  // starred page + the choice for this website
+  const [saved, setSaved] = useState<boolean | null>(null);
+  const [savedBusy, setSavedBusy] = useState(false);
+  const [flash, setFlash] = useState("");
+  const [site, setSite] = useState<SiteState | null>(null);
+  const [rules, setRules] = useState<SiteRule[] | null>(null);
+  const [siteErr, setSiteErr] = useState("");
+  const [siteBusy, setSiteBusy] = useState(false);
 
   // ── load everything from storage (and again whenever background.js changes it)
   const reload = useCallback(async () => {
@@ -86,6 +85,68 @@ export default function App() {
       alive = false;
     };
   }, [boot, auth, screen, verdictTs]);
+
+  // ── this website: is it starred, and what did the person choose for it
+  const siteHost = target?.scannable ? (() => { try { return new URL(target.url).hostname; } catch { return ""; } })() : "";
+  const sessionEnded = useCallback(() => {
+    setNotice("Your session ended. Generate a new pairing code in the desktop app.");
+    setBoot("pair");
+  }, []);
+  useEffect(() => {
+    if (boot !== "ready" || !auth || !target?.scannable) return;
+    let alive = true;
+    api.savedCheck(auth.token, target.url).then((v) => alive && setSaved(v), (e) => {
+      if (!alive) return;
+      if (e instanceof api.ApiError && e.status === 401) sessionEnded(); else setSaved(false);
+    });
+    api.siteGet(siteHost).then((s) => alive && setSite(s), () => {});
+    return () => { alive = false; };
+  }, [boot, auth, target, siteHost, sessionEnded]);
+
+  useEffect(() => {
+    if (screen !== "site" || boot !== "ready") return;
+    setSiteErr("");
+    api.siteGet(siteHost).then(setSite, (e) => setSiteErr((e as Error).message));
+    api.siteList().then(setRules, (e) => { setRules([]); setSiteErr((e as Error).message); });
+  }, [screen, boot, siteHost]);
+
+  async function toggleSaved() {
+    if (!auth || !target || savedBusy) return;
+    setSavedBusy(true);
+    try {
+      if (saved) {
+        await api.savedRemove(auth.token, target.url);
+        setSaved(false);
+        setFlash("Removed from your saved pages.");
+      } else {
+        const v = current.phase === "done" && current.verdict.status !== "unknown" ? { status: current.verdict.status, score: current.verdict.score } : undefined;
+        await api.savedAdd(auth.token, target.url, target.title || siteHost, v);
+        setSaved(true);
+        setFlash("Saved. Find it in the desktop app, Saved URLs.");
+      }
+      setTimeout(() => setFlash(""), 3500);
+    } catch (e) {
+      if (e instanceof api.ApiError && e.status === 401) return sessionEnded();
+      setFlash((e as Error).message);
+    } finally {
+      setSavedBusy(false);
+    }
+  }
+
+  async function setSiteMode(mode: SiteMode, host = siteHost) {
+    setSiteBusy(true);
+    setSiteErr("");
+    try {
+      const st = await api.siteSet(host, mode);
+      if (host === siteHost) setSite(st);
+      setRules(await api.siteList());
+    } catch (e) {
+      if (e instanceof api.ApiError && e.status === 401) return sessionEnded();
+      setSiteErr((e as Error).message);
+    } finally {
+      setSiteBusy(false);
+    }
+  }
 
   // ── scanning the current page
   const scanCurrent = useCallback(async (force: boolean) => {
@@ -159,7 +220,8 @@ export default function App() {
   }
 
   async function continueToSite(url: string) {
-    await allowHost(url);
+    // "Continue" only lets this visit through (2 minutes); the choices for longer are on the warning page and in Site settings.
+    try { await api.siteSet(new URL(url).hostname, "once"); } catch { return; }
     if (target?.tabId != null && target.onWarningPage) await chrome.tabs.update(target.tabId, { url });
     window.close();
   }
@@ -211,7 +273,18 @@ export default function App() {
 
   function body() {
     switch (screen) {
-      case "status": return statusView();
+      case "status":
+        return (
+          <>
+            {statusView()}
+            {siteHost && settings.realtime && (
+              <SiteBar host={siteHost} saved={saved} busy={savedBusy} mode={site?.mode} flash={flash} onToggleSaved={toggleSaved} onSite={() => setScreen("site")} />
+            )}
+          </>
+        );
+      case "site":
+        return <SiteSettingsScreen host={siteHost} state={site} rules={rules} error={siteErr} busy={siteBusy}
+          onSet={(m) => setSiteMode(m)} onRemoveRule={(h) => setSiteMode("ask", h)} onOpenApp={() => api.openApp("sites")} />;
       case "activity": return <ActivityScreen current={verdict} recent={recent} error={recentErr} monitoring={settings.realtime} onViewDetails={(r) => api.openApp("history", r.id)} onOpenApp={() => api.openApp("history")} />;
       case "manual_scan": return <ManualScanScreen onScan={manualScan} />;
       case "manual_result": return manual ? <ManualResultScreen v={manual} onScanAnother={() => setScreen("manual_scan")} onViewDetails={() => openDetails(manual, "manual_result")} /> : null;
@@ -220,14 +293,14 @@ export default function App() {
     }
   }
 
-  const subPage = screen === "settings" || screen === "details";
+  const subPage = screen === "settings" || screen === "details" || screen === "site";
   const showNav = !subPage && !(screen === "status" && !settings.realtime);
 
   return (
     <>
       <Header
         showBack={subPage}
-        title={screen === "settings" ? "Settings" : "Web Analysis"}
+        title={screen === "settings" ? "Settings" : screen === "site" ? "Site settings" : "Web Analysis"}
         onBack={() => setScreen(screen === "details" && detail ? detail.back : "status")}
         onSettings={subPage ? undefined : () => setScreen("settings")}
       />

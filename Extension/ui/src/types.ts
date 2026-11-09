@@ -92,3 +92,22 @@ export interface Auth {
   user: { full_name?: string | null; email?: string | null };
   pairedAt: number;
 }
+
+/** What the person chose for one website (see chrome/siterules.js). */
+export type SiteMode = "ask" | "once" | "hour" | "session" | "allow" | "block";
+export interface SiteState {
+  host: string;
+  rule: "allow" | "block" | null; // saved to the account
+  ruleHost: string | null; // the website the saved rule is for (a rule for example.com also covers a.example.com)
+  hour: number | null; // when the 1-hour allowance ends
+  session: boolean; // allowed until the browser closes
+  once: boolean; // "just this visit"
+  mode: SiteMode;
+}
+export interface SiteRule {
+  id: string;
+  host: string;
+  rule: "allow" | "block";
+  note: string | null;
+  created_at: string;
+}
