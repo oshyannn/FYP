@@ -515,24 +515,84 @@ def _admin_result(raw_url: str, level: str, score: float, matched: str) -> dict:
                     "Not needed: the administrator-approved threat list already decided this result.")
 
 
-def analyze(raw_url: str) -> dict:
-    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again."""
+def analyze(raw_url: str, use_ai: bool = False) -> dict:
+    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again.
+    use_ai=True also runs both AI models when a list (blacklist, whitelist, admin list, adult list) already decided the URL."""
     key = normalize(raw_url)
     now = time.time()
     host = get_host(key)
     admin = _admin_hit(key, host) if host else None
     if admin:                                       # before the cache: an approval must work at once
-        return _admin_result(raw_url, *admin)
+        return _maybe_add_ai(_admin_result(raw_url, *admin), raw_url, use_ai)
     hit = _result_cache.get(key)
     if hit and hit[0] > now:
         return {**hit[1], "url": raw_url, "cached": True}
     result = _analyze(raw_url)
-    if result.get("source") not in _INSTANT_SOURCES and "Invalid URL" not in result.get("reasons", []):
+    if result.get("source") in _INSTANT_SOURCES:    # decided by a list: not cached; AI runs only when asked
+        return _maybe_add_ai(result, raw_url, use_ai)
+    if "Invalid URL" not in result.get("reasons", []):
         partial = any(("unavailable" in r) or ("could not be read" in r) for r in result.get("reasons", []))
         ttl = RESULT_TTL_PARTIAL if partial else RESULT_TTL.get(result["status"], 3600)
         if len(_result_cache) > 5000:
             _result_cache.clear()
         _result_cache[key] = (now + ttl, result)
+    return result
+
+
+def _maybe_add_ai(result: dict, raw_url: str, use_ai: bool) -> dict:
+    """For a list-decided result: run the AI models on request. The list verdict stays the final one."""
+    if not use_ai:
+        return result
+    url = normalize(raw_url)
+    host = get_host(url)
+    if not host:
+        return result
+    shared = is_shared(host)
+    ml = ml_predict(f"https://{host}/" if shared else url)
+    ml_score = _ml_to_score(ml["probability"]) if ml is not None else None
+
+    if shared:
+        ai2_skip, content = "Skipped: this is a public hosting platform, and the page model was not trained on such pages.", None
+    elif not predict_content.enabled():
+        ai2_skip, content = "Switched off (CONTENT_CHECK=0).", None
+    else:
+        ai2_skip, content = None, predict_content.predict(url)
+
+    content_score = None
+    download_score = None
+    if content is not None:
+        if content.get("probability") is not None:
+            content_score = _content_to_score(content["probability"])
+        if content.get("download") and content.get("download_kind") != "direct":
+            download_score = DOWNLOAD_AUTO_SCORE
+    ai2_score = max([x for x in (content_score, download_score) if x is not None], default=None)
+
+    ai1 = _ai1_block(ml, ml_score, shared)
+    ai2 = _ai2_block(content, ai2_score, ai2_skip)
+    ai_comb = _ai_combined(ml_score, ai2_score)
+    result["ai1"], result["ai2"], result["ai_combined"] = ai1, ai2, ai_comb
+
+    # The checks list still says "skipped" for the two AI sources: show what the models actually said.
+    for c in result["checks"]:
+        if c["id"] == "ai1":
+            hit1 = ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS
+            c.update(state="no_opinion" if ml_score is None else "match" if hit1 else "clear",
+                     detail=(f"Phishing probability {ai1['percent']}%" if ml is not None
+                             else "No opinion (model missing or address could not be scored)"),
+                     score=ml_score, effect="risk" if hit1 else "none")
+        elif c["id"] == "ai2":
+            if ai2["state"] == "ok":
+                hit2 = ai2_score is not None and ai2_score >= THRESHOLD_SUSPICIOUS
+                c.update(state="match" if hit2 else "clear",
+                         detail=(f"Phishing probability {ai2['percent']}%" if ai2["percent"] is not None
+                                 else "Page read, no probability from the model"),
+                         score=ai2_score, effect="risk" if hit2 else "none")
+            else:
+                c.update(state=ai2["state"], detail=ai2["description"].replace(AI2_BASE + " ", ""), score=None, effect="none")
+
+    final = result["final"]
+    result["final"] = _final_block(result["status"], final["score"], result["checks"],
+                                   final["list_api"]["score"], ai_comb, final["notes"])
     return result
 
 
