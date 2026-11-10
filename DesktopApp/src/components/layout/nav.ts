@@ -25,6 +25,7 @@ export const EMPLOYER_NAV: NavItem[] = [
   { id: "threats", label: "Threat URL List", icon: "⚠", ready: true },
   { id: "approval", label: "URL Approval", icon: "✓", ready: true },
   { id: "lists", label: "Detection Lists", icon: "≡", ready: true },
+  { id: "rules", label: "Detection Rules", icon: "⚑", ready: true },
   { id: "feedback", label: "User Feedback", icon: "✉", ready: true },
   { id: "profile", label: "Profile", icon: "◯", ready: true },
 ];
@@ -37,6 +38,7 @@ export const ADMIN_NAV: NavItem[] = [
   { id: "approval", label: "URL Approval", icon: "⌕", ready: true },
   { id: "whitelist", label: "Whitelist", icon: "☰", ready: true },
   { id: "lists", label: "Detection Lists", icon: "≡", ready: true },
+  { id: "rules", label: "Detection Rules", icon: "⚑", ready: true },
   { id: "feedback", label: "User Feedback", icon: "✉", ready: true },
   { id: "logs", label: "Activity Logs", icon: "▤", ready: true },        // changed: was ready:false
   { id: "profile", label: "Profile", icon: "◯", ready: true },

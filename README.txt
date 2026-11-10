@@ -31,3 +31,21 @@ NOT tested in real Chrome/Electron (sandbox has none): please try
 
 Still to clean up by you (Supabase): delete from detection_lists where value='test-blocked-example.com';
   and revoke the two active translate.google.com test rows in global_urls.
+
+ADDED (Detection Rules page, Employer + Admin sidebar):
+  DesktopApp\src\pages\shared\SystemLists.tsx (NEW), src\components\layout\nav.ts, src\pages\staff\StaffApp.tsx (re-copy)
+  Admin: add / switch off Whitelist, Not trusted, Blacklist, Restricted (manual) entries + "why is this site trusted?" lookup.
+  Employer: same page, read-only. Uses the /api/staff/system-lists API already in the zip.
+
+ADDED: optional "This page only" scope for front-page threat entries (default unchanged = whole site)
+  Supabase: column global_urls.match_scope ('auto' | 'exact', default 'auto') ALREADY CREATED. All existing rows stay 'auto'.
+  AIDev\aidev\core\list_store.py, AIDev\aidev\detection\detector.py (re-copy; works even before the column exists)
+  Backend\web\controllers\threats.py, submissions.py, Backend\web\db_models\threats.py, submissions.py (re-copy)
+     POST /api/staff/threats/<id>/review      + optional "match_scope" (admin only)
+     PATCH /api/staff/threats/<id>/scope      admin: switch an active entry between whole site / this page only
+     POST /api/staff/threat-submissions/<id>/review  + optional "match_scope"
+  DesktopApp\src\components\ScopeChoice.tsx (NEW), src\lib\threats.ts, src\pages\shared\ThreatUrlList.tsx,
+     src\pages\staff\approval\ThreatSubmissions.tsx
+     Admin only, front-page URLs only: the approve dialog offers "Whole site (default)" / "This page only";
+     active rows get a "Scope" button; the detail window shows "Blocks: Whole site / This page only".
+  To block a whole site on purpose in "page only" mode: Detection Rules > Blacklist.

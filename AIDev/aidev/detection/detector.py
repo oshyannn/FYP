@@ -90,7 +90,7 @@ def _is_adult(host: str) -> bool:
 # --- admin-approved threats (Global Threat List) --------------------------------------------------------------------
 # Entries an employer submitted / a scan found and an administrator approved (Backend table global_urls, status 'active').
 # They beat every whitelist, Tranco included. An entry for a site's front page ("https://example.com/") covers the whole
-# domain and its subdomains; an entry with a path covers exactly that address. The list is re-read every ADMIN_TTL seconds,
+# domain and its subdomains (unless an administrator set its scope to 'exact'); an entry with a path covers exactly that address. The list is re-read every ADMIN_TTL seconds,
 # so an approval or a removal takes effect without restarting the Backend.
 ADMIN_TTL = 30
 _admin = {"at": 0.0, "exact": {}, "domain": {}}
@@ -105,12 +105,12 @@ def _admin_refresh(force: bool = False) -> None:
     if rows is None:
         return                                      # keep what we had
     exact, domain = {}, {}
-    for url, level, score in rows:
+    for url, level, score, scope in rows:
         key = _key(url)
         host, _, path = key.partition("/")
         entry = (level, score)
         exact[key] = entry
-        if not path:
+        if not path and scope != "exact":           # 'exact' (optional, set by an administrator): the front page only
             domain[host] = entry
     _admin["exact"], _admin["domain"] = exact, domain
 
