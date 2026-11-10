@@ -29,7 +29,6 @@ export const EMPLOYER_NAV: NavItem[] = [
 
 export const ADMIN_NAV: NavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: "⊞", ready: true },
-  { id: "employers", label: "Employer Verification", icon: "✓", ready: true },
   { id: "threats", label: "Threat URLs", icon: "⚠", ready: true },
   { id: "users", label: "User Management", icon: "◯◯", ready: true },
   { id: "approval", label: "URL Approval", icon: "⌕", ready: true },

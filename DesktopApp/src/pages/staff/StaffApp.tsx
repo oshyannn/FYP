@@ -6,7 +6,6 @@ import type { Session } from "../../types";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
-import EmployerVerification from "./EmployerVerification";
 import StaffFeedback from "../StaffFeedback";
 import StaffDashboard from "./StaffDashboard";
 import UrlApproval from "./approval/UrlApproval";
@@ -20,7 +19,6 @@ interface Props {
 
 const TITLES: Record<string, string> = {
   dashboard: "Dashboard",
-  employers: "Employer Verification",
   users: "User Management",
   logs: "Activity Logs",
   threats: "Threat URL Management",
@@ -44,8 +42,7 @@ export default function StaffApp({ session, onLogout }: Props) {
   }
 
   let content;
-  if (page === "employers" && admin) content = <EmployerVerification onSessionEnd={onLogout} />;
-  else if (page === "users") content = <UserManagement role={role} onSessionEnd={onLogout} />;
+  if (page === "users") content = <UserManagement role={role} onSessionEnd={onLogout} />;
   else if (page === "logs") content = <ActivityLogs role={role} onSessionEnd={onLogout} />;
   else if (page === "approval") content = <UrlApproval role={role} onSessionEnd={onLogout} />;
   else if (page === "whitelist" && admin) content = <Whitelist role="admin" onSessionEnd={onLogout} />;

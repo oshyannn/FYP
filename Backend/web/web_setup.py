@@ -29,8 +29,6 @@ def init_web(app):
     app.register_blueprint(verify_bp)
     from web.controllers.scans import bp as scans_bp
     app.register_blueprint(scans_bp)
-    from web.controllers.employers import bp as employers_bp
-    app.register_blueprint(employers_bp)
     from web.controllers.threats import bp as threats_bp
     app.register_blueprint(threats_bp)
     from web.controllers.feedback import bp as feedback_bp
@@ -47,6 +45,8 @@ def init_web(app):
     app.register_blueprint(activity_bp)
     from web.controllers.staff_accounts import bp as staff_accounts_bp
     app.register_blueprint(staff_accounts_bp)
+    from web.controllers.password_reset import bp as password_reset_bp
+    app.register_blueprint(password_reset_bp)
 
     @app.before_request
     def _load_user():
