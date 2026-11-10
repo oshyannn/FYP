@@ -12,6 +12,8 @@ export const USER_NAV: NavItem[] = [
   { id: "history", label: "Detection History", icon: "☰", ready: true },
   { id: "threats", label: "Threat URL List", icon: "⚠", ready: true },
   { id: "whitelist", label: "Whitelist", icon: "✓", ready: true },
+  { id: "saved", label: "Saved URLs", icon: "★", ready: true },
+  { id: "sites", label: "Site Rules", icon: "⊘", ready: true },
   { id: "activity", label: "Browser Activity", icon: "◉", ready: false },
   { id: "feedback", label: "Feedback", icon: "✉", ready: true },
   { id: "profile", label: "Profile", icon: "◯", ready: true },

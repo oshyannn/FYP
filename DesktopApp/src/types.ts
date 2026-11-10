@@ -5,9 +5,8 @@ export interface User {
   email: string;
   full_name: string | null;
   role: "user" | "employer" | "admin";
-  /** true while the account has a temporary password: only the "choose your password" screen may be used */
-  must_change_password?: boolean;
 }
+
 export interface Session {
   user: User;
   portal: Portal;
@@ -39,7 +38,7 @@ export interface ApiResult {
 
 /** What the extension link asks for. acct = hash of the extension account's email, hint = masked email. */
 export interface OpenRequest {
-  page: "dashboard" | "history" | "scanner";
+  page: "dashboard" | "history" | "scanner" | "saved" | "sites";
   acct: string | null;
   scan: string | null;
   hint: string | null;

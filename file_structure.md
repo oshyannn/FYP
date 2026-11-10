@@ -52,6 +52,8 @@ FYP/
 │   │       └── user/                       logged-in user area
 │   │           ├── UserApp.tsx             menu + routing for normal users
 │   │           ├── Dashboard.tsx           user dashboard (recent scans, figures)
+│           ├── SavedUrls.tsx           Saved URLs: the websites starred in the extension (search, scan again, note, remove)
+│           ├── SiteRules.tsx           Site Rules: always allow / always block (what the extension applies)
 │   │           ├── feedback/Feedback.tsx   user: submit / attach scan / edit / follow-up / status / search
 │   │           └── scan/                   UrlScanner.tsx (enter URL), ScanResult.tsx (verdict),
 │   │                                       DetailedAnalysis.tsx (signals/details), DetectionHistory.tsx (past scans)
@@ -85,6 +87,7 @@ FYP/
 │   │   │                        common.py (shared controller helpers),
 │   │   │                        feedback.py (feedback API: user /api/feedback*, staff /api/staff/feedback*),
 │   │   │                        threats.py (threat URL list + review), employers.py (admin: employer applications), dashboard.py (dashboard figures),
+│   │   │                        saved_urls.py (starred websites /api/saved-urls*, table saved_urls), site_rules.py (always allow / block /api/site-rules*, table url_lists),
 │   │   │                        whitelist.py (trusted websites /api/whitelist*, whitelist requests /api/staff/whitelist-requests*),
 │   │   │                        submissions.py (employer threat submissions /api/staff/threat-submissions*),
 │   │   │                        user_admin.py (employer + admin: accounts /api/staff/users*), activity.py (audit trail /api/staff/activity-logs: admin sees all, employer only their own),
@@ -192,6 +195,7 @@ Never run `python AIDev/aidev/...py` directly; use `python -m aidev.<folder>.<mo
 | URL scanner screens (scan, result, detailed analysis, history) | `DesktopApp/src/pages/user/scan/*`, `DesktopApp/src/lib/analysis.ts`, `DesktopApp/src/components/StatusBadge.tsx` |
 | Scan / history API and storage | `Backend/web/controllers/scans.py`, `Backend/web/db_models/scans.py` |
 | Feedback (submit, attach scan, edit, reply, status, close, search) | `Backend/web/controllers/feedback.py`, `Backend/web/db_models/feedback.py`; screens `DesktopApp/src/pages/user/feedback/Feedback.tsx`, `DesktopApp/src/pages/StaffFeedback.tsx`, shared `DesktopApp/src/components/feedback/`, `DesktopApp/src/lib/feedback.ts` |
+| Saved URLs (the star in the extension) / Site Rules (always allow, always block) | `Backend/web/controllers/saved_urls.py`, `site_rules.py` + `db_models/saved_urls.py`, `site_rules.py` (both blueprints MUST be registered in `web/web_setup.py`); screens `DesktopApp/src/pages/user/SavedUrls.tsx`, `SiteRules.tsx`; extension side `Extension/ui/src/screens.tsx` (SiteBar, SiteSettingsScreen), `Extension/chrome/siterules.js` |
 | Whitelist (Trusted Websites) | `Backend/web/controllers/whitelist.py`, `Backend/web/db_models/whitelist.py`; screen `DesktopApp/src/pages/shared/Whitelist.tsx`; how it changes a scan: `_apply_whitelist` in `controllers/scans.py` |
 | URL Approval (whitelist requests, threat submissions) | `Backend/web/controllers/whitelist.py` (requests), `submissions.py` (threat submissions) + `db_models/*`; screens `DesktopApp/src/pages/staff/approval/*`; employer side `pages/staff/submissions/*` inside `pages/shared/ThreatUrlList.tsx`; labels in `lib/approvals.ts` |
 | User Management (list, view, edit name, activate / deactivate, delete, password reset email) | `Backend/web/controllers/user_admin.py`, `Backend/web/db_models/user_admin.py` (who may do what: `VIEW_ROLES` / `ACT_ROLES`); screens `DesktopApp/src/pages/staff/users/*`, labels in `lib/admin.ts`; last-resort password reset: `python -m scripts.staff_admin reset-password EMAIL` |

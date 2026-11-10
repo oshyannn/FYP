@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import AcceptInvite from "./pages/auth/AcceptInvite";
-import ForcedPasswordChange from "./pages/auth/ForcedPasswordChange";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import StaffApp from "./pages/staff/StaffApp";
 import UserApp from "./pages/user/UserApp";
@@ -18,7 +17,7 @@ async function accountTag(email: string): Promise<string> {
 }
 
 export interface AppRoute {
-  page: "dashboard" | "history" | "scanner";
+  page: "dashboard" | "history" | "scanner" | "saved" | "sites";
   scan: string | null; // open the detailed analysis of this saved scan
   n: number; // changes with every request so the same page can be opened again
 }
@@ -114,15 +113,6 @@ export default function App() {
       return <div className="h-full flex items-center justify-center text-sm text-slate-500">Loading…</div>;
     }
     if (session && screen === "home") {
-      if (session.user.must_change_password) {
-        return (
-          <ForcedPasswordChange
-            session={session}
-            onDone={(user) => setSession({ ...session, user })}
-            onLogout={loggedOut}
-          />
-        );
-      }
       return session.portal === "staff" ? (
         <StaffApp key={session.user.id} session={session} onLogout={loggedOut} />
       ) : (
@@ -170,7 +160,7 @@ export default function App() {
             <p className="text-sm text-slate-600 mt-2 leading-relaxed">
               Your browser extension is connected to <b>{ask.hint ?? "another account"}</b>
               {cur ? ", but this app is signed in with a different account." : ", and you are not signed in here."} Switch to
-              the extension's account and open {ask.scan ? "the detailed analysis" : ask.page === "history" ? "your detection history" : "the app"}?
+              the extension's account and open {ask.scan ? "the detailed analysis" : ask.page === "history" ? "your detection history" : ask.page === "saved" ? "your saved URLs" : ask.page === "sites" ? "your site rules" : "the app"}?
             </p>
             <div className="flex gap-3 mt-5">
               <button disabled={asking} onClick={switchAccount} className="flex-1 bg-[#1e3a5f] text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-60">

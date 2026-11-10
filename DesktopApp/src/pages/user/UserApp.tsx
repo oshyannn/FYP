@@ -12,10 +12,12 @@ import DetectionHistory from "./scan/DetectionHistory";
 import Profile from "../shared/Profile";
 import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
+import SavedUrls from "./SavedUrls";
+import SiteRules from "./SiteRules";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "feedback" | "profile";
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "saved" | "sites" | "feedback" | "profile";
 
 interface Props {
   session: Session;
@@ -32,6 +34,8 @@ const TITLES: Record<Page, string> = {
   history: "Detection History",
   threats: "Threat URL List",
   whitelist: "Trusted Websites",
+  saved: "Saved URLs",
+  sites: "Site Rules",
   feedback: "Feedback",
   profile: "Profile",
 };
@@ -120,6 +124,10 @@ export default function UserApp({ session, onLogout, route }: Props) {
     content = <Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />;
   } else if (page === "whitelist") {
     content = <Whitelist role="user" onSessionEnd={onLogout} />;
+  } else if (page === "saved") {
+    content = <SavedUrls onSessionEnd={onLogout} />;
+  } else if (page === "sites") {
+    content = <SiteRules onSessionEnd={onLogout} />;
   } else if (page === "threats") {
     content = <ThreatUrlList onSessionEnd={onLogout} />;
   } else if (page === "history") {

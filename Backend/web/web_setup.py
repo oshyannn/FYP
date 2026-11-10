@@ -47,6 +47,10 @@ def init_web(app):
     app.register_blueprint(staff_accounts_bp)
     from web.controllers.password_reset import bp as password_reset_bp
     app.register_blueprint(password_reset_bp)
+    from web.controllers.saved_urls import bp as saved_urls_bp
+    app.register_blueprint(saved_urls_bp)       # /api/saved-urls: the star in the extension
+    from web.controllers.site_rules import bp as site_rules_bp
+    app.register_blueprint(site_rules_bp)       # /api/site-rules: always allow / always block
 
     @app.before_request
     def _load_user():
@@ -67,7 +71,7 @@ def init_web(app):
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Vary"] = "Origin"
             resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
 
     @app.errorhandler(HTTPException)
