@@ -53,31 +53,24 @@ export default function ForgotPassword({ portal, go }: Props) {
     }
     setFields({});
     setError("");
-    setInfo("");
-    setBusy(true);
-    const res = await api.post("/api/auth/forgot-password", { email: email.trim() });
-    setBusy(false);
-    if (res.status !== 202) return setError(problem(res).message);
-    if (res.data?.flow === "approval") {
-      setStep("approval");
-      return;
-    }
-    setCooldown(RESEND_SECONDS);
     setInfo("If this address has an account, a 6-digit PIN was sent to it.");
-    setStep("code");
+    setCooldown(RESEND_SECONDS);
+    setStep("code"); // move on at once; the server answers the same way for every address
+    api.post("/api/auth/forgot-password", { email: email.trim() }).then((res) => {
+      if (res.status !== 202) setError(problem(res).message); // shown on the PIN screen
+    });
   }
 
   // Step 2 (users): send a new PIN (the older one stops working). The cooldown stops repeated clicks.
   async function resend() {
     if (busy || cooldown > 0) return;
-    setBusy(true);
     setError("");
-    const res = await api.post("/api/auth/forgot-password", { email: email.trim() });
-    setBusy(false);
-    if (res.status !== 202) return setError(problem(res).message);
     setCode("");
     setCooldown(RESEND_SECONDS);
     setInfo("A new PIN was sent. The previous PIN no longer works.");
+    api.post("/api/auth/forgot-password", { email: email.trim() }).then((res) => {
+      if (res.status !== 202) setError(problem(res).message);
+    });
   }
 
   // Step 2: check the PIN. Only when it is right do we move on to the password.
@@ -94,6 +87,11 @@ export default function ForgotPassword({ portal, go }: Props) {
     setBusy(true);
     const res = await api.post("/api/auth/reset/verify", { email: email.trim(), code });
     setBusy(false);
+    if (res.status === 202 && res.data?.flow === "approval") {
+      // employer or admin: the PIN was right, the request is now with an approver
+      setStep("approval");
+      return;
+    }
     if (res.status === 200) {
       setTicket(res.data.ticket as string);
       setStep("password");
@@ -171,7 +169,7 @@ export default function ForgotPassword({ portal, go }: Props) {
       {step === "approval" && (
         <div className="space-y-4">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Your request to reset the password for <b className="break-all">{email.trim()}</b> was sent to an administrator for approval.
+            Your PIN was confirmed. Your request to reset the password for <b className="break-all">{email.trim()}</b> was sent to an administrator for approval.
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">
             Once it is approved, an email with a temporary password is sent to this address. Sign in with it on the Staff login screen and you

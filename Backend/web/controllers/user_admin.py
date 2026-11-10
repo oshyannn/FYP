@@ -5,7 +5,7 @@ GET    /api/staff/users/<id>                one account (deleted ones too, read-
 PATCH  /api/staff/users/<id>                {"full_name": "..."}      (the role and email are never changed here)
 POST   /api/staff/users/<id>/status         {"status": "active" | "inactive"}
 DELETE /api/staff/users/<id>                administrator only
-POST   /api/staff/users/<id>/password-reset sends the person a 6-digit reset code by email
+POST   /api/staff/users/<id>/password-reset admin: reset now; employer: asks for approval
 
 Who sees and changes whom is in db_models/user_admin.py (VIEW_ROLES / ACT_ROLES):
   administrator: sees users, employers and administrators, changes users and employers directly. For another
@@ -24,7 +24,7 @@ from flask import Blueprint, g, jsonify, request
 import config
 from web import mailer
 from web.controllers.common import body, err, int_arg, s
-from web.db_models import audit, sessions, staff_accounts, tokens, user_admin, users
+from web.db_models import audit, password_reset as pr, sessions, staff_accounts, tokens, user_admin, users
 from web.extensions import limiter
 from web.guards import auth_required, role_required
 from web.security import hash_password, make_temp_password
@@ -55,6 +55,7 @@ def _actions(r) -> dict:
         "activate": can and status == "inactive",
         "delete": can and actor["role"] == "admin",
         "reset_password": can and status == "active",
+        "reset_direct": can and status == "active" and actor["role"] == "admin",
         # another administrator's account: asking is allowed, a third administrator decides
         "request_deactivate": other_admin and status == "active",
         "request_activate": other_admin and status == "inactive",
@@ -211,36 +212,31 @@ def delete_user(user_id):
 @auth_required("staff")
 @role_required("employer", "admin")
 def send_password_reset(user_id):
-    """A user gets the same 6-digit reset code the 'Forgot password' screen sends. An employer gets a new RANDOM
-    temporary password by email and must choose their own at the next login. Nobody but the account's owner, who
-    reads the email, ever learns it."""
+    """An administrator resets the account now: a random temporary password is emailed and the old password stops
+    working. An employer's request waits for an administrator (controllers/password_reset.py)."""
     r = _find(user_id)
     if not r:
         return err("not_found", "Account not found.", 404)
-    if not _actions(r)["edit"]:
+    if not _actions(r)["reset_password"]:
         return _not_allowed(r)
     if _status(r["status"]) != "active":
         return err("conflict", "Only an active account can be sent a reset.", 409)
 
-    if r["role"] == "employer":
-        temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS
-        sent = users.issue_temp_password(user_id, hash_password(temp), hours,
-                                         lambda: mailer.send_reset_credentials(r["email"], r["full_name"], temp, hours))
-        if not sent:
-            log.error("temporary password email could not be sent")
-            return err("email_failed", "The email could not be sent, so nothing was changed. Check the mail settings "
-                       "in Backend/.env.", 502)
-        sessions.revoke_all_for_user(user_id)
-        audit.log("user_password_reset_sent", "user_management", g.user["id"],
-                  {"user_id": str(user_id), "email": r["email"], "kind": "temporary_password"})
-        return jsonify({"sent": True, "email": r["email"]})
+    if g.user["role"] != "admin":
+        if not pr.create_request(user_id):
+            return err("conflict", "A password reset for this account is already waiting for approval.", 409)
+        audit.log("password_reset_asked", "user_management", g.user["id"],
+                  {"user_id": str(user_id), "email": r["email"], "role": r["role"]})
+        return jsonify({"requested": True, "email": r["email"]}), 201
 
-    if tokens.recently_issued(user_id, "password_reset", config.CODE_RESEND_SECONDS):
-        return err("conflict", "A reset code was sent a moment ago. Wait a little and try again.", 409)
-    code = tokens.issue_code(user_id, "password_reset", config.RESET_CODE_MINUTES)
-    if not mailer.send_reset_code(r["email"], code):
-        log.error("password reset email could not be sent")
-        return err("email_failed", "The email could not be sent. Check the mail settings in Backend/.env.", 502)
+    temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS
+    sent = users.issue_temp_password(user_id, hash_password(temp), hours,
+                                     lambda: mailer.send_reset_credentials(r["email"], r["full_name"], temp, hours))
+    if not sent:
+        log.error("temporary password email could not be sent")
+        return err("email_failed", "The email could not be sent, so nothing was changed. Check the mail settings "
+                   "in Backend/.env.", 502)
+    sessions.revoke_all_for_user(user_id)
     audit.log("user_password_reset_sent", "user_management", g.user["id"],
-              {"user_id": str(user_id), "email": r["email"]})
+              {"user_id": str(user_id), "email": r["email"], "kind": "temporary_password"})
     return jsonify({"sent": True, "email": r["email"]})

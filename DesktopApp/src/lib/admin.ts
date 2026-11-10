@@ -12,6 +12,8 @@ export interface AccountActions {
   activate: boolean;
   delete: boolean;
   reset_password: boolean;
+  /** administrator resetting an active account now (not a request) */
+  reset_direct: boolean;
   /** another administrator's account: asking is allowed, a third administrator decides */
   request_deactivate: boolean;
   request_activate: boolean;

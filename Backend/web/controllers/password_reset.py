@@ -21,6 +21,8 @@ The old "ask for help" endpoint (/api/auth/reset-request) and the staff-only for
 """
 from __future__ import annotations
 
+import threading
+
 import config
 from flask import Blueprint, g, jsonify
 
@@ -70,14 +72,13 @@ def forgot_password():
     administrator addresses are told apart (the screen has to say something different for them)."""
     email, _ = clean_email(s(body(), "email", 254))
     user = users.get_by_email(email) if email else None
-    if user and user["status"] == "active" and user["role"] in ("employer", "admin"):
-        if pr.create_request(user["id"]):
-            audit.log("password_reset_asked", "auth", user["id"], {"role": user["role"]})
-        return jsonify({"flow": "approval", "message": ASKED}), 202
-    if (user and user["status"] == "active" and user["role"] == "user"
+    if (user and user["status"] == "active" and user["role"] in ("user", "employer", "admin")
             and not tokens.recently_issued(user["id"], "password_reset", config.CODE_RESEND_SECONDS)):
-        mailer.send_reset_code(user["email"], tokens.issue_code(user["id"], "password_reset", config.RESET_CODE_MINUTES))
-        audit.log("password_reset_requested", "auth", user["id"])
+        code = tokens.issue_code(user["id"], "password_reset", config.RESET_CODE_MINUTES)
+        # Sent in the background, so the answer is equally fast whether or not the account exists.
+        threading.Thread(target=mailer.send_reset_code, args=(user["email"], code), daemon=True).start()
+
+        audit.log("password_reset_requested", "auth", user["id"], {"role": user["role"]})
     return jsonify({"flow": "code", "message": SENT}), 202
 
 
@@ -92,7 +93,12 @@ def verify_reset_code():
     if not user or user["status"] != "active" or not tokens.verify_code(user["id"], "password_reset", s(data, "code", 10)):
         return err("invalid_code", BAD_CODE, 400)
     audit.log("password_reset_code_ok", "auth", user["id"])
-    return jsonify({"ticket": pr.issue_ticket(user["id"])})
+    if user["role"] == "user":
+        return jsonify({"ticket": pr.issue_ticket(user["id"])})
+    # employer or admin: the PIN was right, so the request now goes to an approver
+    if pr.create_request(user["id"]):
+        audit.log("password_reset_asked", "auth", user["id"], {"role": user["role"]})
+    return jsonify({"flow": "approval", "message": ASKED}), 202
 
 
 @bp.post("/auth/reset/set-password")

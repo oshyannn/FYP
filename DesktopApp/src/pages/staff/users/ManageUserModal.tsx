@@ -95,7 +95,24 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
     onClose();
   }
 
-  async function run(kind: Exclude<Confirm, null> | "activate") {
+    async function resetPassword() {
+    setBusy(true);
+    setError("");
+    setConfirm(null);
+    const res = await api.post(`/api/staff/users/${u.id}/password-reset`);
+    setBusy(false);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status === 201) {
+      onChanged(`A password reset request for ${displayName(u)} was sent. Nothing changes until another person approves it.`);
+      onClose();
+      return;
+    }
+    if (res.status !== 200) return setError(problem(res).message);
+    onChanged(`${displayName(u)}'s password was reset. A temporary password was emailed to ${res.data.email}.`);
+    onClose();
+  }
+
+  async function run(kind: "deactivate" | "activate" | "delete") {
     setBusy(true);
     setError("");
     setConfirm(null);
@@ -103,9 +120,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
     const res =
       kind === "delete"
         ? await api.del(`/api/staff/users/${u.id}`)
-        : kind === "reset"
-          ? await api.post(`/api/staff/users/${u.id}/password-reset`)
-          : await api.post(`/api/staff/users/${u.id}/status`, { status: kind === "activate" ? "active" : "inactive" });
+        : await api.post(`/api/staff/users/${u.id}/status`, { status: kind === "activate" ? "active" : "inactive" });
     setBusy(false);
     if (res.status === 401) return onSessionEnd();
     if (res.status !== 200) return setError(problem(res).message);
@@ -114,9 +129,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
         ? res.data.permanent
           ? `${who} was deleted for good. The email address can be used again.`
           : `${who} was deleted. The account is kept for the records and cannot be changed any more.`
-        : kind === "reset"
-          ? `A password reset code was sent to ${res.data.email}.`
-          : `${who} was ${kind === "activate" ? "activated" : "deactivated"}.`,
+        : `${who} was ${kind === "activate" ? "activated" : "deactivated"}.`,
     );
     onClose();
   }
@@ -204,7 +217,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
                   )}
                   {a.reset_password && (
                     <button onClick={() => setConfirm("reset")} disabled={busy} className={btn}>
-                      Send Password Reset Email
+                      {a.reset_direct ? "Reset Password" : "Request Password Reset"}
                     </button>
                   )}
                   {note && <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">{note}</p>}
@@ -266,10 +279,30 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
           <p>{REQUEST_TEXT[requestAction][1]} Nothing changes until then. You cannot approve your own request.</p>
         </ConfirmDialog>
       )}
-      {confirm === "reset" && (
-        <ConfirmDialog title="Send Password Reset Email?" tone="green" confirmLabel="Send" busy={busy} onConfirm={() => run("reset")} onCancel={() => setConfirm(null)}>
+            {confirm === "reset" && (
+        <ConfirmDialog
+          title={a.reset_direct ? "Reset Password Now?" : "Request Password Reset?"}
+          tone="red"
+          confirmLabel={a.reset_direct ? "Reset now" : "Send request"}
+          busy={busy}
+          onConfirm={resetPassword}
+          onCancel={() => setConfirm(null)}
+        >
           <p className="font-medium text-slate-700 mb-1 break-all">{u.email}</p>
-          <p>A 6-digit reset code is emailed to this address. The person chooses the new password themselves; you never see it.</p>
+          {a.reset_direct ? (
+            <p className="font-medium text-red-600 mt-2">
+              This changes the password immediately. The current password stops working and the person is signed out everywhere. A temporary
+              password is emailed to them, and they must choose their own at the next sign-in. You will never see it.
+            </p>
+          ) : (
+            <>
+              <p>This sends a request to an administrator. Nothing changes until it is approved.</p>
+              <p className="font-medium text-red-600 mt-2">
+                If it is approved, the password changes immediately. The current password stops working, the person is signed out everywhere,
+                and a temporary password is emailed to them. You will never see it.
+              </p>
+            </>
+          )}
         </ConfirmDialog>
       )}
     </>

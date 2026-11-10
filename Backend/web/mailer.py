@@ -74,11 +74,12 @@ def send_employer_credentials(to: str, name: str | None, password: str, hours: i
 
 
 def send_reset_credentials(to: str, name: str | None, password: str, hours: int) -> bool:
-    """An administrator approved a password reset: a new random temporary password."""
+    """An administrator reset the password: a new random temporary password."""
     return send(to, "Your SafeBrowse password was reset",
-                f"Hello {name or 'there'},\n\nAn administrator approved your password reset.\n\n"
+                f"Hello {name or 'there'},\n\nAn administrator reset your SafeBrowse password.\n\n"
                 f"Email: {to}\nTemporary password: {password}\n\n"
-                "Sign in on the Staff login screen with these details. You will be asked to choose your own password "
-                "straight away; nothing else can be used before that.\n\n"
-                f"The temporary password works for {hours} hours and your old password no longer works. Delete this "
-                "email after you have changed it. If you did not ask for a reset, tell your administrator.\n")
+                "Open the SafeBrowse desktop app and sign in with the details above (employers and administrators use "
+                "Staff login). You will be asked to choose your own password straight away; nothing else can be used "
+                "before that.\n\n"
+                f"The temporary password works for {hours} hours, and your old password no longer works. Delete this "
+                "email after you have changed it. If you did not expect this, tell your administrator.\n")
