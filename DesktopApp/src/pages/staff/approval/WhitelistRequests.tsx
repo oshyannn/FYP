@@ -53,7 +53,7 @@ export default function WhitelistRequests({ onSessionEnd, onChanged }: Props) {
     const action = confirm;
     setConfirm(null);
     setSelected(null);
-    if (res.status === 200) setDone(`${domain} was ${action === "approve" ? "approved and added to the requester's trusted list" : "rejected"}.`);
+    if (res.status === 200) setDone(`${domain} was ${action === "approve" ? "approved and added to the shared whitelist (trusted for every user)" : "rejected"}.`);
     else setError(problem(res).message);
     load();
     onChanged();
@@ -195,7 +195,7 @@ export default function WhitelistRequests({ onSessionEnd, onChanged }: Props) {
           <p className="font-mono mb-1 break-all">{selected.domain}</p>
           <p>
             {confirm === "approve"
-              ? "This website will be trusted for the person who asked. It will not be added to the list for everyone."
+              ? "This website will be added to the shared whitelist and trusted for every SafeBrowse user, not only the person who asked."
               : `Are you sure you want to reject this whitelist request?`}
           </p>
         </ConfirmDialog>

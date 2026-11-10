@@ -1,11 +1,13 @@
 """Trusted websites (the Whitelist screen) and the whitelist requests that employers / admins review.
 
-GET    /api/whitelist                              user: own trusted list + own pending requests | admin: the global list
+GET    /api/whitelist                              user: the shared list + own older entries + own pending requests | admin: the shared list
 POST   /api/whitelist                              user: asks for a website to be trusted (needs approval) | admin: adds it
-DELETE /api/whitelist/<id>                         user: removes from own list | admin: removes from the global list
+DELETE /api/whitelist/<id>                         user: removes only own older entry (shared ones can't be) | admin: removes from the shared list
 GET    /api/staff/whitelist-requests               employer / admin: requests (?status= &search= &page= &per_page=) + counts
 POST   /api/staff/whitelist-requests/<id>/review   employer / admin: {"decision": "approve" | "reject", "note": "..."}
 
+Approving a request puts the website on the SHARED whitelist: it is trusted for every user.
+Only staff see who requested / approved an entry; normal users only see the domain and that it is shared.
 A trusted website is shown as SAFE in a scan unless the detector found it malicious (see controllers/scans.py).
 """
 from __future__ import annotations
@@ -53,8 +55,15 @@ def parse_domain(raw: str) -> tuple[str, str]:
 
 def _entry_json(r) -> dict:
     mine = r["added_by"] is not None and str(r["added_by"]) == str(g.user["id"])
-    return {"id": str(r["id"]), "domain": r["domain"], "scope": r["scope"], "added_at": r["created_at"].isoformat(),
-            "added_by": "You" if mine else (r["added_by_name"] or r["added_by_email"] or "—")}
+    out = {"id": str(r["id"]), "domain": r["domain"], "scope": r["scope"], "added_at": r["created_at"].isoformat()}
+    if g.user["role"] == "admin":                  # staff: who requested it and who approved / added it
+        out["added_by"] = "You" if mine else (r["added_by_name"] or r["added_by_email"] or "—")
+        out["requested_by"] = r["requested_by_name"] or r["requested_by_email"]
+    elif r["scope"] == "global":                   # normal users: never a name or an email of anybody else
+        out["added_by"] = "SafeBrowse (shared)"
+    else:
+        out["added_by"] = "You"
+    return out
 
 
 def _request_json(r, staff: bool = False) -> dict:
@@ -172,5 +181,9 @@ def review_request(req_id):
         return err("not_found", "Request not found.", 404)
     if outcome == "conflict":
         return err("conflict", "This request has already been reviewed.", 409)
-    audit.log(f"whitelist_request_{decision}", "whitelist", g.user["id"], {"request_id": str(req_id)})
-    return jsonify({"request": _request_json(whitelist.get_request(req_id), staff=True)})
+    row = whitelist.get_request(req_id)
+    details = {"request_id": str(req_id), "domain": row["domain"]}
+    if decision == "approve":
+        details["scope"] = "global"                # recorded because an approval now affects every user
+    audit.log(f"whitelist_request_{decision}", "whitelist", g.user["id"], details)
+    return jsonify({"request": _request_json(row, staff=True)})

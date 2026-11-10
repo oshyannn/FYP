@@ -1,16 +1,19 @@
 """Trusted websites (Model layer).
 
-whitelist_entries  : the trusted domains. scope 'user' = one person's own list, scope 'global' = set by an administrator.
+whitelist_entries  : the trusted domains. scope 'global' = the shared list that applies to every user,
+                     scope 'user' = older per-person entries (kept working, no longer created).
 whitelist_requests : a user asks for a domain to be trusted; an employer or an administrator approves or rejects it.
-Approving a request adds the domain to the REQUESTER's own list only (never to the global one).
+Approving a request adds the domain to the SHARED (global) list, so it is trusted for every user.
 """
 from __future__ import annotations
 
 from web import db
 
 _ENTRY = ("SELECT e.id, e.domain, e.scope, e.created_at, e.added_by, u.full_name AS added_by_name, "
-          "u.email::text AS added_by_email "
-          "FROM public.whitelist_entries e LEFT JOIN public.users u ON u.id = e.added_by")
+          "u.email::text AS added_by_email, ru.full_name AS requested_by_name, ru.email::text AS requested_by_email "
+          "FROM public.whitelist_entries e LEFT JOIN public.users u ON u.id = e.added_by "
+          "LEFT JOIN public.whitelist_requests rq ON rq.id = e.request_id "
+          "LEFT JOIN public.users ru ON ru.id = rq.user_id")
 
 _REQUEST = """
 SELECT r.id, r.domain, r.reason, r.risk_score, r.risk_level, r.status, r.review_note, r.created_at, r.reviewed_at,
@@ -28,8 +31,10 @@ def _like(q: str) -> str:
 # ---- trusted domains -------------------------------------------------------------------------------------------
 
 def list_entries(scope: str, user_id, limit: int, offset: int):
-    """scope 'global' = the administrator's list, 'user' = this person's own list."""
-    where = "e.scope = 'global'" if scope == "global" else "e.scope = 'user' AND e.user_id = %(uid)s"
+    """scope 'global' = the shared list only (administrator view).
+    scope 'user'   = what a normal user sees: the shared list plus their own older personal entries."""
+    where = ("e.scope = 'global'" if scope == "global"
+             else "(e.scope = 'global' OR (e.scope = 'user' AND e.user_id = %(uid)s))")
     p = {"uid": user_id, "limit": limit, "offset": offset}
     with db.transaction() as c:
         total = c.execute(f"SELECT count(*) AS n FROM public.whitelist_entries e WHERE {where}", p).fetchone()["n"]
@@ -114,10 +119,10 @@ def review_request(req_id, reviewer_id, decision: str, note: str) -> str:
         if row["status"] != "pending":
             return "conflict"
         new = "approved" if decision == "approve" else "rejected"
-        if new == "approved":
+        if new == "approved":                          # approved = trusted for everyone; added_by is the reviewer,
             c.execute("INSERT INTO public.whitelist_entries (scope, user_id, domain, added_by, request_id) "
-                      "VALUES ('user', %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-                      (row["user_id"], row["domain"], row["user_id"], req_id))
+                      "VALUES ('global', NULL, %s, %s, %s) ON CONFLICT DO NOTHING",   # the requester stays reachable via request_id
+                      (row["domain"], reviewer_id, req_id))
         c.execute("UPDATE public.whitelist_requests SET status = %s, review_note = %s, reviewed_by = %s, "
                   "reviewed_at = now() WHERE id = %s", (new, note or None, reviewer_id, req_id))
     return "ok"

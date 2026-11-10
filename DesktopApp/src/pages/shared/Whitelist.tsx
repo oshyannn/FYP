@@ -7,6 +7,9 @@ import { Alert } from "../../components/ui";
 import { reviewLabel, reviewTone, shortDate, WHITELIST_PER_PAGE } from "../../lib/approvals";
 import type { WhitelistEntry, WhitelistRequest } from "../../lib/approvals";
 
+// the API also sends scope ("global" = shared with everyone) and, for staff only, who requested the entry
+type Entry = WhitelistEntry & { scope?: "user" | "global"; requested_by?: string | null };
+
 interface Props {
   /** user: own trusted websites (a new one is a request that an employer or admin approves) | admin: the list for everyone */
   role: "user" | "admin";
@@ -18,7 +21,7 @@ const inputCls =
 
 export default function Whitelist({ role, onSessionEnd }: Props) {
   const admin = role === "admin";
-  const [entries, setEntries] = useState<WhitelistEntry[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [requests, setRequests] = useState<WhitelistRequest[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -29,7 +32,7 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [target, setTarget] = useState<WhitelistEntry | null>(null);
+  const [target, setTarget] = useState<Entry | null>(null);
   const [removing, setRemoving] = useState(false);
 
   const load = useCallback(async () => {
@@ -38,7 +41,7 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
     setLoading(false);
     if (res.status === 401) return onSessionEnd();
     if (res.status !== 200) return setError(problem(res).message);
-    setEntries(res.data.entries as WhitelistEntry[]);
+    setEntries(res.data.entries as Entry[]);
     setRequests(res.data.requests as WhitelistRequest[]);
     setTotal(res.data.total as number);
   }, [page]);
@@ -63,7 +66,7 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
       setNotice(
         admin
           ? `${res.data.entry.domain} is now trusted for every user.`
-          : `Request sent for ${res.data.request.domain}. It will appear in your trusted list once an employer or administrator approves it.`,
+          : `Request sent for ${res.data.request.domain}. Once an employer or administrator approves it, it is added to the shared whitelist for everyone.`,
       );
       if (page !== 1) setPage(1);
       else load();
@@ -94,7 +97,7 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
         <p className="text-slate-500 text-sm mt-0.5">
           {admin
             ? "Websites added here are treated as trusted by SafeBrowse for every user."
-            : "Websites added to the whitelist will be treated as trusted by SafeBrowse."}
+            : "Websites on this list are treated as trusted by SafeBrowse. Approved websites are shared with every SafeBrowse user."}
         </p>
       </div>
 
@@ -137,8 +140,9 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
               className={`mt-3 ${inputCls} border-slate-300 focus:border-[#1e3a5f] focus:ring-[#1e3a5f]/10`}
             />
             <p className="text-slate-400 text-xs mt-2">
-              An employer or administrator reviews each request. Once approved, the website is shown as safe in your scans, unless it is
-              detected as malicious.
+              An employer or administrator reviews each request. Once approved, the website is added to the shared whitelist and is shown
+              as safe for every SafeBrowse user, unless it is detected as malicious. Only the website address is shared; your name and
+              email are never shown to other users.
             </p>
           </>
         )}
@@ -182,13 +186,29 @@ export default function Whitelist({ role, onSessionEnd }: Props) {
             <tbody className="divide-y divide-slate-100">
               {entries.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3.5 text-sm font-mono text-slate-700">{row.domain}</td>
+                  <td className="px-5 py-3.5 text-sm font-mono text-slate-700">
+                    {row.domain}
+                    {!admin && row.scope === "global" && (
+                      <span className="ml-2 align-middle font-sans text-[10px] font-semibold uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-200 rounded px-1.5 py-0.5">
+                        Shared
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5 text-sm text-slate-600 whitespace-nowrap">{shortDate(row.added_at)}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{row.added_by}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">
+                    {row.added_by}
+                    {admin && row.requested_by && <span className="block text-xs text-slate-400">Requested by {row.requested_by}</span>}
+                  </td>
                   <td className="px-5 py-3.5">
-                    <button onClick={() => setTarget(row)} className="text-red-500 text-sm font-medium hover:underline">
-                      Remove
-                    </button>
+                    {!admin && row.scope === "global" ? (
+                      <span className="text-slate-400 text-xs" title="Shared entries are managed by SafeBrowse staff">
+                        Managed by staff
+                      </span>
+                    ) : (
+                      <button onClick={() => setTarget(row)} className="text-red-500 text-sm font-medium hover:underline">
+                        Remove
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

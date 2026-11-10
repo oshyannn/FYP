@@ -70,7 +70,7 @@ def _apply_whitelist(result: dict, level: str, score: float, threat: str, scope)
     """A trusted website is shown as safe, unless the detector found it malicious: that is never overridden."""
     if not scope or level == "safe":
         return result, level, score, threat
-    whose = "the administrator's whitelist" if scope == "global" else "your whitelist"
+    whose = "the shared whitelist" if scope == "global" else "your whitelist"
     out = dict(result)
     reasons = list(out.get("reasons") or [])
     if level == "malicious":
