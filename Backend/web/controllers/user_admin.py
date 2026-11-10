@@ -24,9 +24,10 @@ from flask import Blueprint, g, jsonify, request
 import config
 from web import mailer
 from web.controllers.common import body, err, int_arg, s
-from web.db_models import audit, sessions, staff_accounts, tokens, user_admin
+from web.db_models import audit, sessions, staff_accounts, tokens, user_admin, users
 from web.extensions import limiter
 from web.guards import auth_required, role_required
+from web.security import hash_password, make_temp_password
 
 log = logging.getLogger(__name__)
 bp = Blueprint("user_admin", __name__, url_prefix="/api/staff")
@@ -210,15 +211,30 @@ def delete_user(user_id):
 @auth_required("staff")
 @role_required("employer", "admin")
 def send_password_reset(user_id):
-    """The same 6-digit reset code the 'Forgot password' screen sends. Nobody but the account's owner, who reads it
-    in their own mailbox, ever learns it or the new password."""
+    """A user gets the same 6-digit reset code the 'Forgot password' screen sends. An employer gets a new RANDOM
+    temporary password by email and must choose their own at the next login. Nobody but the account's owner, who
+    reads the email, ever learns it."""
     r = _find(user_id)
     if not r:
         return err("not_found", "Account not found.", 404)
     if not _actions(r)["edit"]:
         return _not_allowed(r)
     if _status(r["status"]) != "active":
-        return err("conflict", "Only an active account can be sent a reset code.", 409)
+        return err("conflict", "Only an active account can be sent a reset.", 409)
+
+    if r["role"] == "employer":
+        temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS
+        sent = users.issue_temp_password(user_id, hash_password(temp), hours,
+                                         lambda: mailer.send_reset_credentials(r["email"], r["full_name"], temp, hours))
+        if not sent:
+            log.error("temporary password email could not be sent")
+            return err("email_failed", "The email could not be sent, so nothing was changed. Check the mail settings "
+                       "in Backend/.env.", 502)
+        sessions.revoke_all_for_user(user_id)
+        audit.log("user_password_reset_sent", "user_management", g.user["id"],
+                  {"user_id": str(user_id), "email": r["email"], "kind": "temporary_password"})
+        return jsonify({"sent": True, "email": r["email"]})
+
     if tokens.recently_issued(user_id, "password_reset", config.CODE_RESEND_SECONDS):
         return err("conflict", "A reset code was sent a moment ago. Wait a little and try again.", 409)
     code = tokens.issue_code(user_id, "password_reset", config.RESET_CODE_MINUTES)

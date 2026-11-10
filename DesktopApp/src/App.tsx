@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AcceptInvite from "./pages/auth/AcceptInvite";
+import ForcedPasswordChange from "./pages/auth/ForcedPasswordChange";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import StaffApp from "./pages/staff/StaffApp";
 import UserApp from "./pages/user/UserApp";
@@ -113,6 +114,15 @@ export default function App() {
       return <div className="h-full flex items-center justify-center text-sm text-slate-500">Loading…</div>;
     }
     if (session && screen === "home") {
+      if (session.user.must_change_password) {
+        return (
+          <ForcedPasswordChange
+            session={session}
+            onDone={(user) => setSession({ ...session, user })}
+            onLogout={loggedOut}
+          />
+        );
+      }
       return session.portal === "staff" ? (
         <StaffApp key={session.user.id} session={session} onLogout={loggedOut} />
       ) : (

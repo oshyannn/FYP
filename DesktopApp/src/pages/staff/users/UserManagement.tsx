@@ -10,13 +10,14 @@ import Approvals from "./Approvals";
 import CreateAccountModal from "./CreateAccountModal";
 import Invitations from "./Invitations";
 import ManageUserModal from "./ManageUserModal";
+import PasswordResets from "./PasswordResets";
 
 interface Props {
   role: StaffRole;
   onSessionEnd: () => void;
 }
 
-type Tab = "accounts" | "deleted" | "invitations" | "approvals";
+type Tab = "accounts" | "deleted" | "invitations" | "approvals" | "resets";
 
 const selectCls = "px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:border-[#1e3a5f]";
 
@@ -39,6 +40,7 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
   const [creating, setCreating] = useState(false);
   const [refresh, setRefresh] = useState(0); // bumps when invitations or approvals changed anywhere on this page
   const [waitingForMe, setWaitingForMe] = useState(0);
+  const [resetCount, setResetCount] = useState(0); // password resets waiting for a decision
 
   const listTab = tab === "accounts" || tab === "deleted";
 
@@ -80,12 +82,21 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
     });
   }, [admin, refresh]);
 
+  // the number on the Password resets tab
+  useEffect(() => {
+    if (!admin) return;
+    api.get("/api/staff/reset-requests").then((res) => {
+      if (res.status === 401) onSessionEnd();
+      else if (res.status === 200) setResetCount((res.data.requests as unknown[]).length);
+    });
+  }, [admin, refresh]);
+
   const changed = () => setRefresh((n) => n + 1);
 
   const tabs: [Tab, string][] = [
     ["accounts", "Accounts"],
     ["deleted", "Deleted"],
-    ...(admin ? ([["invitations", "Invitations"], ["approvals", "Approvals"]] as [Tab, string][]) : []),
+    ...(admin ? ([["invitations", "Invitations"], ["approvals", "Approvals"], ["resets", "Password resets"]] as [Tab, string][]) : []),
   ];
 
   return (
@@ -125,13 +136,15 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === key ? "border-[#1e3a5f] text-[#1e3a5f]" : "border-transparent text-slate-500 hover:text-slate-700"}`}
           >
             {label}
-            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}
+            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}
+            {key === "resets" && resetCount > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{resetCount}</span>}
           </button>
         ))}
       </div>
 
       {tab === "invitations" && admin && <Invitations reloadKey={refresh} onChanged={changed} onSessionEnd={onSessionEnd} />}
       {tab === "approvals" && admin && <Approvals reloadKey={refresh} onChanged={changed} onSessionEnd={onSessionEnd} />}
+      {tab === "resets" && admin && <PasswordResets reloadKey={refresh} onChanged={changed} onSessionEnd={onSessionEnd} />}
 
       {listTab && (
         <>
@@ -253,9 +266,9 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
         <CreateAccountModal
           onClose={() => setCreating(false)}
           onSessionEnd={onSessionEnd}
-          onCreated={() => {
+          onCreated={(role) => {
             changed();
-            setTab("invitations");
+            setTab(role === "admin" ? "invitations" : "accounts"); // a new employer is a real account at once
           }}
         />
       )}

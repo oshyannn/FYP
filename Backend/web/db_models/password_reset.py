@@ -1,9 +1,12 @@
-"""Password reset help requests and one-time reset tickets (Model layer).
+"""Password reset requests and one-time reset tickets (Model layer).
 
-password_reset_requests  someone asks an approver to send them a reset code. Nothing is emailed until it is approved.
-                         Who may approve is decided in controllers/password_reset.py, not here.
-reset tickets            after the 6-digit code is right, the person gets a short-lived ticket. It lets them set a new
-                         password in a second step. Single use; stored only as an HMAC, in auth_tokens.
+password_reset_requests  an employer or administrator asks to have their password reset. Nothing happens until an
+                         administrator approves it. Who may approve is decided in controllers/password_reset.py.
+approve_with_temp_password
+                         on approval the system sets a random temporary password and emails it, in ONE transaction:
+                         if the email cannot be sent, nothing is changed and the request stays pending.
+reset tickets            normal users: after the 6-digit code is right they get a short-lived ticket that lets them set a
+                         new password in a second step. Single use; stored only as an HMAC, in auth_tokens.
 """
 from __future__ import annotations
 
@@ -20,6 +23,10 @@ FROM public.password_reset_requests r
 JOIN public.users t ON t.id = r.user_id
 LEFT JOIN public.users d ON d.id = r.decided_by
 """
+
+
+class _SendFailed(Exception):
+    """The email could not be sent: the database changes of this transaction are rolled back."""
 
 
 def create_request(user_id):
@@ -52,6 +59,26 @@ def mark_decided(req_id, approver_id, status: str, note: str) -> bool:
                  "decision_note = %s WHERE id = %s AND status = 'pending' RETURNING id",
                  (status, approver_id, note or None, req_id))
     return row is not None
+
+
+def approve_with_temp_password(req_id, approver_id, user_id, password_hash: str, hours: int, note: str, send) -> str:
+    """Claims the request, sets the temporary password and calls send() (which emails it) in one transaction.
+    Returns 'ok' | 'conflict' (already decided, nothing changed) | 'email_failed' (nothing changed)."""
+    try:
+        with db.transaction() as c:
+            row = c.execute("UPDATE public.password_reset_requests SET status = 'approved', decided_by = %s, "
+                            "decided_at = now(), decision_note = %s WHERE id = %s AND status = 'pending' RETURNING id",
+                            (approver_id, note or None, req_id)).fetchone()
+            if not row:
+                return "conflict"
+            c.execute("UPDATE public.users SET password_hash = %s, password_changed_at = now(), "
+                      "must_change_password = true, temp_password_expires_at = now() + make_interval(hours => %s), "
+                      "failed_login_count = 0, locked_until = NULL WHERE id = %s", (password_hash, hours, user_id))
+            if not send():
+                raise _SendFailed()
+    except _SendFailed:
+        return "email_failed"
+    return "ok"
 
 
 def issue_ticket(user_id) -> str:

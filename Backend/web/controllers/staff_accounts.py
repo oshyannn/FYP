@@ -24,14 +24,16 @@ from __future__ import annotations
 import logging
 import uuid
 
+import config
 from flask import Blueprint, g, jsonify, request
 
 from web import mailer
 from web.controllers.common import body, err, int_arg, raw, s
-from web.db_models import audit, sessions, staff_accounts
+from web.db_models import audit, sessions, staff_accounts, users
 from web.extensions import limiter
 from web.guards import auth_required, role_required
-from web.security import clean_email, code_hash, hash_password, make_code, make_username, password_errors
+from web.security import (clean_email, code_hash, hash_password, make_code, make_temp_password, make_username,
+                          password_errors)
 
 log = logging.getLogger(__name__)
 bp = Blueprint("staff_accounts", __name__, url_prefix="/api/staff")
@@ -98,6 +100,24 @@ def create_invitation():
         fields["role"] = "Choose Employer or Admin."
     if fields:
         return err("validation", "Please correct the highlighted fields.", 400, fields)
+
+    if role == "employer":
+        # No invitation, no code, no link: the account is created now with a random temporary password that is emailed.
+        temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS
+        outcome, uid = users.create_employer(email, name, hash_password(temp), hours,
+                                             lambda: mailer.send_employer_credentials(email, name, temp, hours))
+        if outcome == "taken":
+            return err("conflict", "This email address already has an account.", 409, {"email": "Already has an account."})
+        if outcome == "open":
+            return err("conflict", "This address has an open administrator invitation. Revoke it first.", 409,
+                       {"email": "Already invited."})
+        if outcome == "email_failed":
+            log.error("employer credentials email could not be sent")
+            return err("email_failed", "The email could not be sent, so no account was created. Check the mail "
+                       "settings in Backend/.env.", 502)
+        audit.log("employer_created", "user_management", g.user["id"], {"email": email, "user_id": str(uid)})
+        return jsonify({"account": {"id": str(uid), "email": email, "full_name": name, "role": "employer"},
+                        "expires_in_hours": hours}), 201
 
     code = pin = code_h = pin_h = None
     if role == "employer":

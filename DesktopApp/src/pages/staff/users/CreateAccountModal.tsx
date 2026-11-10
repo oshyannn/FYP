@@ -5,8 +5,8 @@ import { Alert } from "../../../components/ui";
 
 interface Props {
   onClose: () => void;
-  /** an invitation was created: the lists reload */
-  onCreated: () => void;
+  /** an account (employer) or an invitation (administrator) was created: the lists reload */
+  onCreated: (role: string) => void;
   onSessionEnd: () => void;
 }
 
@@ -17,15 +17,16 @@ const fieldCls = (bad: boolean) =>
     bad ? "border-red-400 focus:border-red-400 focus:ring-red-100" : "border-slate-300 focus:border-[#1e3a5f] focus:ring-[#1e3a5f]/10"
   }`;
 
-// Administrator: invite an employer or an administrator. The invited person sets their own password with an emailed
-// code; nothing is created until they do. An administrator invitation also waits for ANOTHER administrator's approval
-// and comes with a PIN that is shown here once.
+// Administrator: create an employer or invite an administrator.
+//   Employer      : created at once. The system emails the person their login email and a random temporary password.
+//                   You never see it. They must choose their own password at the first login.
+//   Administrator : an invitation that waits for ANOTHER administrator's approval, with a PIN shown here once.
 export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }: Props) {
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ role: string; email: string; name: string; pin?: string } | null>(null);
+  const [done, setDone] = useState<{ role: string; email: string; name: string; pin?: string; hours?: number } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const set = (k: keyof typeof empty, v: string) => {
@@ -47,13 +48,17 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
     setBusy(false);
     if (res.status === 401) return onSessionEnd();
     if (res.status === 201) {
-      setDone({ role: form.role, email: res.data.invitation.email, name: res.data.invitation.full_name, pin: res.data.pin });
-      onCreated();
+      if (res.data.account) {
+        setDone({ role: "employer", email: res.data.account.email, name: res.data.account.full_name, hours: res.data.expires_in_hours });
+      } else {
+        setDone({ role: "admin", email: res.data.invitation.email, name: res.data.invitation.full_name, pin: res.data.pin });
+      }
+      onCreated(form.role);
       return;
     }
     const p = problem(res);
     if (Object.keys(p.fields).length) setErrors(p.fields);
-    else setError(res.status === 429 ? "Too many invitations. Wait a while and try again." : p.message);
+    else setError(res.status === 429 ? "Too many requests. Wait a while and try again." : p.message);
   }
 
   async function copyPin() {
@@ -69,7 +74,7 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
   if (done) {
     return (
       <Modal
-        title={done.pin ? "Waiting for approval" : "Invitation sent"}
+        title={done.role === "employer" ? "Employer account created" : "Waiting for approval"}
         onClose={onClose}
         footer={
           <button onClick={onClose} className="w-full bg-[#1e3a5f] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a]">
@@ -77,7 +82,23 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
           </button>
         }
       >
-        {done.pin ? (
+        {done.role === "employer" ? (
+          <div className="space-y-3 text-sm text-slate-600">
+            <p>
+              An email with the login email and a temporary password was sent to <b className="text-slate-800 break-all">{done.email}</b>. You
+              cannot see the password.
+            </p>
+            <p>
+              {done.name} has {done.hours ?? 72} hours to open the app, choose <b>Staff login</b> and sign in. They must then choose their own
+              password before they can use anything. Until then the account shows as <b>Pending</b>; it becomes <b>Active</b> after that first
+              password change, which also confirms the email address.
+            </p>
+            <p className="text-xs text-slate-500">
+              If the address was wrong or the password expired, open the account in the Accounts tab and delete it (a pending account is removed
+              completely), then create it again.
+            </p>
+          </div>
+        ) : (
           <div className="space-y-4 text-sm text-slate-600">
             <p>
               The invitation for <b className="text-slate-800 break-all">{done.email}</b> as an <b>administrator</b> is waiting for{" "}
@@ -95,11 +116,6 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
               emailed code <i>and</i> this PIN. If you lose it, revoke the invitation and make a new one.
             </p>
           </div>
-        ) : (
-          <p className="text-sm text-slate-600">
-            An email with a 6-digit code was sent to <b className="text-slate-800 break-all">{done.email}</b>. {done.name} has 24 hours to open the app,
-            choose <b>Staff login → Activate your account</b> and set a password. You can follow it in the <b>Invitations</b> tab.
-          </p>
         )}
       </Modal>
     );
@@ -108,7 +124,7 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
   return (
     <Modal
       title="Create Account"
-      subtitle="Invite an employer or an administrator by email."
+      subtitle="Create an employer, or invite an administrator."
       onClose={onClose}
       footer={
         <>
@@ -116,7 +132,7 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
             Cancel
           </button>
           <button onClick={submit} disabled={busy} className="flex-1 bg-[#1e3a5f] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162d4a] disabled:opacity-60">
-            {busy ? "Checking…" : form.role === "admin" ? "Request invitation" : "Send invitation"}
+            {busy ? "Please wait…" : form.role === "admin" ? "Request invitation" : "Create account"}
           </button>
         </>
       }
@@ -136,7 +152,7 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
         <div>
           <label htmlFor="ca-email2" className="block text-sm font-medium text-slate-700 mb-1.5">Repeat email</label>
           <input id="ca-email2" type="email" value={form.email2} maxLength={254} autoComplete="off" onChange={(e) => set("email2", e.target.value)} onPaste={(e) => e.preventDefault()} className={fieldCls(!!errors.email2)} />
-          {errors.email2 ? <p className="text-red-500 text-xs mt-1">{errors.email2}</p> : <p className="text-slate-400 text-xs mt-1">Type it again, do not paste: a mistyped address would send the invitation to a stranger.</p>}
+          {errors.email2 ? <p className="text-red-500 text-xs mt-1">{errors.email2}</p> : <p className="text-slate-400 text-xs mt-1">Type it again, do not paste: a mistyped address would send the login details to a stranger.</p>}
         </div>
         <div>
           <label htmlFor="ca-role" className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
@@ -149,7 +165,7 @@ export default function CreateAccountModal({ onClose, onCreated, onSessionEnd }:
         <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
           {form.role === "admin"
             ? "An administrator account is powerful, so it needs two things: another administrator must approve the invitation, and you will get a PIN to tell the person yourself. Nothing is emailed before the approval."
-            : "The person gets an email with a 6-digit code and sets their own password. You never see or choose it. The code works for 24 hours."}
+            : "The account is created now. The system emails the person their login email and a random temporary password; you never see it. They must choose their own password at the first login, and the temporary one stops working after 72 hours."}
         </p>
       </div>
     </Modal>

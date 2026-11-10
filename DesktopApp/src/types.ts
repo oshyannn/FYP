@@ -5,8 +5,9 @@ export interface User {
   email: string;
   full_name: string | null;
   role: "user" | "employer" | "admin";
+  /** true while the account has a temporary password: only the "choose your password" screen may be used */
+  must_change_password?: boolean;
 }
-
 export interface Session {
   user: User;
   portal: Portal;

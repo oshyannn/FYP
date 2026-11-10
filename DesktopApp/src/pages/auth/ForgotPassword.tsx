@@ -7,20 +7,21 @@ import { api, problem } from "../../api";
 import type { Flow, Screen } from "../../types";
 
 interface Props {
+  /** only decides the colour and where "Back to Login" goes: the steps are the same for everybody */
   portal: "user" | "staff";
   go: (screen: Screen, flow?: Flow) => void;
 }
 
-// Steps: choose -> (code, if self) -> enter code -> new password.
-// "self": a 6-digit code is emailed now (users only).
-// "help": an approver must approve first; then the code is emailed to the account (users, employers and admins).
-type Step = "email" | "waiting" | "code" | "password";
+// Step 1: email. The server answers which way this account resets:
+//   "code"     a normal user: a 6-digit PIN was emailed -> step 2 (PIN) -> step 3 (new password)
+//   "approval" an employer or administrator: a request now waits for an administrator. When it is approved a temporary
+//              password is emailed, and the person must choose their own at the next login.
+type Step = "email" | "code" | "approval" | "password";
 const RESEND_SECONDS = 60;
 
 export default function ForgotPassword({ portal, go }: Props) {
   const staff = portal === "staff";
   const [step, setStep] = useState<Step>("email");
-  const [method, setMethod] = useState<"self" | "help">(staff ? "help" : "self");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [ticket, setTicket] = useState("");
@@ -42,8 +43,8 @@ export default function ForgotPassword({ portal, go }: Props) {
     go(staff ? "staff-login" : "user-login");
   }
 
-  // Step 1: email, and the chosen way.
-  async function sendFirst(e: FormEvent) {
+  // Step 1: the email.
+  async function sendEmail(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
@@ -54,22 +55,19 @@ export default function ForgotPassword({ portal, go }: Props) {
     setError("");
     setInfo("");
     setBusy(true);
-    if (method === "self") {
-      const res = await api.post("/api/auth/forgot-password", { email: email.trim() });
-      setBusy(false);
-      if (res.status !== 202) return setError(problem(res).message);
-      setCooldown(RESEND_SECONDS);
-      setInfo("If this address has an account, a 6-digit code was sent to it.");
-      setStep("code");
-      return;
-    }
-    const res = await api.post("/api/auth/reset-request", { email: email.trim() });
+    const res = await api.post("/api/auth/forgot-password", { email: email.trim() });
     setBusy(false);
     if (res.status !== 202) return setError(problem(res).message);
-    setStep("waiting");
+    if (res.data?.flow === "approval") {
+      setStep("approval");
+      return;
+    }
+    setCooldown(RESEND_SECONDS);
+    setInfo("If this address has an account, a 6-digit PIN was sent to it.");
+    setStep("code");
   }
 
-  // Self only: send a new code (the older one stops working). Cooldown stops repeated clicks.
+  // Step 2 (users): send a new PIN (the older one stops working). The cooldown stops repeated clicks.
   async function resend() {
     if (busy || cooldown > 0) return;
     setBusy(true);
@@ -79,15 +77,15 @@ export default function ForgotPassword({ portal, go }: Props) {
     if (res.status !== 202) return setError(problem(res).message);
     setCode("");
     setCooldown(RESEND_SECONDS);
-    setInfo("A new code was sent. The previous code no longer works.");
+    setInfo("A new PIN was sent. The previous PIN no longer works.");
   }
 
-  // Step 2: check the code. Only when it is right do we move on to the password.
+  // Step 2: check the PIN. Only when it is right do we move on to the password.
   async function checkCode(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
     if (!/^\d{6}$/.test(code)) {
-      setFields({ code: "Enter the 6-digit code from the email." });
+      setFields({ code: "Enter the 6-digit PIN from the email." });
       return;
     }
     setFields({});
@@ -134,7 +132,13 @@ export default function ForgotPassword({ portal, go }: Props) {
   }
 
   const subtitle =
-    step === "email" ? "Choose how to reset your password" : step === "waiting" ? "Waiting for approval" : step === "code" ? `Code sent to ${email.trim()}` : "Choose a new password";
+    step === "email"
+      ? "Step 1 of 3: enter your email"
+      : step === "code"
+        ? `Step 2 of 3: enter the PIN sent to ${email.trim()}`
+        : step === "approval"
+          ? "Request sent"
+          : "Step 3 of 3: choose a new password";
 
   return (
     <AuthShell portal={portal} title="Reset Password" subtitle={subtitle}>
@@ -142,68 +146,39 @@ export default function ForgotPassword({ portal, go }: Props) {
       {info && <Alert kind="success">{info}</Alert>}
 
       {step === "email" && (
-        <form onSubmit={sendFirst} className="space-y-4" noValidate>
-          {!staff && (
-            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How do you want to reset?">
-              {([
-                ["self", "Verify myself", "We email a code to you"],
-                ["help", "Ask for help", "An administrator or employer approves first"],
-              ] as const).map(([k, t, d]) => (
-                <button
-                  key={k}
-                  type="button"
-                  role="radio"
-                  aria-checked={method === k}
-                  onClick={() => setMethod(k)}
-                  className={`text-left border rounded-xl p-3 text-sm ${method === k ? "border-[#1e3a5f] ring-2 ring-[#1e3a5f]/15" : "border-slate-300"}`}
-                >
-                  <span className="block font-semibold text-slate-800">{t}</span>
-                  <span className="block text-xs text-slate-500 mt-1">{d}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {staff && (
-            <p className="text-sm text-slate-500">
-              Staff accounts are reset with an approval. Enter your work email and an approver will be asked.
-            </p>
-          )}
+        <form onSubmit={sendEmail} className="space-y-4" noValidate>
           <Field label="Email" name="email" type="email" autoComplete="username" placeholder="you@example.com"
                  value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
-          <PrimaryButton type="submit" busy={busy} staff={staff}>
-            {method === "self" && !staff ? "Send code" : "Send request"}
-          </PrimaryButton>
+          <PrimaryButton type="submit" busy={busy} staff={staff}>Continue</PrimaryButton>
           <SecondaryButton type="button" onClick={back}>Back to Login</SecondaryButton>
         </form>
-      )}
-
-      {step === "waiting" && (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Your request was sent. An approver will review it. Once approved, a 6-digit code is emailed to your address.
-            Come back here when you have the code.
-          </p>
-          <PrimaryButton type="button" staff={staff} onClick={() => setStep("code")}>I have the code</PrimaryButton>
-          <SecondaryButton type="button" onClick={back}>Back to Login</SecondaryButton>
-        </div>
       )}
 
       {step === "code" && (
         <form onSubmit={checkCode} className="space-y-4" noValidate>
-          <Field label="6-digit code" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+          <Field label="6-digit PIN" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
                  placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} error={fields.code} />
           <div className="flex items-center justify-between text-sm">
-            {method === "self" ? (
-              <button type="button" onClick={resend} disabled={busy || cooldown > 0} className="text-[#1e3a5f] font-medium disabled:text-slate-400">
-                {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
-              </button>
-            ) : (
-              <span className="text-slate-500">No code yet? Check the approval status with your administrator.</span>
-            )}
+            <button type="button" onClick={resend} disabled={busy || cooldown > 0} className="text-[#1e3a5f] font-medium disabled:text-slate-400">
+              {cooldown > 0 ? `Resend PIN in ${cooldown}s` : "Resend PIN"}
+            </button>
           </div>
-          <PrimaryButton type="submit" busy={busy} staff={staff}>Verify code</PrimaryButton>
+          <PrimaryButton type="submit" busy={busy} staff={staff}>Verify PIN</PrimaryButton>
           <SecondaryButton type="button" onClick={back}>Back to Login</SecondaryButton>
         </form>
+      )}
+
+      {step === "approval" && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Your request to reset the password for <b className="break-all">{email.trim()}</b> was sent to an administrator for approval.
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Once it is approved, an email with a temporary password is sent to this address. Sign in with it on the Staff login screen and you
+            will be asked to choose your own password straight away.
+          </p>
+          <PrimaryButton type="button" staff={staff} onClick={back}>Back to Login</PrimaryButton>
+        </div>
       )}
 
       {step === "password" && (
@@ -217,7 +192,7 @@ export default function ForgotPassword({ portal, go }: Props) {
         </form>
       )}
 
-      {step !== "email" && step !== "password" && (
+      {step === "code" && (
         <p className="text-center text-sm text-slate-500 mt-5">
           <LinkButton onClick={() => setStep("email")}>Use a different email</LinkButton>
         </p>

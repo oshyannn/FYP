@@ -15,7 +15,7 @@ def get_active(token_hash: str):
     return db.one("""
         SELECT s.id AS sid, s.portal::text AS portal,
                u.id, u.email::text AS email, u.full_name, u.username,
-               u.role::text AS role, u.status::text AS status, u.is_email_verified
+               u.role::text AS role, u.status::text AS status, u.is_email_verified, u.must_change_password
         FROM public.sessions s JOIN public.users u ON u.id = s.user_id
         WHERE s.token_hash = %s AND s.revoked_at IS NULL AND s.expires_at > now()
           AND s.last_seen_at > now() - s.idle_minutes * interval '1 minute'

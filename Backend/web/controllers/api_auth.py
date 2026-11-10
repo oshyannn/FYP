@@ -40,7 +40,8 @@ _err, _body, _s, _raw = err, body, s, raw
 
 
 def _user_json(u) -> dict:
-    return {"id": str(u["id"]), "email": u["email"], "full_name": u["full_name"], "role": u["role"]}
+    return {"id": str(u["id"]), "email": u["email"], "full_name": u["full_name"], "role": u["role"],
+            "must_change_password": bool(u.get("must_change_password"))}
 
 
 def _accepted(message: str):
@@ -111,19 +112,22 @@ def _login(portal: str):
     password_ok = verify_password(user["password_hash"] if user else DUMMY_HASH, password) and user is not None
     locked = bool(user and user["locked_until"] and user["locked_until"] > datetime.now(timezone.utc))
     right_portal = bool(user and user["role"] in PORTAL_ROLES[portal])
+    forced = bool(user and user["must_change_password"])            # has a temporary password
+    expired = bool(forced and user["temp_password_expires_at"]
+                   and user["temp_password_expires_at"] < datetime.now(timezone.utc))
 
-    if not (password_ok and right_portal) or locked:
+    if not (password_ok and right_portal) or locked or expired:
         if user and not locked:
             users.record_failed_login(user["id"])
         audit.log("login_failed", "auth", user["id"] if user else None, {"portal": portal, "locked": locked})
         return _err("invalid_credentials", GENERIC_LOGIN_ERROR, 401)
 
-    if user["status"] == "pending" and not user["is_email_verified"]:
+    if user["status"] == "pending" and not user["is_email_verified"] and not forced:
         if not tokens.recently_issued(user["id"], "email_verification", config.CODE_RESEND_SECONDS):
             _send_verification(user["id"], user["email"])
         audit.log("login_unverified", "auth", user["id"], {"portal": portal})
         return _err("email_not_verified", "Verify your email first. We sent a 6-digit code to your inbox.", 403)
-    if user["status"] != "active":
+    if user["status"] != "active" and not (forced and user["status"] == "pending"):
         audit.log("login_blocked", "auth", user["id"], {"portal": portal, "status": user["status"]})
         return _err("invalid_credentials", GENERIC_LOGIN_ERROR, 401)
 
@@ -229,28 +233,6 @@ def resend_code():
 
 
 # ---------------------------------------------------------------- password recovery
-def _forgot(portal: str):
-    email, _ = clean_email(_s(_body(), "email", 254))
-    user = users.get_by_email(email) if email else None
-    if (user and user["status"] == "active" and user["role"] in PORTAL_ROLES[portal]
-            and not tokens.recently_issued(user["id"], "password_reset", config.CODE_RESEND_SECONDS)):
-        mailer.send_reset_code(user["email"], tokens.issue_code(user["id"], "password_reset", config.RESET_CODE_MINUTES))
-        audit.log("password_reset_requested", "auth", user["id"])
-    return _accepted("If an account exists for that address, we sent a 6-digit reset code.")
-
-
-@bp.post("/auth/forgot-password")
-@limiter.limit("5 per hour")
-def user_forgot():
-    return _forgot("user")
-
-
-@bp.post("/staff/forgot-password")
-@limiter.limit("5 per hour")
-def staff_forgot():
-    return _forgot("staff")
-
-
 @bp.post("/auth/reset-password")
 @limiter.limit("10 per hour")
 def reset_password():
@@ -322,6 +304,28 @@ def change_password():
     sessions.revoke_all_for_user(user["id"], except_sid=g.user["sid"])     # other devices are logged out
     audit.log("password_changed", "account", user["id"])
     return jsonify({"message": "Password updated."})
+
+
+# ---------------------------------------------------------------- extension pairing
+
+@bp.post("/me/first-password")
+@limiter.limit("10 per hour")
+@auth_required("user", "staff")
+def first_password_change():
+    """The one thing an account with a TEMPORARY password may do (besides reading itself and logging out)."""
+    if not g.user["must_change_password"]:
+        return _err("conflict", "Your password does not need to be changed here.", 409)
+    new_pw = _raw(_body(), "new_password")
+    user = users.get_by_id(g.user["id"])
+    errs = password_errors(new_pw, user["email"], user["full_name"] or "")
+    if verify_password(user["password_hash"], new_pw):
+        errs.append("Choose a password that is different from the temporary one.")
+    if errs:
+        return _err("validation", "Please correct the highlighted fields.", 400, {"new_password": " ".join(errs)})
+    users.complete_forced_change(user["id"], hash_password(new_pw))
+    sessions.revoke_all_for_user(user["id"], except_sid=g.user["sid"])
+    audit.log("password_changed_first_login", "account", user["id"])
+    return jsonify({"message": "Password updated.", "user": _user_json(users.get_by_id(user["id"]))})
 
 
 # ---------------------------------------------------------------- extension pairing

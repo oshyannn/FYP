@@ -1,20 +1,23 @@
-"""Forgot password, in steps.
+"""Forgot password: one flow for everybody, in three steps.
 
 Public (nobody signed in)
-  POST /api/auth/forgot-password              (existing) user, self-service: a 6-digit code is emailed now
-  POST /api/auth/reset-request                {"email"}: ask for help. Nothing is emailed until an approver approves.
-  POST /api/auth/reset/verify                 {"email", "code"} -> {"ticket"}: checks the code. Does not change the password.
+  POST /api/auth/forgot-password              {"email"}  -> {"flow": "code" | "approval", "message"}
+        normal user          : flow "code"     a 6-digit PIN is emailed now.
+        employer / admin     : flow "approval" nothing is emailed; a request waits for an administrator.
+  POST /api/auth/reset/verify                 {"email", "code"} -> {"ticket"}: checks the PIN. Does not change the password.
   POST /api/auth/reset/set-password           {"email", "ticket", "new_password"}: sets the new password.
 
-Employers and administrators who can approve
+Administrators (and employers for user accounts, which no longer ask this way)
   GET  /api/staff/reset-requests                          pending requests this person may decide
   POST /api/staff/reset-requests/<id>/decision            {"decision": "approve" | "reject", "note"}
 
 Who approves
-  user accounts          : an employer or an administrator
   employer accounts      : an administrator
   administrator accounts : another administrator (never the account itself)
-Approving emails the 6-digit code to the account's own address. The approver never sees the code.
+Approving sets a RANDOM temporary password and emails it to the account's own address. The approver never sees it.
+The person must choose their own password at the next login (users.must_change_password, enforced in guards.py).
+
+The old "ask for help" endpoint (/api/auth/reset-request) and the staff-only forgot endpoint are gone: this one replaces them.
 """
 from __future__ import annotations
 
@@ -26,14 +29,15 @@ from web.controllers.common import body, err, raw, s
 from web.db_models import audit, password_reset as pr, sessions, tokens, users
 from web.extensions import limiter
 from web.guards import auth_required
-from web.security import clean_email, hash_password, password_errors
+from web.security import clean_email, hash_password, make_temp_password, password_errors
 
 bp = Blueprint("password_reset", __name__, url_prefix="/api")
 
 BAD_CODE = "That code is invalid or has expired."
 BAD_TICKET = "This reset has expired. Start again from Forgot Password."
-ASKED = ("If this account can be helped, a request was sent to an administrator. "
-         "Once it is approved, a 6-digit code is emailed to the account.")
+SENT = "If this address has an account, a 6-digit PIN was sent to it."
+ASKED = ("Your request was sent to an administrator for approval. Once it is approved, an email with a temporary "
+         "password is sent to this address.")
 
 
 def _can_decide(approver, target_id, target_role: str) -> bool:
@@ -56,20 +60,28 @@ def _json(r) -> dict:
     }
 
 
-# ---- public: asking for help -------------------------------------------------------------------------------------
+# ---- public: step 1 (email) ---------------------------------------------------------------------------------------
 
-@bp.post("/auth/reset-request")
+@bp.post("/auth/forgot-password")
 @limiter.limit("5 per hour")
-def ask_for_help():
+def forgot_password():
+    """One entry for every account. Normal users get a PIN; employers and administrators get an approval request.
+    The answer for an unknown, inactive or normal-user address is the same 'code' answer, so only employer and
+    administrator addresses are told apart (the screen has to say something different for them)."""
     email, _ = clean_email(s(body(), "email", 254))
     user = users.get_by_email(email) if email else None
-    if user and user["status"] == "active" and pr.create_request(user["id"]):
-        audit.log("password_reset_asked", "auth", user["id"], {"role": user["role"]})
-    # The same answer whether or not the account exists.
-    return jsonify({"message": ASKED}), 202
+    if user and user["status"] == "active" and user["role"] in ("employer", "admin"):
+        if pr.create_request(user["id"]):
+            audit.log("password_reset_asked", "auth", user["id"], {"role": user["role"]})
+        return jsonify({"flow": "approval", "message": ASKED}), 202
+    if (user and user["status"] == "active" and user["role"] == "user"
+            and not tokens.recently_issued(user["id"], "password_reset", config.CODE_RESEND_SECONDS)):
+        mailer.send_reset_code(user["email"], tokens.issue_code(user["id"], "password_reset", config.RESET_CODE_MINUTES))
+        audit.log("password_reset_requested", "auth", user["id"])
+    return jsonify({"flow": "code", "message": SENT}), 202
 
 
-# ---- public: step 2 (check the code) and step 3 (set the password) ------------------------------------------------
+# ---- public: step 2 (check the PIN) and step 3 (set the password) -------------------------------------------------
 
 @bp.post("/auth/reset/verify")
 @limiter.limit("20 per hour")
@@ -134,16 +146,23 @@ def decide_reset_request(req_id):
     account = users.get_by_id(req["user_id"])
     if not account or account["status"] != "active":
         return err("conflict", "This account is no longer active.", 409)
+    note = s(data, "note", 1000)
 
-    if decision == "approve":
-        # The code is created and emailed BEFORE the request is marked approved, so a failed email leaves it pending.
-        code = tokens.issue_code(account["id"], "password_reset", config.RESET_CODE_MINUTES)
-        if mailer.send_reset_code(account["email"], code) is False:
-            return err("email_failed", "The email could not be sent. Check the mail settings in Backend/.env. "
-                       "The request stays pending.", 502)
-    status = "approved" if decision == "approve" else "rejected"
-    if not pr.mark_decided(req_id, g.user["id"], status, s(data, "note", 1000)):
+    if decision == "reject":
+        if not pr.mark_decided(req_id, g.user["id"], "rejected", note):
+            return err("conflict", "This request has already been decided.", 409)
+        audit.log("password_reset_rejected", "user_management", g.user["id"], {"email": req["email"], "role": req["role"]})
+        return jsonify({"decided": "rejected"})
+
+    temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS
+    outcome = pr.approve_with_temp_password(
+        req_id, g.user["id"], account["id"], hash_password(temp), hours, note,
+        lambda: mailer.send_reset_credentials(account["email"], account["full_name"], temp, hours))
+    if outcome == "conflict":
         return err("conflict", "This request has already been decided.", 409)
-    audit.log(f"password_reset_{status}", "user_management", g.user["id"],
-              {"email": req["email"], "role": req["role"]})
-    return jsonify({"decided": status})
+    if outcome == "email_failed":
+        return err("email_failed", "The email could not be sent, so nothing was changed. Check the mail settings in "
+                   "Backend/.env. The request stays pending.", 502)
+    sessions.revoke_all_for_user(account["id"])    # the old password and every open session stop working now
+    audit.log("password_reset_approved", "user_management", g.user["id"], {"email": req["email"], "role": req["role"]})
+    return jsonify({"decided": "approved"})
