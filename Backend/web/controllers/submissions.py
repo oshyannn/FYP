@@ -4,7 +4,7 @@ or rejects it. This is the "Threat URL Submissions" tab of URL Approval and the 
 POST /api/staff/threat-submissions               employer: {"url", "category", "score", "notes"}
 GET  /api/staff/threat-submissions/mine          employer: own submissions (?page= &per_page=)
 GET  /api/staff/threat-submissions               admin: all submissions (?status= &search= &page= &per_page=) + counts
-POST /api/staff/threat-submissions/<id>/review   admin: {"decision": "approve" | "reject", "note": "...", "match_scope": "auto" | "exact" (optional)}
+POST /api/staff/threat-submissions/<id>/review   admin: {"decision": "approve" | "reject", "note": "..."}
 """
 from __future__ import annotations
 
@@ -122,10 +122,7 @@ def review_submission(sub_id):
     if decision not in ("approve", "reject"):
         return err("validation", "Choose approve or reject.", 400)
     note = s(data, "note", 1000)
-    scope = s(data, "match_scope", 10) or None          # optional: exact = block only this address, not the whole site
-    if scope not in (None, "auto", "exact"):
-        return err("validation", "match_scope must be auto or exact.", 400)
-    outcome = submissions.review(sub_id, g.user["id"], decision, note, scope)
+    outcome = submissions.review(sub_id, g.user["id"], decision, note)
     if outcome == "not_found":
         return err("not_found", "Submission not found.", 404)
     if outcome == "conflict":

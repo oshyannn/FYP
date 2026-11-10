@@ -226,8 +226,8 @@ def adult_domains(conn=None) -> list[str]:
 
 
 # ---------------------------------------------------- admin-approved threats (Backend table global_urls)
-def admin_threats(conn=None) -> list[tuple[str, str, float, str]] | None:
-    """Active rows of the Global Threat List: (canonical url, risk_level, risk_score, match_scope). These are the entries an
+def admin_threats(conn=None) -> list[tuple[str, str, float]] | None:
+    """Active rows of the Global Threat List: (canonical url, risk_level, risk_score). These are the entries an
     employer submitted / a scan found and an administrator approved. None = could not read (the caller keeps what it had)."""
     own = conn is None
     conn = conn or connect()
@@ -235,15 +235,9 @@ def admin_threats(conn=None) -> list[tuple[str, str, float, str]] | None:
         return None
     try:
         with conn.cursor() as cur:
-            try:
-                cur.execute("select url, risk_level::text, risk_score, match_scope from global_urls where status = 'active' "
-                            "and risk_level in ('suspicious', 'malicious')")
-                return [(r[0], r[1], float(r[2]), r[3] or "auto") for r in cur.fetchall()]
-            except Exception:                       # match_scope column not created yet: everything behaves as 'auto'
-                _reset(conn)
-                cur.execute("select url, risk_level::text, risk_score from global_urls where status = 'active' "
-                            "and risk_level in ('suspicious', 'malicious')")
-                return [(r[0], r[1], float(r[2]), "auto") for r in cur.fetchall()]
+            cur.execute("select url, risk_level::text, risk_score from global_urls where status = 'active' "
+                        "and risk_level in ('suspicious', 'malicious')")
+            return [(r[0], r[1], float(r[2])) for r in cur.fetchall()]
     except Exception as exc:
         _reset(conn)
         log.warning("could not read the admin-approved threat list (%s)", exc.__class__.__name__)
