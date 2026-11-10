@@ -5,7 +5,7 @@ GET    /api/staff/system-lists/lookup?domain=   employer / admin: why a domain i
 POST   /api/staff/system-lists                  admin: {"type", "domain", "note"} adds (or switches back on) an entry
 DELETE /api/staff/system-lists/<id>             admin: switches an entry off
 
-type: whitelist | not_trusted | blacklist | adult_manual (see db_models/system_lists.py)
+type: whitelist | not_trusted | blacklist | adult_manual | adblock_block | adblock_allow (see db_models/system_lists.py)
 
 Use `not_trusted` to take a popular (Tranco) site off the trusted list, and `blacklist` to always block a domain.
 whitelist / not_trusted are stored as the registered domain (www.amazon.com -> amazon.com), because that is what the

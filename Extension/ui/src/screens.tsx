@@ -9,7 +9,7 @@ import {
   ConfirmDialog, OutlineBtn, PrimaryBtn, ScoreBar, SectionLabel, StatusIcon, Toggle, UrlLine,
   statusBg, statusColor,
 } from "./ui";
-import type { RecentScan, Settings, SiteMode, SiteRule, SiteState, Verdict } from "./types";
+import type { RecentScan, Settings, ShieldKey, ShieldState, SiteMode, SiteRule, SiteState, Verdict } from "./types";
 
 // ─── Pairing (replaces the old login page: the code comes from the desktop app) ──────────────
 export function PairScreen({ notice, onSubmit }: { notice?: string; onSubmit: (code: string) => Promise<string | null> }) {
@@ -517,6 +517,63 @@ export function SiteBar({ host, saved, busy, mode, flash, onToggleSaved, onSite 
   );
 }
 
+// One line on the main screen: how much was blocked here, and a switch for this website.
+export function ShieldsBar({ state, busy, onSite, onMore }: { state: ShieldState | null; busy: boolean; onSite: (off: boolean) => void; onMore: () => void }) {
+  if (!state) return null;
+  const any = state.ads || state.trackers;
+  const note = state.siteOff ? "Shields are off for this website"
+    : !any ? "Ad and tracker blocking is off"
+    : state.blocked === null ? "Blocking ads, trackers and pop-ups"
+    : `${state.blocked} ad${state.blocked === 1 ? "" : "s"} and tracker${state.blocked === 1 ? "" : "s"} blocked on this page`;
+  return (
+    <div className="px-4 pb-3 -mt-1 fade-in">
+      <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2">
+        <ShieldCheckIcon size={14} className={state.siteOff || !any ? "text-gray-400" : "text-green-600"} />
+        <button onClick={onMore} className="flex-1 min-w-0 text-left text-[11px] text-gray-600 truncate hover:underline" title="Shields settings">{note}</button>
+        <button onClick={() => onSite(!state.siteOff)} disabled={busy}
+          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 shrink-0">
+          {state.siteOff ? "Turn on" : "Off here"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Full controls, at the top of Site settings.
+export function ShieldsPanel({ state, busy, onKey, onSite }: { state: ShieldState | null; busy: boolean; onKey: (k: ShieldKey, v: boolean) => void; onSite: (off: boolean) => void }) {
+  const rows: { key: ShieldKey; title: string; hint: string }[] = [
+    { key: "ads", title: "Block ads", hint: "Ad networks and ad servers (EasyList)." },
+    { key: "trackers", title: "Block trackers", hint: "Analytics and tracking servers (EasyPrivacy)." },
+    { key: "popups", title: "Block pop-up ads", hint: "Closes new tabs that a page opens to an ad site." },
+  ];
+  return (
+    <>
+      <SectionLabel>Shields</SectionLabel>
+      <div className="border border-gray-200 rounded-xl -mt-1.5 mb-4 divide-y divide-gray-100">
+        {state ? rows.map((r) => (
+          <div key={r.key} className="flex items-center gap-3 p-2.5">
+            <div className="flex-1 min-w-0">
+              <div className="text-[12px] font-semibold text-gray-800">{r.title}</div>
+              <div className="text-[10px] text-gray-400">{r.hint}</div>
+            </div>
+            <Toggle checked={state[r.key]} onChange={() => !busy && onKey(r.key, !state[r.key])} />
+          </div>
+        )) : <div className="p-2.5 text-[11px] text-gray-400">Loading…</div>}
+        {state && state.host && (
+          <div className="flex items-center gap-3 p-2.5">
+            <div className="flex-1 min-w-0">
+              <div className="text-[12px] font-semibold text-gray-800">Shields on {state.host}</div>
+              <div className="text-[10px] text-gray-400">Turn off if a page does not work. Safety warnings stay on.</div>
+            </div>
+            <Toggle checked={!state.siteOff} onChange={() => !busy && onSite(!state.siteOff)} />
+          </div>
+        )}
+        {state && <div className="p-2.5 text-[10px] text-gray-400">{state.popupsBlocked} pop-up{state.popupsBlocked === 1 ? "" : "s"} closed so far.</div>}
+      </div>
+    </>
+  );
+}
+
 const OPTIONS: { mode: SiteMode; title: string; hint: string }[] = [
   { mode: "ask", title: "Warn me every time", hint: "The default. Dangerous pages are blocked and you are asked again on every visit." },
   { mode: "hour", title: "Allow for 1 hour", hint: "No warning for an hour, then it asks again." },
@@ -533,8 +590,9 @@ function modeNote(st: SiteState): string {
   return "";
 }
 
-export function SiteSettingsScreen({ host, state, rules, error, busy, onSet, onRemoveRule, onOpenApp }: {
+export function SiteSettingsScreen({ host, state, rules, error, busy, shield, onShieldKey, onShieldSite, onSet, onRemoveRule, onOpenApp }: {
   host: string; state: SiteState | null; rules: SiteRule[] | null; error: string; busy: boolean;
+  shield: ShieldState | null; onShieldKey: (k: ShieldKey, v: boolean) => void; onShieldSite: (off: boolean) => void;
   onSet: (mode: SiteMode) => void; onRemoveRule: (host: string) => void; onOpenApp: () => void;
 }) {
   const [pending, setPending] = useState<SiteMode | null>(null);        // "Always allow" asks once more
@@ -542,6 +600,7 @@ export function SiteSettingsScreen({ host, state, rules, error, busy, onSet, onR
   const current = state?.mode ?? "ask";
   return (
     <div className="p-4 fade-in relative">
+      <ShieldsPanel state={shield} busy={busy} onKey={onShieldKey} onSite={onShieldSite} />
       <SectionLabel>This website</SectionLabel>
       <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 -mt-1.5 mb-3">
         <UrlLine url={host} />

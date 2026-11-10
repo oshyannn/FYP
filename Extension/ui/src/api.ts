@@ -1,6 +1,6 @@
 import { API_BASE } from "./config";
 import { clearAuth, setAuth } from "./store";
-import type { Auth, RecentScan, SiteMode, SiteRule, SiteState, Status, Verdict } from "./types";
+import type { Auth, RecentScan, ShieldKey, ShieldState, SiteMode, SiteRule, SiteState, Status, Verdict } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -168,6 +168,14 @@ export const siteGet = async (host: string): Promise<SiteState> => (await site<{
 export const siteSet = async (host: string, mode: SiteMode): Promise<SiteState> =>
   (await site<{ state: SiteState }>({ type: "site-set", host, mode })).state;
 export const siteList = async (): Promise<SiteRule[]> => (await site<{ rules: SiteRule[] }>({ type: "site-list" })).rules;
+
+// ---- Shields (chrome/adblock.js)
+export const shieldGet = async (host: string, tabId?: number): Promise<ShieldState> =>
+  (await site<{ state: ShieldState }>({ type: "shield-get", host, tabId })).state;
+export const shieldSet = async (key: ShieldKey, value: boolean, host: string, tabId?: number): Promise<ShieldState> =>
+  (await site<{ state: ShieldState }>({ type: "shield-set", key, value, host, tabId })).state;
+export const shieldSite = async (host: string, off: boolean, tabId?: number): Promise<ShieldState> =>
+  (await site<{ state: ShieldState }>({ type: "shield-site", host, off, tabId })).state;
 
 // ---- starred websites (saved to the account; the desktop app lists them)
 export async function savedCheck(token: string, url: string): Promise<boolean> {

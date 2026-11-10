@@ -4,6 +4,8 @@ whitelist    domains the detector trusts (on top of the Tranco top sites)
 not_trusted  domains removed from the Tranco part of the trusted list (a popular site that should not be trusted)
 blacklist    domains that are always Malicious
 adult_manual domains added to the adult-site list
+adblock_block extra ad / tracker domains the browser extension blocks (on top of its EasyList rulesets)
+adblock_allow domains the extension never blocks (fixes a site that EasyList breaks)
 
 Removing an entry only switches it off (is_active = false): the row stays, so the history is kept and
 `sync_to_supabase lists` (which adds file entries that are missing) does not bring it back.
@@ -12,7 +14,7 @@ from __future__ import annotations
 
 from web import db
 
-TYPES = ("whitelist", "not_trusted", "blacklist", "adult_manual")
+TYPES = ("whitelist", "not_trusted", "blacklist", "adult_manual", "adblock_block", "adblock_allow")
 _COLS = ("l.id, l.list_type::text AS list_type, l.value, l.note, l.is_active, l.created_at, "
          "u.full_name AS added_by_name, u.email::text AS added_by_email")
 
@@ -76,3 +78,16 @@ def lookup(domain: str) -> dict:
             "active_in": active, "switched_off_in": inactive,
             "trusted_by_tranco": in_tranco and "not_trusted" not in active,
             "blacklisted": "blacklist" in active}
+
+
+def adblock_domains(limit: int = 5000) -> dict:
+    """Active extra block / allow domains for the browser extension's Shields."""
+    with db.transaction() as c:
+        rows = c.execute("SELECT list_type::text AS t, value FROM public.detection_lists "
+                         "WHERE is_active AND list_type IN ('adblock_block', 'adblock_allow') ORDER BY created_at, value").fetchall()
+    out = {"block": [], "allow": []}
+    for r in rows:
+        key = "block" if r["t"] == "adblock_block" else "allow"
+        if len(out[key]) < limit:
+            out[key].append(r["value"])
+    return out

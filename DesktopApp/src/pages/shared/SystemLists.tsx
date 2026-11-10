@@ -5,7 +5,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import Pager from "../../components/Pager";
 import { Alert } from "../../components/ui";
 
-type ListType = "whitelist" | "not_trusted" | "blacklist" | "adult_manual";
+type ListType = "whitelist" | "not_trusted" | "blacklist" | "adult_manual" | "adblock_block" | "adblock_allow";
 interface Entry {
   id: string;
   type: ListType;
@@ -30,6 +30,8 @@ const TABS: { type: ListType; label: string; help: string }[] = [
   { type: "not_trusted", label: "Not trusted", help: "Takes a popular (top-sites) website off the trusted list, so it is checked like any other site. Use this when a big site is abused." },
   { type: "blacklist", label: "Blacklist", help: "Always blocked as malicious, the whole domain and its subdomains." },
   { type: "adult_manual", label: "Restricted (manual)", help: "Adds a domain to the restricted (adult content) list." },
+  { type: "adblock_block", label: "Ad block: block", help: "Extra ad or tracker domain that the browser extension's Shields block, on top of EasyList. Covers its subdomains. Reaches users within about 6 hours." },
+  { type: "adblock_allow", label: "Ad block: allow", help: "A domain Shields never blocks. Use it when EasyList breaks a website. Reaches users within about 6 hours." },
 ];
 const PER_PAGE = 15;
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });

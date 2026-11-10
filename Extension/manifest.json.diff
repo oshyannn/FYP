@@ -1,0 +1,70 @@
+--- repo/Extension/chrome/manifest.json	2026-11-06 04:16:57.859408178 +0800
++++ extbuild/chrome/manifest.json	2026-11-07 10:38:55.423837383 +0800
+@@ -3,40 +3,55 @@
+   "name": "SafeBrowse",
+   "version": "1.1.0",
+   "description": "Checks every website before it opens and blocks phishing and malicious pages. Pair it with the SafeBrowse desktop app.",
+-
+   "permissions": [
+     "tabs",
+     "webNavigation",
+     "notifications",
+     "storage",
+-    "downloads"
++    "downloads",
++    "declarativeNetRequest",
++    "declarativeNetRequestFeedback"
+   ],
+-
+   "host_permissions": [
+     "http://127.0.0.1/*"
+   ],
+-
+   "icons": {
+     "16": "icons/icon16.png",
+     "48": "icons/icon48.png",
+     "128": "icons/icon128.png"
+   },
+-
+   "background": {
+     "service_worker": "background.js"
+   },
+-
+   "action": {
+     "default_title": "SafeBrowse",
+     "default_popup": "popup/index.html"
+   },
+-
+   "content_scripts": [
+     {
+-      "matches": ["http://*/*", "https://*/*"],
+-      "js": ["content.js"],
++      "matches": [
++        "http://*/*",
++        "https://*/*"
++      ],
++      "js": [
++        "content.js"
++      ],
+       "run_at": "document_start",
+       "all_frames": true
+     }
+-  ]
+-}
++  ],
++  "declarative_net_request": {
++    "rule_resources": [
++      {
++        "id": "ads",
++        "enabled": true,
++        "path": "rules/ads.json"
++      },
++      {
++        "id": "trackers",
++        "enabled": true,
++        "path": "rules/trackers.json"
++      }
++    ]
++  }
++}
+\ No newline at end of file

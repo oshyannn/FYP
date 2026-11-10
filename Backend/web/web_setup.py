@@ -51,6 +51,8 @@ def init_web(app):
     app.register_blueprint(saved_urls_bp)
     from web.controllers.lists_view import bp as lists_view_bp
     app.register_blueprint(lists_view_bp)
+    from web.controllers.adblock import bp as adblock_bp
+    app.register_blueprint(adblock_bp)
     from web.controllers.activity import bp as activity_bp
     app.register_blueprint(activity_bp)
     from web.controllers.browser_activity import bp as browser_activity_bp

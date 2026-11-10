@@ -111,3 +111,15 @@ export interface SiteRule {
   note: string | null;
   created_at: string;
 }
+
+// Shields (ads / trackers / pop-ups): background.js owns the rules, see chrome/adblock.js
+export interface ShieldState {
+  ads: boolean;
+  trackers: boolean;
+  popups: boolean;
+  host: string;
+  siteOff: boolean; // Shields are switched off for this website
+  blocked: number | null; // ads and trackers blocked on the open tab (null = not known)
+  popupsBlocked: number; // pop-ups closed so far
+}
+export type ShieldKey = "ads" | "trackers" | "popups";

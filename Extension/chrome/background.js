@@ -2,7 +2,7 @@ console.log("Background running...");
 
 // A missing manifest permission leaves that chrome.* API undefined; one such call at load time would stop the whole
 // script. Say clearly which permission is missing, and keep the parts that can still work.
-const MISSING = ["tabs", "webNavigation", "notifications", "storage", "downloads"].filter((p) => !chrome[p]);
+const MISSING = ["tabs", "webNavigation", "notifications", "storage", "downloads", "declarativeNetRequest"].filter((p) => !chrome[p]);
 if (MISSING.length) console.error("manifest.json is missing permissions: " + MISSING.join(", ") + " (add them to \"permissions\", then reload the extension)");
 
 const API_BASE = "http://127.0.0.1:5000";   // keep in sync with Extension/ui/src/config.ts
@@ -12,6 +12,7 @@ const QUICK_MS = 700;                 // answered within this -> decide at once 
 const DEEP_MS = 15000;                // slower check: the user waits on a "checking" page, then fail-open
 const CACHE_MS = 30 * 1000;           // was 5 minutes: a change by an administrator reaches users within about half a minute
 importScripts("siterules.js");        // the person's own choices per website: siteGate(), siteGateRedirect() and the "site-*" messages
+importScripts("adblock.js");          // Shields: ads / trackers / pop-ups with declarativeNetRequest (the "shield-*" messages)
 const cache = new Map();              // url -> { t, data }
 const pending = new Map();            // url -> Promise<data> (one request per URL, shared by every caller)
 const notified = new Set();

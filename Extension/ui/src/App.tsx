@@ -4,9 +4,9 @@ import * as store from "./store";
 import { Footer, Header, NavBar, type Screen } from "./ui";
 import {
   ActivityScreen, CheckingScreen, DetailsScreen, MaliciousScreen, ManualResultScreen,
-  ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, SiteBar, SiteSettingsScreen, SuspiciousScreen,
+  ManualScanScreen, NoticeScreen, PairScreen, SafeScreen, SettingsScreen, ShieldsBar, SiteBar, SiteSettingsScreen, SuspiciousScreen,
 } from "./screens";
-import type { Auth, RecentScan, Settings, SiteMode, SiteRule, SiteState, Verdict } from "./types";
+import type { Auth, RecentScan, Settings, ShieldKey, ShieldState, SiteMode, SiteRule, SiteState, Verdict } from "./types";
 
 type Boot = "loading" | "pair" | "ready";
 type Current =
@@ -36,6 +36,7 @@ export default function App() {
   const [rules, setRules] = useState<SiteRule[] | null>(null);
   const [siteErr, setSiteErr] = useState("");
   const [siteBusy, setSiteBusy] = useState(false);
+  const [shield, setShield] = useState<ShieldState | null>(null);
 
   // ── load everything from storage (and again whenever background.js changes it)
   const reload = useCallback(async () => {
@@ -102,6 +103,26 @@ export default function App() {
     api.siteGet(siteHost).then((s) => alive && setSite(s), () => {});
     return () => { alive = false; };
   }, [boot, auth, target, siteHost, sessionEnded]);
+
+  useEffect(() => {                                       // Shields work without pairing the account; only the screen needs the person signed in
+    if (boot !== "ready" || !siteHost || (screen !== "status" && screen !== "site")) return;
+    let alive = true;
+    api.shieldGet(siteHost, target?.tabId).then((s) => alive && setShield(s), () => {});
+    return () => { alive = false; };
+  }, [boot, screen, siteHost, target]);
+
+  async function shieldKey(k: ShieldKey, v: boolean) {
+    setSiteBusy(true);
+    try { setShield(await api.shieldSet(k, v, siteHost, target?.tabId)); } catch (e) { setSiteErr((e as Error).message); } finally { setSiteBusy(false); }
+  }
+  async function shieldHere(off: boolean) {
+    setSiteBusy(true);
+    try {
+      setShield(await api.shieldSite(siteHost, off, target?.tabId));
+      setFlash(off ? "Shields off for this website. Reload the page to see it unblocked." : "Shields on. Reload the page.");
+      setTimeout(() => setFlash(""), 3500);
+    } catch (e) { setSiteErr((e as Error).message); } finally { setSiteBusy(false); }
+  }
 
   useEffect(() => {
     if (screen !== "site" || boot !== "ready") return;
@@ -277,6 +298,7 @@ export default function App() {
         return (
           <>
             {statusView()}
+            {siteHost && <ShieldsBar state={shield} busy={siteBusy} onSite={shieldHere} onMore={() => setScreen("site")} />}
             {siteHost && settings.realtime && (
               <SiteBar host={siteHost} saved={saved} busy={savedBusy} mode={site?.mode} flash={flash} onToggleSaved={toggleSaved} onSite={() => setScreen("site")} />
             )}
@@ -284,6 +306,7 @@ export default function App() {
         );
       case "site":
         return <SiteSettingsScreen host={siteHost} state={site} rules={rules} error={siteErr} busy={siteBusy}
+          shield={shield} onShieldKey={shieldKey} onShieldSite={shieldHere}
           onSet={(m) => setSiteMode(m)} onRemoveRule={(h) => setSiteMode("ask", h)} onOpenApp={() => api.openApp("sites")} />;
       case "activity": return <ActivityScreen current={verdict} recent={recent} error={recentErr} monitoring={settings.realtime} onViewDetails={(r) => api.openApp("history", r.id)} onOpenApp={() => api.openApp("history")} />;
       case "manual_scan": return <ManualScanScreen onScan={manualScan} />;

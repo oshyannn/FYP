@@ -49,3 +49,18 @@ ADDED: optional "This page only" scope for front-page threat entries (default un
      Admin only, front-page URLs only: the approve dialog offers "Whole site (default)" / "This page only";
      active rows get a "Scope" button; the detail window shows "Blocks: Whole site / This page only".
   To block a whole site on purpose in "page only" mode: Detection Rules > Blacklist.
+
+ADDED: Shields (Brave-style ad / tracker / pop-up blocking with declarativeNetRequest)
+  Extension: chrome\adblock.js (NEW), chrome\manifest.json (permissions declarativeNetRequest + rule_resources), chrome\background.js,
+     chrome\rules\ads.json + trackers.json (NEW, ~47,000 domains in 5 rules, built from EasyList / EasyPrivacy),
+     chrome\popup\* + ui\src\* (Shields bar on the main screen, Shields switches in Site settings), tools\build_dnr.py (rebuilds the rules).
+     !! manifest.json changed: after copying, chrome://extensions -> Reload (accept the new permission if asked).
+  Backend: controllers\adblock.py (NEW: GET /api/adblock/lists), db_models\system_lists.py, controllers\system_lists.py, web_setup.py
+  Supabase: enum values adblock_block / adblock_allow ALREADY ADDED to detection_list_type.
+  DesktopApp: src\pages\shared\SystemLists.tsx (re-copy): Detection Rules has two new tabs, "Ad block: block" and "Ad block: allow".
+  Behaviour: ads + trackers + pop-ups blocked by default; popup > Site settings > Shields turns each off, or Shields off for one site.
+     Safety warnings are separate and always on. Admin lists reach the extension within ~6 h (or when it starts).
+  Filter lists: EasyList / EasyPrivacy, https://easylist.to, GPLv3 / CC BY-SA 3.0 (keep this credit if you publish the extension).
+  Tested in headless Chromium with the extension loaded: ad/tracker requests blocked (ERR_BLOCKED_BY_CLIENT), clean ones not,
+     ad pop-up tab closed, normal pop-up allowed, "site off" and "ads off" switches, admin block + allow lists, popup counter.
+  Not covered: cosmetic filtering (hiding empty ad boxes, YouTube in-video ads) - DNR cannot do it.
