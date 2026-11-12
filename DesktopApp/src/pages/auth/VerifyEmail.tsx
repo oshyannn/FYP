@@ -12,6 +12,7 @@ interface Props {
   onLoggedIn: (session: Session) => void;
 }
 
+// Keep this equal to CODE_RESEND_SECONDS in Backend/.env (default 60).
 const RESEND_SECONDS = 60;
 
 export default function VerifyEmail({ flow, go, onLoggedIn }: Props) {
@@ -19,7 +20,9 @@ export default function VerifyEmail({ flow, go, onLoggedIn }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState(flow.notice ?? "");
-  const [cooldown, setCooldown] = useState(0);
+  // The server has just sent the first email when this screen opens, and it ignores a resend for
+  // RESEND_SECONDS after that. So the countdown starts now, not after the first click.
+  const [cooldown, setCooldown] = useState(RESEND_SECONDS);
   const [handoffGone, setHandoffGone] = useState(false);
   const staff = flow.portal === "staff";
 
@@ -82,6 +85,7 @@ export default function VerifyEmail({ flow, go, onLoggedIn }: Props) {
   }
 
   async function resend() {
+    if (cooldown > 0) return;
     setError("");
     const res = await api.post("/api/auth/resend-code", { email: flow.email });
     if (res.status === 202) {
