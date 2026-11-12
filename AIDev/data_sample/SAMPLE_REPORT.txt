@@ -1,0 +1,22 @@
+Sample of: D:\Desktop\FYP\AIDev\data
+Rows kept per file: 50 (plus header for csv/tsv); long cells cut at 500 chars
+
+file                                                           bytes      lines       kept  note
+adult_domains.txt                                         20,321,388     998930         50  lines
+benign_extra.csv                                               3,755          -          -  EXCLUDED (private file name)
+benign_labeled.csv                                         3,941,483     134851         50  columns: url
+cache\adult_domains.txt                                   20,321,386     998930         50  lines
+cache\meta.json                                                  263          - whole file  copied (small)
+cache\threat_feed_urls.txt                                 2,793,874      28325         50  lines
+cache\trusted_top_sites.txt                                  279,242      20000         50  lines
+dataset.csv                                               10,733,106     187816         50  columns: url | label | group
+feeds_urls.txt                                             2,793,874      28325         50  lines
+pages\pages.csv                                            3,019,963      16022         50  columns: url | label | source | group | final_url | status | tls_invalid | redirects | html_file | fetched_at
+phishing_extra.csv                                         3,765,710      63896         50  columns: url
+phishing_labeled.csv                                       4,847,391     100521         50  columns: url
+raw\PhiUSIIL_Phishing_URL_Dataset.csv                     56,854,345     235796         50  columns: ﻿FILENAME | URL | URLLength | Domain | DomainLength | IsDomainIP | TLD | URLSimilarityIndex | CharContinuationRate | TLDLegitimateProb | URLCharProb | TLDLength | NoOfSubDomain | HasObfuscation | NoOfObfuscatedChar | ObfuscationRatio | NoOfLettersInURL | LetterRatioInURL | NoOfDegitsInURL | DegitRatioInURL | NoOfEqualsInURL | NoOfQMarkInURL | NoOfAmpersandInURL | NoOfOtherSpecialCharsInURL | SpacialCharRatioInURL | IsHTTPS | LineOfCode | LargestLineLength | HasTitle | Title | DomainTitleMatchScore | URLTitleMatchScore | HasFavicon | Robots | IsResponsive | NoOfURLRedirect | NoOfSelfRedirect | HasDescription | NoOfPopup | NoOfiFrame | HasExternalFormSubmit | HasSocialNet | HasSubmitButton | HasHiddenFields | HasPasswordField | Bank | Pay | Crypto | HasCopyrightInfo | NoOfImage | NoOfCSS | NoOfJS | NoOfSelfRef | NoOfEmptyRef | NoOfExternalRef | label
+rdap_dns.json                                                 76,681          - whole file  copied (small)
+README.md                                                      1,775          - whole file  copied (small)
+tranco_top.txt                                             4,507,337     300000         50  lines
+./*(no ext)  (1 files)                                             0          -    1 files  other type: first 1 copied whole, rest skipped
+pages\html/*.gz  (15880 files)                           468,145,464          -    5 files  other type: first 5 copied whole, rest skipped
