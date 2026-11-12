@@ -43,6 +43,10 @@ def init_web(app):
     app.register_blueprint(submissions_bp)
     from web.controllers.user_admin import bp as user_admin_bp
     app.register_blueprint(user_admin_bp)
+    from web.controllers.password_reset import bp as password_reset_bp
+    app.register_blueprint(password_reset_bp)
+    from web.controllers.staff_accounts import bp as staff_accounts_bp
+    app.register_blueprint(staff_accounts_bp)
     from web.controllers.system_lists import bp as system_lists_bp
     app.register_blueprint(system_lists_bp)
     from web.controllers.site_rules import bp as site_rules_bp

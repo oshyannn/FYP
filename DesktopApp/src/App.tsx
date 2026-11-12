@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import AcceptInvite from "./pages/auth/AcceptInvite";
+import ForcedPasswordChange from "./pages/auth/ForcedPasswordChange";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import StaffApp from "./pages/staff/StaffApp";
 import UserApp from "./pages/user/UserApp";
 import Register from "./pages/auth/Register";
 import ResetPassword from "./pages/auth/ResetPassword";
 import StaffLogin from "./pages/auth/StaffLogin";
-import StaffRequestAccess from "./pages/auth/StaffRequestAccess";
 import UserLogin from "./pages/auth/UserLogin";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import type { Flow, OpenRequest, Screen, Session } from "./types";
@@ -113,6 +114,15 @@ export default function App() {
       return <div className="h-full flex items-center justify-center text-sm text-slate-500">Loading…</div>;
     }
     if (session && screen === "home") {
+      if (session.user.must_change_password) {
+        return (
+          <ForcedPasswordChange
+            session={session}
+            onDone={(user) => setSession({ ...session, user })}
+            onLogout={loggedOut}
+          />
+        );
+      }
       return session.portal === "staff" ? (
         <StaffApp key={session.user.id} session={session} onLogout={loggedOut} />
       ) : (
@@ -132,8 +142,8 @@ export default function App() {
         return <ResetPassword flow={verifyFlow} go={go} />;
       case "staff-login":
         return <StaffLogin go={go} onLoggedIn={loggedIn} notice={flow?.notice} />;
-      case "staff-request":
-        return <StaffRequestAccess go={go} />;
+      case "staff-accept":
+        return <AcceptInvite go={go} />;
       case "staff-forgot":
         return <ForgotPassword portal="staff" go={go} />;
       case "staff-reset":

@@ -18,6 +18,13 @@ interface Props {
 
 type Mode = "manage" | "view" | "edit";
 type Confirm = "deactivate" | "delete" | "reset" | null;
+type RequestAction = "deactivate" | "activate" | "delete";
+
+const REQUEST_TEXT: Record<RequestAction, [string, string]> = {
+  deactivate: ["Request deactivation", "The administrator will be signed out everywhere and cannot sign in, once a third administrator approves."],
+  activate: ["Request activation", "The administrator can sign in again, once a third administrator approves."],
+  delete: ["Request deletion", "The account is marked as deleted and kept for the records, once a third administrator approves. It cannot be restored."],
+};
 
 const btn = "w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50";
 
@@ -25,7 +32,11 @@ const btn = "w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg tex
 function explain(u: AdminUser): string | null {
   if (u.status === "deleted") return "This account was deleted. It is kept for the records and cannot be changed.";
   if (u.is_self) return "This is your own account. Change your details in Profile.";
-  if (u.role === "admin") return "Administrator accounts are read-only here. A change will need another administrator's approval.";
+  if (u.role === "admin") {
+    return u.pending_change
+      ? `A request to ${u.pending_change.action} this account is waiting for a third administrator (asked by ${u.pending_change.requested_by}).`
+      : "Another administrator's account cannot be changed directly. Send a request: a third administrator has to approve it.";
+  }
   if (u.status === "pending") return "This account is pending. It becomes active when the email is verified.";
   return null;
 }
@@ -40,6 +51,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const [requestAction, setRequestAction] = useState<RequestAction | null>(null);
 
   useEffect(() => {
     if (mode !== "view" || detail) return;
@@ -71,7 +83,36 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
     else setError(p.message);
   }
 
-  async function run(kind: Exclude<Confirm, null> | "activate") {
+  async function sendRequest(action: RequestAction) {
+    setBusy(true);
+    setError("");
+    setRequestAction(null);
+    const res = await api.post("/api/staff/admin-changes", { user_id: u.id, action });
+    setBusy(false);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status !== 201) return setError(problem(res).message);
+    onChanged(`Your request to ${action} ${displayName(u)} was sent. Another administrator has to approve it; nothing changes until then.`);
+    onClose();
+  }
+
+    async function resetPassword() {
+    setBusy(true);
+    setError("");
+    setConfirm(null);
+    const res = await api.post(`/api/staff/users/${u.id}/password-reset`);
+    setBusy(false);
+    if (res.status === 401) return onSessionEnd();
+    if (res.status === 201) {
+      onChanged(`A password reset request for ${displayName(u)} was sent. Nothing changes until another person approves it.`);
+      onClose();
+      return;
+    }
+    if (res.status !== 200) return setError(problem(res).message);
+    onChanged(`${displayName(u)}'s password was reset. A temporary password was emailed to ${res.data.email}.`);
+    onClose();
+  }
+
+  async function run(kind: "deactivate" | "activate" | "delete") {
     setBusy(true);
     setError("");
     setConfirm(null);
@@ -79,9 +120,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
     const res =
       kind === "delete"
         ? await api.del(`/api/staff/users/${u.id}`)
-        : kind === "reset"
-          ? await api.post(`/api/staff/users/${u.id}/password-reset`)
-          : await api.post(`/api/staff/users/${u.id}/status`, { status: kind === "activate" ? "active" : "inactive" });
+        : await api.post(`/api/staff/users/${u.id}/status`, { status: kind === "activate" ? "active" : "inactive" });
     setBusy(false);
     if (res.status === 401) return onSessionEnd();
     if (res.status !== 200) return setError(problem(res).message);
@@ -90,9 +129,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
         ? res.data.permanent
           ? `${who} was deleted for good. The email address can be used again.`
           : `${who} was deleted. The account is kept for the records and cannot be changed any more.`
-        : kind === "reset"
-          ? `A password reset code was sent to ${res.data.email}.`
-          : `${who} was ${kind === "activate" ? "activated" : "deactivated"}.`,
+        : `${who} was ${kind === "activate" ? "activated" : "deactivated"}.`,
     );
     onClose();
   }
@@ -180,7 +217,7 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
                   )}
                   {a.reset_password && (
                     <button onClick={() => setConfirm("reset")} disabled={busy} className={btn}>
-                      Send Password Reset Email
+                      {a.reset_direct ? "Reset Password" : "Request Password Reset"}
                     </button>
                   )}
                   {note && <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">{note}</p>}
@@ -193,6 +230,13 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
                     <button onClick={() => run("activate")} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-60">
                       {busy ? "Please wait…" : "Activate Account"}
                     </button>
+                  )}
+                  {(["deactivate", "activate", "delete"] as RequestAction[]).map((k) =>
+                    a[`request_${k}` as "request_deactivate" | "request_activate" | "request_delete"] ? (
+                      <button key={k} onClick={() => setRequestAction(k)} disabled={busy} className={`w-full py-2.5 rounded-lg text-sm font-semibold border disabled:opacity-60 ${k === "activate" ? "text-green-700 border-green-300 hover:bg-green-50" : "text-red-600 border-red-300 hover:bg-red-50"}`}>
+                        {REQUEST_TEXT[k][0]}
+                      </button>
+                    ) : null,
                   )}
                   {a.delete && (
                     <button onClick={() => setConfirm("delete")} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 disabled:opacity-60">
@@ -229,10 +273,36 @@ export default function ManageUserModal({ user, onClose, onChanged, onSessionEnd
           </p>
         </ConfirmDialog>
       )}
-      {confirm === "reset" && (
-        <ConfirmDialog title="Send Password Reset Email?" tone="green" confirmLabel="Send" busy={busy} onConfirm={() => run("reset")} onCancel={() => setConfirm(null)}>
+      {requestAction && (
+        <ConfirmDialog title={`${REQUEST_TEXT[requestAction][0]}?`} tone={requestAction === "activate" ? "green" : "red"} confirmLabel="Send request" busy={busy} onConfirm={() => sendRequest(requestAction)} onCancel={() => setRequestAction(null)}>
+          <p className="font-medium text-slate-700 mb-1 break-all">{displayName(u)}</p>
+          <p>{REQUEST_TEXT[requestAction][1]} Nothing changes until then. You cannot approve your own request.</p>
+        </ConfirmDialog>
+      )}
+            {confirm === "reset" && (
+        <ConfirmDialog
+          title={a.reset_direct ? "Reset Password Now?" : "Request Password Reset?"}
+          tone="red"
+          confirmLabel={a.reset_direct ? "Reset now" : "Send request"}
+          busy={busy}
+          onConfirm={resetPassword}
+          onCancel={() => setConfirm(null)}
+        >
           <p className="font-medium text-slate-700 mb-1 break-all">{u.email}</p>
-          <p>A 6-digit reset code is emailed to this address. The person chooses the new password themselves; you never see it.</p>
+          {a.reset_direct ? (
+            <p className="font-medium text-red-600 mt-2">
+              This changes the password immediately. The current password stops working and the person is signed out everywhere. A temporary
+              password is emailed to them, and they must choose their own at the next sign-in. You will never see it.
+            </p>
+          ) : (
+            <>
+              <p>This sends a request to an administrator. Nothing changes until it is approved.</p>
+              <p className="font-medium text-red-600 mt-2">
+                If it is approved, the password changes immediately. The current password stops working, the person is signed out everywhere,
+                and a temporary password is emailed to them. You will never see it.
+              </p>
+            </>
+          )}
         </ConfirmDialog>
       )}
     </>

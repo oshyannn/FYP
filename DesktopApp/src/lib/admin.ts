@@ -12,6 +12,12 @@ export interface AccountActions {
   activate: boolean;
   delete: boolean;
   reset_password: boolean;
+  /** administrator resetting an active account now (not a request) */
+  reset_direct: boolean;
+  /** another administrator's account: asking is allowed, a third administrator decides */
+  request_deactivate: boolean;
+  request_activate: boolean;
+  request_delete: boolean;
 }
 
 export interface AdminUser {
@@ -23,10 +29,39 @@ export interface AdminUser {
   created_at: string;
   is_self: boolean;
   actions: AccountActions;
+  /** a request about this administrator account that is waiting for a third administrator */
+  pending_change: { id: string; action: string; requested_by: string } | null;
   // only in the detail view
   email_verified?: boolean;
   last_login_at?: string | null;
   scan_count?: number;
+}
+
+export type InviteStatus = "awaiting_approval" | "sent" | "accepted" | "revoked" | "rejected" | "expired" | "locked";
+
+export interface Invitation {
+  id: string;
+  email: string;
+  full_name: string;
+  role: "employer" | "admin";
+  status: InviteStatus;
+  invited_by: string;
+  created_at: string;
+  expires_at: string | null;
+  accepted_at: string | null;
+}
+
+/** One line of the Approvals tab: a new administrator account, or a change to another administrator's account. */
+export interface ApprovalItem {
+  kind: "invitation" | "change";
+  id: string;
+  status: string;
+  created_at: string;
+  title: string;
+  detail: string;
+  requested_by: string;
+  decided_by: string | null;
+  can_decide: boolean;
 }
 
 export interface ActivityRow {
@@ -47,6 +82,28 @@ export function accountStatusLabel(s: AccountStatus): string {
 export function accountStatusTone(s: AccountStatus): Tone {
   return s === "active" ? "green" : s === "pending" ? "amber" : s === "deleted" ? "slate" : "red";
 }
+const INVITE: Record<InviteStatus, [string, Tone]> = {
+  awaiting_approval: ["Awaiting approval", "amber"],
+  sent: ["Sent", "blue"],
+  accepted: ["Accepted", "green"],
+  revoked: ["Revoked", "slate"],
+  rejected: ["Rejected", "red"],
+  expired: ["Expired", "slate"],
+  locked: ["Locked", "red"],
+};
+export const inviteLabel = (s: InviteStatus): string => INVITE[s]?.[0] ?? s;
+export const inviteTone = (s: InviteStatus): Tone => INVITE[s]?.[1] ?? "slate";
+
+/** The Approvals tab: one wording for invitations and for changes. */
+export function approvalLabel(status: string): [string, Tone] {
+  if (status === "pending" || status === "awaiting_approval") return ["Waiting", "amber"];
+  if (status === "rejected") return ["Rejected", "red"];
+  if (status === "cancelled") return ["Cancelled", "slate"];
+  if (status === "accepted") return ["Approved · accepted", "green"];
+  if (status === "expired" || status === "locked") return [`Approved · ${status}`, "slate"];
+  return ["Approved", "green"];
+}
+
 export const roleLabel = (r: string): string => (r === "employer" ? "Employer" : r === "admin" ? "Admin" : r === "user" ? "User" : r);
 export const roleTone = (r: string): Tone => (r === "admin" ? "blue" : r === "employer" ? "orange" : "slate");
 
@@ -67,6 +124,14 @@ const ACTIONS: Record<string, string> = {
   user_updated: "Edited User",
   user_deleted: "Deleted User",
   user_password_reset_sent: "Sent Password Reset",
+  staff_invite_created: "Invited Staff Account",
+  staff_invite_approved: "Approved Admin Invitation",
+  staff_invite_rejected: "Rejected Admin Invitation",
+  staff_invite_revoked: "Revoked Invitation",
+  staff_invite_accepted: "Accepted Invitation",
+  admin_change_requested: "Requested Admin Change",
+  admin_change_approved: "Approved Admin Change",
+  admin_change_rejected: "Rejected Admin Change",
   feedback_replied: "Replied to Feedback",
   feedback_in_progress: "Marked Feedback In Review",
   feedback_resolved: "Resolved Feedback",

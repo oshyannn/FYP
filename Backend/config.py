@@ -53,7 +53,7 @@ RESET_CODE_MINUTES = _int("RESET_CODE_MINUTES", 15)
 CODE_MAX_ATTEMPTS = _int("CODE_MAX_ATTEMPTS", 5)
 CODE_RESEND_SECONDS = _int("CODE_RESEND_SECONDS", 60)
 PAIRING_CODE_MINUTES = _int("PAIRING_CODE_MINUTES", 5)
-
+TEMP_PASSWORD_HOURS = _int("TEMP_PASSWORD_HOURS", 72)
 
 def auth_ready() -> bool:
     """The API is only enabled when the two essentials are present."""

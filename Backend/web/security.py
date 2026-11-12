@@ -92,6 +92,16 @@ _PAIR_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"        # no 0/O/1/I/L
 def make_code() -> str:
     return f"{secrets.randbelow(10 ** 6):06d}"
 
+_TEMP_PW_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"       # no 0/O/1/I/l
+
+
+def make_temp_password(length: int = 14) -> str:
+    """A random temporary password (always has a letter and a digit). Emailed once, must be changed at first login."""
+    while True:
+        pw = "".join(secrets.choice(_TEMP_PW_ALPHABET) for _ in range(length))
+        if re.search(r"[A-Za-z]", pw) and re.search(r"\d", pw):
+            return pw
+
 
 def make_pairing_code() -> str:
     return "".join(secrets.choice(_PAIR_ALPHABET) for _ in range(8))

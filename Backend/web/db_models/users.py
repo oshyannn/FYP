@@ -8,7 +8,7 @@ from web import db
 from web.security import make_username
 
 _COLS = ("id, email::text AS email, username, full_name, password_hash, role::text AS role, "
-         "is_email_verified, status::text AS status, locked_until")
+         "is_email_verified, status::text AS status, locked_until, must_change_password, temp_password_expires_at")
 
 
 def get_by_email(email: str):
@@ -78,3 +78,53 @@ def update_full_name(user_id, full_name: str) -> None:
 def get_profile(user_id):
     return db.one("SELECT id, email::text AS email, full_name, role::text AS role, is_email_verified, "
                   "status::text AS status, created_at, last_login_at FROM public.users WHERE id = %s", (user_id,))
+
+class _SendFailed(Exception):
+    """The email could not be sent: the database changes of this transaction are rolled back."""
+
+
+def create_employer(email: str, full_name: str, password_hash: str, hours: int, send):
+    """An administrator creates an employer. The account starts 'pending' and unverified with a TEMPORARY password;
+    the first password change verifies the address and activates it. send() emails the credentials; if it returns
+    False the account is not created.
+    ('ok', id) | ('taken', None) | ('open', None) | ('email_failed', None)"""
+    try:
+        with db.transaction() as c:
+            if c.execute("SELECT 1 FROM public.users WHERE email = %s", (email,)).fetchone():
+                return "taken", None
+            if c.execute("SELECT 1 FROM public.staff_invitations WHERE email = %s AND (status = 'awaiting_approval' "
+                         "OR (status = 'sent' AND code_expires_at > now()))", (email,)).fetchone():
+                return "open", None
+            c.execute("SELECT set_config('app.privileged_role_write', 'on', true)")      # the sanctioned way to create a role
+            uid = c.execute(
+                "INSERT INTO public.users (email, username, full_name, password_hash, role, must_change_password, "
+                "temp_password_expires_at) VALUES (%s, %s, %s, %s, 'employer', true, now() + make_interval(hours => %s)) "
+                "RETURNING id", (email, make_username(email), full_name, password_hash, hours)).fetchone()["id"]
+            if not send():
+                raise _SendFailed()
+    except _SendFailed:
+        return "email_failed", None
+    return "ok", uid
+
+
+def issue_temp_password(user_id, password_hash: str, hours: int, send) -> bool:
+    """Sets a new TEMPORARY password and calls send() to email it. False (and nothing changed) if send() fails."""
+    try:
+        with db.transaction() as c:
+            c.execute("UPDATE public.users SET password_hash = %s, password_changed_at = now(), "
+                      "must_change_password = true, temp_password_expires_at = now() + make_interval(hours => %s), "
+                      "failed_login_count = 0, locked_until = NULL WHERE id = %s", (password_hash, hours, user_id))
+            if not send():
+                raise _SendFailed()
+    except _SendFailed:
+        return False
+    return True
+
+
+def complete_forced_change(user_id, password_hash: str) -> None:
+    """The person chose their own password. This also verifies the email (the temporary password only ever went to
+    that mailbox) and turns a 'pending' account active."""
+    db.run("UPDATE public.users SET password_hash = %s, password_changed_at = now(), must_change_password = false, "
+           "temp_password_expires_at = NULL, is_email_verified = true, "
+           "status = CASE WHEN status = 'pending' THEN 'active'::public.account_status ELSE status END, "
+           "failed_login_count = 0, locked_until = NULL WHERE id = %s", (password_hash, user_id))

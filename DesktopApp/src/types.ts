@@ -5,6 +5,7 @@ export interface User {
   email: string;
   full_name: string | null;
   role: "user" | "employer" | "admin";
+  must_change_password?: boolean;
 }
 
 export interface Session {
@@ -20,6 +21,7 @@ export type Screen =
   | "reset"
   | "staff-login"
   | "staff-request"
+  | "staff-accept"
   | "staff-forgot"
   | "staff-reset"
   | "home";
