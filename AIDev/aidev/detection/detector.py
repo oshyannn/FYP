@@ -7,7 +7,8 @@ Order of checks:
   3. PhishTank + look-alike + Safe Browsing + URL model (ML1) + domain age + page content model (ML2) + downloads
      -> highest score wins, independent signals that agree raise it to Malicious
 
-Results of the slow path (step 3) are cached per URL (see analyze()). List hits are instant and not cached.
+Results of the slow path (step 3) are cached per URL (see analyze()). List hits are instant and not cached,
+unless use_ai=True (then the AI result is part of the answer and is cached too).
 
 The returned dict keeps every field the Chrome extension already reads
 (status, risk_score, has_data, match_scope, ...) and adds `reasons`.
@@ -492,42 +493,92 @@ def _result(url, status, score, source, reasons, pt=None, extra=None) -> dict:
     return out
 
 
-def _by_list(url, status, score, source, reasons, ck: _Checks, why: str, category: str | None = None) -> dict:
-    """A result decided by a local list: the APIs and the AI models were not needed, and are listed as skipped."""
+def _ai_for_list(url: str, ck: _Checks) -> dict:
+    """use_ai=True on a URL that a list already decided: run both AI models anyway. Shown for information only;
+    it never changes the list's verdict."""
+    host = get_host(url)
+    shared = is_shared(host)
+    ml = ml_predict(f"https://{host}/" if shared else url)          # None = no opinion
+    ml_score = None if ml is None else _ml_to_score(ml["probability"])
+    content, content_score, skip = None, None, None
+    if shared:
+        skip = "Skipped: this is a public hosting platform, and the page model was not trained on such pages."
+    elif not predict_content.enabled():
+        skip = "Switched off (CONTENT_CHECK=0)."
+    else:
+        content = predict_content.predict(url)
+        if content is not None and content.get("probability") is not None:
+            content_score = _content_to_score(content["probability"])
+    ai1 = _ai1_block(ml, ml_score, shared)
+    ai2 = _ai2_block(content, content_score, skip)
+    comb = _ai_combined(ml_score, content_score)
+    ai1_hit = ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS
+    ck.add("ai1", "no_opinion" if ml_score is None else "match" if ai1_hit else "clear",
+           f"Phishing probability {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
+           ml_score, "risk" if ai1_hit else "none")
+    if ai2["state"] == "ok":
+        hot = [c for c in ai2["categories"] if c["triggered"]]
+        ai2_hit = content_score is not None and content_score >= THRESHOLD_SUSPICIOUS
+        ck.add("ai2", "match" if ai2_hit else "clear",
+               (f"Phishing probability {ai2['percent']}%" if ai2["percent"] is not None else "Page read, no probability from the model")
+               + (" · " + ", ".join(f"{c['label']} {c['percent']}%" for c in hot) if hot else ""),
+               content_score, "risk" if ai2_hit else "none")
+    else:
+        ck.add("ai2", ai2["state"], ai2["description"].replace(AI2_BASE + " ", ""))
+    return {"ai1": ai1, "ai2": ai2, "ai_combined": comb}
+
+
+def _by_list(url, status, score, source, reasons, ck: _Checks, why: str, category: str | None = None,
+             ai_url: str | None = None) -> dict:
+    """A result decided by a local list: the APIs are not needed, and are listed as skipped.
+    With ai_url (the normalised address, set when the caller passed use_ai=True) the AI models are run anyway and shown
+    for information; the list still decides the result. An AI problem never breaks a list verdict."""
+    extra, notes = None, []
+    if ai_url:
+        try:
+            extra = _ai_for_list(ai_url, ck)
+            notes = ["The AI models were run on request. The list decided the final result; the AI result is shown for information only."]
+        except Exception:
+            log.exception("AI models failed on a list-decided URL; showing the list result only")
+            extra = None
     ck.skip_rest(why)
-    extra = _ai_off(why)
+    if extra is None:
+        extra = _ai_off(why)
     checks = ck.as_list()
     extra["checks"] = checks
-    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], [])
+    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], notes)
     r = _result(url, status, score, source, reasons, None, extra)
     if category:
         r["category"] = category
     return r
 
 
-def _admin_result(raw_url: str, level: str, score: float, matched: str) -> dict:
+def _admin_result(raw_url: str, level: str, score: float, matched: str, use_ai: bool = False) -> dict:
     malicious = level == "malicious"
     status, final = ("Malicious", 100) if malicious else ("Suspicious", int(min(THRESHOLD_MALICIOUS - 1, max(THRESHOLD_SUSPICIOUS, score))))
     d = f"On the administrator-approved threat list ({matched})"
     ck = _Checks()
     ck.add("blacklist", "match", d, final, "risk")
     return _by_list(raw_url, status, final, "admin-list", [d], ck,
-                    "Not needed: the administrator-approved threat list already decided this result.")
+                    "Not needed: the administrator-approved threat list already decided this result.",
+                    ai_url=normalize(raw_url) if use_ai else None)
 
 
-def analyze(raw_url: str) -> dict:
-    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again."""
-    key = normalize(raw_url)
+def analyze(raw_url: str, use_ai: bool = False) -> dict:
+    """Verdict for one URL. Slow-path verdicts are cached, so the same page is not downloaded and looked up again.
+    use_ai=True: also run the AI models when a list (blacklist / whitelist / adult list ...) already decided the URL.
+    The list still decides the result; the AI result is only added for information."""
+    key = normalize(raw_url) + ("|ai" if use_ai else "")
     now = time.time()
-    host = get_host(key)
-    admin = _admin_hit(key, host) if host else None
+    host = get_host(normalize(raw_url))
+    admin = _admin_hit(normalize(raw_url), host) if host else None
     if admin:                                       # before the cache: an approval must work at once
-        return _admin_result(raw_url, *admin)
+        return _admin_result(raw_url, *admin, use_ai=use_ai)
     hit = _result_cache.get(key)
     if hit and hit[0] > now:
         return {**hit[1], "url": raw_url, "cached": True}
-    result = _analyze(raw_url)
-    if result.get("source") not in _INSTANT_SOURCES and "Invalid URL" not in result.get("reasons", []):
+    result = _analyze(raw_url, use_ai)
+    if (result.get("source") not in _INSTANT_SOURCES or use_ai) and "Invalid URL" not in result.get("reasons", []):
         partial = any(("unavailable" in r) or ("could not be read" in r) for r in result.get("reasons", []))
         ttl = RESULT_TTL_PARTIAL if partial else RESULT_TTL.get(result["status"], 3600)
         if len(_result_cache) > 5000:
@@ -536,7 +587,7 @@ def analyze(raw_url: str) -> dict:
     return result
 
 
-def _analyze(raw_url: str) -> dict:
+def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     url = normalize(raw_url)
     host = get_host(url)
     if not host:
@@ -544,23 +595,26 @@ def _analyze(raw_url: str) -> dict:
     reg = registered_domain(url)
     ck = _Checks()
 
+    def by_list(*args, **kwargs) -> dict:                      # every list-decided exit below goes through here
+        return _by_list(*args, ai_url=url if use_ai else None, **kwargs)
+
     # 1. Blacklist (highest priority)
     if reg in BLACKLIST_DOMAINS or host in BLACKLIST_DOMAINS:
         ck.add("blacklist", "match", "Domain is in the manual blacklist", 100, "risk")
-        return _by_list(raw_url, "Malicious", 100, "blacklist", ["Domain is in the manual blacklist"], ck,
-                        "Not needed: the manual blacklist already decided this result.")
+        return by_list(raw_url, "Malicious", 100, "blacklist", ["Domain is in the manual blacklist"], ck,
+                       "Not needed: the manual blacklist already decided this result.")
     ck.add("blacklist", "clear", "Not in the manual blacklist")
     if _key(url) in FEED_URLS:
         ck.add("feed", "match", "URL is in the OpenPhish / URLhaus feed", 100, "risk")
-        return _by_list(raw_url, "Malicious", 100, "blacklist", ["URL is in the OpenPhish / URLhaus feed"], ck,
-                        "Not needed: the OpenPhish / URLhaus feed already decided this result.")
+        return by_list(raw_url, "Malicious", 100, "blacklist", ["URL is in the OpenPhish / URLhaus feed"], ck,
+                       "Not needed: the OpenPhish / URLhaus feed already decided this result.")
     ck.add("feed", "clear", "URL is not in the OpenPhish / URLhaus feed")
 
     # 1b. Adult content (before the Tranco whitelist: popular adult sites sit in the top 10,000 too)
     if BLOCK_ADULT and ADULT and reg not in MANUAL_WHITELIST and host not in MANUAL_WHITELIST and _is_adult(host):
         ck.add("adult", "match", "Adult content site (blocked by your adult-site list)", 100, "risk")
-        return _by_list(raw_url, "Restricted", 100, "adult-list", ["Adult content site (blocked by your adult-site list)"], ck,
-                        "Not needed: the adult-site list already decided this result.", category="adult")
+        return by_list(raw_url, "Restricted", 100, "adult-list", ["Adult content site (blocked by your adult-site list)"], ck,
+                       "Not needed: the adult-site list already decided this result.", category="adult")
     if not BLOCK_ADULT:
         ck.add("adult", "skipped", "Switched off (BLOCK_ADULT=0)")
     elif not ADULT:
@@ -572,18 +626,18 @@ def _analyze(raw_url: str) -> dict:
     if reg in WHITELIST and not is_shared(host):
         d = f"{reg} is a known trusted domain"
         ck.add("whitelist", "match", d, 5, "trust")
-        return _by_list(raw_url, "Safe", 5, "whitelist", [d], ck, "Not needed: the site is on a trusted list.")
+        return by_list(raw_url, "Safe", 5, "whitelist", [d], ck, "Not needed: the site is on a trusted list.")
 
     # 2a. Endings only verified institutions can register (edu.my, gov.my ...)
     if TRUSTED_SUFFIXES and not is_shared(host) and ("." + reg).endswith(TRUSTED_SUFFIXES):
         d = f"{reg} uses a restricted institutional domain ending"
         ck.add("whitelist", "match", d, 10, "trust")
-        return _by_list(raw_url, "Safe", 10, "trusted-suffix", [d], ck, "Not needed: the site uses a restricted institutional domain ending.")
+        return by_list(raw_url, "Safe", 10, "trusted-suffix", [d], ck, "Not needed: the site uses a restricted institutional domain ending.")
 
     # 2b. Trusted application paths on shared hosts (e.g. your own Google Drive UI)
     if TRUSTED_PREFIXES and _key(url).startswith(TRUSTED_PREFIXES):
         ck.add("whitelist", "match", "Trusted application path", 5, "trust")
-        return _by_list(raw_url, "Safe", 5, "whitelist", ["Trusted application path"], ck, "Not needed: the address is a trusted application path.")
+        return by_list(raw_url, "Safe", 5, "whitelist", ["Trusted application path"], ck, "Not needed: the address is a trusted application path.")
     ck.add("whitelist", "clear", "Not on the trusted list" + (" (public hosting platforms are never trusted by domain)" if is_shared(host) else ""))
 
     # 3. PhishTank + Safe Browsing + look-alike + domain age + AI 1 + AI 2
