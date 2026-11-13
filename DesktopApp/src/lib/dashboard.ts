@@ -25,6 +25,12 @@ export interface StaffSummary {
 }
 
 const ACTIVITY: Record<string, string> = {
+  user_activated: "Activated a user account",
+  user_deactivated: "Deactivated a user account",
+  user_updated: "Edited a user account",
+  user_deleted: "Deleted a user account",
+  user_password_reset_sent: "Sent a password reset",
+  password_reset_asked: "Asked for a password reset approval",
   employer_approved: "Approved an employer application",
   employer_rejected: "Rejected an employer application",
   threat_approve: "Approved a detected URL",

@@ -1,9 +1,10 @@
 """The audit trail of staff actions (Model layer), read from public.activity_logs, which web/db_models/audit.py fills.
 Logins, password changes and the like are not shown here, only what administrators and employers did in the system.
 
-  list_events_all : administrator view. Admins and employers, optionally one of them, optionally searched by name or email.
+  list_events_all : administrator view. Admins and employers, optionally one of them.
   list_events_own : employer view. Only the signed-in person's own actions. The caller passes their own id, never one
                     taken from the request.
+Both take the same filters: search (name, email or the event's details), action, module, a date range and sort order.
 """
 from __future__ import annotations
 
@@ -24,33 +25,54 @@ STAFF_ACTIONS = (
 _IN = ", ".join(f"'{a}'" for a in STAFF_ACTIONS)
 _ACTION = f"(a.action::text IN ({_IN}) OR left(a.action::text, 9) = 'feedback_')"
 
+# The values the screen may filter by. lib/admin.ts must list the same ones.
+ACTION_OPTIONS = STAFF_ACTIONS + ("feedback_replied", "feedback_in_progress", "feedback_resolved", "feedback_closed")
+MODULE_OPTIONS = ("employer_verification", "threat_list", "whitelist", "user_management", "feedback")
+_ORDER = {"asc": "ASC", "desc": "DESC"}     # the only sort directions; the request never writes SQL
+
 
 def _like(q: str) -> str:
     return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
-def _page(where: str, params: dict, limit: int, offset: int):
+def _where(scope_sql: str, scope: dict, q: str, action: str, module: str, date_from, date_to):
+    """The WHERE clause. Values go in only as parameters; the SQL text itself is fixed."""
+    where = (f"{scope_sql} AND {_ACTION} "
+             "AND (%(q)s = '' OR u.full_name ILIKE %(like)s ESCAPE '\\' OR u.email::text ILIKE %(like)s ESCAPE '\\' "
+             "OR a.details::text ILIKE %(like)s ESCAPE '\\') "
+             "AND (%(action)s = '' OR a.action::text = %(action)s) "
+             "AND (%(module)s = '' OR a.module::text = %(module)s) "
+             "AND (%(date_from)s::date IS NULL OR a.created_at >= %(date_from)s::date) "
+             "AND (%(date_to)s::date IS NULL OR a.created_at < %(date_to)s::date + 1)")
+    params = dict(scope, q=q, like=_like(q), action=action, module=module, date_from=date_from, date_to=date_to)
+    return where, params
+
+
+def _page(where: str, params: dict, sort: str, limit: int, offset: int):
     p = dict(params, limit=limit, offset=offset)
+    order = _ORDER.get(sort, "DESC")
     with db.transaction() as c:
         total = c.execute("SELECT count(*) AS n FROM public.activity_logs a "
                           f"JOIN public.users u ON u.id = a.user_id WHERE {where}", p).fetchone()["n"]
         rows = c.execute("SELECT a.action::text AS action, a.module::text AS module, a.details, a.created_at, "
                          "u.role::text AS actor_role, u.full_name AS actor_name, u.email::text AS actor_email "
                          f"FROM public.activity_logs a JOIN public.users u ON u.id = a.user_id WHERE {where} "
-                         "ORDER BY a.created_at DESC LIMIT %(limit)s OFFSET %(offset)s", p).fetchall()
+                         f"ORDER BY a.created_at {order} LIMIT %(limit)s OFFSET %(offset)s", p).fetchall()
     return rows, total
 
 
-def list_events_all(actor: str, q: str, limit: int, offset: int):
-    """actor: '' (admins and employers) | 'admin' | 'employer'. q: part of the person's name or email."""
-    where = f"""u.role::text IN ('admin', 'employer') AND (%(actor)s = '' OR u.role::text = %(actor)s)
-        AND (%(q)s = '' OR u.full_name ILIKE %(like)s ESCAPE '\\' OR u.email::text ILIKE %(like)s ESCAPE '\\')
-        AND {_ACTION}"""
-    return _page(where, {"actor": actor, "q": q, "like": _like(q)}, limit, offset)
+def list_events_all(actor: str, q: str, action: str, module: str, date_from, date_to, sort: str,
+                    limit: int, offset: int):
+    """actor: '' (admins and employers) | 'admin' | 'employer'. date_from / date_to: 'YYYY-MM-DD' or None."""
+    scope = "u.role::text IN ('admin', 'employer') AND (%(actor)s = '' OR u.role::text = %(actor)s)"
+    where, p = _where(scope, {"actor": actor}, q, action, module, date_from, date_to)
+    return _page(where, p, sort, limit, offset)
 
 
-def list_events_own(user_id, limit: int, offset: int):
-    return _page(f"a.user_id = %(uid)s AND {_ACTION}", {"uid": user_id}, limit, offset)
+def list_events_own(user_id, q: str, action: str, module: str, date_from, date_to, sort: str,
+                    limit: int, offset: int):
+    where, p = _where("a.user_id = %(uid)s", {"uid": user_id}, q, action, module, date_from, date_to)
+    return _page(where, p, sort, limit, offset)
 
 
 def _names(sql: str, ids: set) -> dict:

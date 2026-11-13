@@ -46,4 +46,7 @@ def staff_summary():
                             pending_employers=sysstats["pending_employers"])
         out["activity"] = [{"action": r["action"], "module": r["module"], "actor": r["actor"],
                             "created_at": r["created_at"].isoformat()} for r in stats.recent_activity(5)]
+    else:
+        out["activity"] = [{"action": r["action"], "module": r["module"], "actor": None,
+                            "created_at": r["created_at"].isoformat()} for r in stats.my_recent_activity(g.user["id"], 5)]
     return jsonify(out)

@@ -2,7 +2,11 @@
 system-wide totals and never include anybody's individual scans."""
 from __future__ import annotations
 
+from web.db_models.activity import STAFF_ACTIONS
 from web import db
+
+# The modules whose actions show on a dashboard's recent-activity list (never logins).
+DASHBOARD_MODULES = ("employer_verification", "threat_list", "feedback", "user_management")
 
 
 def user_stats(user_id) -> dict:
@@ -30,11 +34,26 @@ def system_stats() -> dict:
     return {k: int(v) for k, v in row.items()}
 
 
+
+# The same actions the Activity Logs page shows, so the dashboard and the page always agree.
+_ACTION_SQL = "(a.action::text = ANY(%s) OR left(a.action::text, 9) = 'feedback_')"
+
+
 def recent_activity(limit: int = 5):
-    """The latest review / moderation actions (never logins)."""
+    """The latest staff actions of everyone (same list as the Activity Logs page)."""
     with db.transaction() as c:
         return c.execute(
-            "SELECT a.action, a.module, a.created_at, u.full_name AS actor FROM public.activity_logs a "
-            "LEFT JOIN public.users u ON u.id = a.user_id "
-            "WHERE a.module IN ('employer_verification', 'threat_list', 'feedback') "
-            "ORDER BY a.created_at DESC LIMIT %s", (limit,)).fetchall()
+            "SELECT a.action::text AS action, a.module::text AS module, a.created_at, u.full_name AS actor "
+            "FROM public.activity_logs a LEFT JOIN public.users u ON u.id = a.user_id "
+            f"WHERE {_ACTION_SQL} ORDER BY a.created_at DESC LIMIT %s",
+            (list(STAFF_ACTIONS), limit)).fetchall()
+
+
+def my_recent_activity(user_id, limit: int = 5):
+    """The latest staff actions of one person themselves (same list as the Activity Logs page)."""
+    with db.transaction() as c:
+        return c.execute(
+            "SELECT a.action::text AS action, a.module::text AS module, a.created_at "
+            "FROM public.activity_logs a "
+            f"WHERE a.user_id = %s AND {_ACTION_SQL} ORDER BY a.created_at DESC LIMIT %s",
+            (user_id, list(STAFF_ACTIONS), limit)).fetchall()

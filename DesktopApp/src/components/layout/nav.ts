@@ -27,6 +27,7 @@ export const EMPLOYER_NAV: NavItem[] = [
   { id: "approval", label: "URL Approval", icon: "✓", ready: true },
   { id: "lists", label: "Detection Lists", icon: "≡", ready: true },
   { id: "rules", label: "Detection Rules", icon: "⚑", ready: true },
+  { id: "logs", label: "My Activity Logs", icon: "▤", ready: true },
   { id: "feedback", label: "User Feedback", icon: "✉", ready: true },
   { id: "profile", label: "Profile", icon: "◯", ready: true },
 ];

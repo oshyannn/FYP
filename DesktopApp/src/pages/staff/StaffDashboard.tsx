@@ -121,25 +121,31 @@ export default function StaffDashboard({ role, name, onNavigate, onSessionEnd }:
         </div>
       </div>
 
-      {role === "admin" && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="font-semibold text-slate-800 mb-4">Recent staff activity</h3>
-          {s && (s.activity?.length ?? 0) === 0 ? (
-            <p className="text-sm text-slate-400">No review actions yet.</p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {(s?.activity ?? []).map((a, i) => (
-                <li key={i} className="py-2.5 flex items-center justify-between text-sm">
-                  <span className="text-slate-700">
-                    <span className="font-medium">{a.actor ?? "System"}</span> · {activityText(a.action)}
-                  </span>
-                  <span className="text-slate-400 text-xs">{new Date(a.created_at).toLocaleString()}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800">{role === "admin" ? "Recent staff activity" : "My recent activity"}</h3>
+          <button onClick={() => onNavigate("logs")} className="text-sm text-[#1e3a5f] hover:underline font-medium">View all →</button>
         </div>
-      )}
+        {s && (s.activity?.length ?? 0) === 0 ? (
+          <p className="text-sm text-slate-400">{role === "admin" ? "No review actions yet." : "You have no actions yet."}</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {(s?.activity ?? []).map((a, i) => (
+              <li key={i} className="py-2.5 flex items-center justify-between text-sm">
+                <span className="text-slate-700">
+                  {role === "admin" && (
+                    <>
+                      <span className="font-medium">{a.actor ?? "System"}</span> ·{" "}
+                    </>
+                  )}
+                  {activityText(a.action)}
+                </span>
+                <span className="text-slate-400 text-xs">{new Date(a.created_at).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

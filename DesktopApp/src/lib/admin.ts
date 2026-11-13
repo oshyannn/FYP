@@ -71,7 +71,6 @@ export interface ActivityRow {
   module: string;
   target: string;
   created_at: string;
-  status: string;
 }
 
 export const displayName = (u: Pick<AdminUser, "full_name" | "email">): string => u.full_name || u.email;
@@ -153,3 +152,36 @@ export function logDateTime(iso: string): string {
 
 export const USERS_PER_PAGE = 10;
 export const LOGS_PER_PAGE = 20;
+
+/** The actions the Activity Logs filter can choose. Must match ACTION_OPTIONS in db_models/activity.py. */
+export const ACTION_OPTIONS: string[] = [
+  "employer_approved",
+  "employer_rejected",
+  "threat_approve",
+  "threat_remove",
+  "threat_submission_create",
+  "threat_submission_approve",
+  "threat_submission_reject",
+  "whitelist_add",
+  "whitelist_remove",
+  "whitelist_request_approve",
+  "whitelist_request_reject",
+  "user_activated",
+  "user_deactivated",
+  "user_updated",
+  "user_deleted",
+  "user_password_reset_sent",
+  "feedback_replied",
+  "feedback_in_progress",
+  "feedback_resolved",
+  "feedback_closed",
+];
+
+/** The modules the Activity Logs filter can choose. Must match MODULE_OPTIONS in db_models/activity.py. */
+export const MODULE_OPTIONS: [string, string][] = [
+  ["employer_verification", "Employer verification"],
+  ["threat_list", "Threat URL list"],
+  ["whitelist", "Whitelist"],
+  ["user_management", "User management"],
+  ["feedback", "Feedback"],
+];
