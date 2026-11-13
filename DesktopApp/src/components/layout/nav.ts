@@ -23,6 +23,7 @@ export const USER_NAV: NavItem[] = [
 export const EMPLOYER_NAV: NavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: "⊞", ready: true },
   { id: "threats", label: "Threat URL List", icon: "⚠", ready: true },
+  { id: "users", label: "User Management", icon: "◯◯", ready: true },   // employer: users only (server enforces)
   { id: "approval", label: "URL Approval", icon: "✓", ready: true },
   { id: "lists", label: "Detection Lists", icon: "≡", ready: true },
   { id: "rules", label: "Detection Rules", icon: "⚑", ready: true },
