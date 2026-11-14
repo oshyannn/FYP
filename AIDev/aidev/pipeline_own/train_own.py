@@ -47,6 +47,11 @@ FEATURE_GROUPS = {
 }
 FPR_TARGETS = (0.05, 0.02, 0.01, 0.005)
 
+def is_realistic(source):
+    """Benign rows from real sites: crawled pages, CrUX top sites, own history."""
+    s = pd.Series(np.asarray(source).astype(str))
+    return (s.str.startswith("pages_") | s.str.startswith("benign_crux") | (s == "own_history")).to_numpy()
+
 
 # ------------------------------------------------------------------ data
 def load_xy(path):
@@ -134,11 +139,11 @@ def benign_category(df):
                     np.where((hn == 1) & (syn == 1), "synthetic_id_or_my_path", "other_benign"))
 
 
-def ngram_text(u):
+def ngram_text(u, host_only=False):
     p = urlsplit(normalise(u))
     h = (p.hostname or "")
     h = h[4:] if h.startswith("www.") else h
-    return (h + (p.path or "")).lower()
+    return (h if host_only else h + (p.path or "")).lower()
 
 
 def pct(x):
@@ -181,7 +186,7 @@ def run(args):
     iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(p_val, yv)
     pc_te = iso.predict(p_te)
     src_va = df["source"].astype(str).to_numpy()[va]
-    realistic_va = (yv == 0) & (pd.Series(src_va).str.startswith("pages_").to_numpy() | (src_va == "own_history"))
+    realistic_va = (yv == 0) & is_realistic(src_va)
     use_real = args.fpr_pool == "realistic" and int(realistic_va.sum()) >= 300
     if args.fpr_pool == "realistic" and not use_real:
         print(f"warning: only {int(realistic_va.sum())} realistic benign validation rows; the threshold uses ALL benign rows")
@@ -206,7 +211,7 @@ def run(args):
         "calibration_table": M.calibration_table(yt, pc_te),
     }
     src_te = dte["source"].astype(str).to_numpy()
-    real_te = (yt == 0) & (pd.Series(src_te).str.startswith("pages_").to_numpy() | (src_te == "own_history"))
+    real_te = (yt == 0) & is_realistic(src_te)
     phi_te = (yt == 0) & (src_te == "phiusiil_benign")
     res["test"]["threshold_pool"] = "realistic benign (pages_* + own_history)" if use_real else "all benign"
     res["test"]["fpr_crawled_real_benign"] = {"n": int(real_te.sum()), "fpr": float((p_te[real_te] >= thr).mean()) if real_te.any() else None}
@@ -262,7 +267,7 @@ def run(args):
         from sklearn.model_selection import GroupKFold
         print("n-gram experiment: character 3-5-grams of host + path, hashed, logistic regression ...")
         hv = HashingVectorizer(analyzer="char", ngram_range=(3, 5), n_features=2 ** 20, alternate_sign=False, norm="l2")
-        H = hv.transform([ngram_text(u) for u in df["url"]]).tocsr()
+        H = hv.transform([ngram_text(u, args.ngram_host_only) for u in df["url"]]).tocsr()
 
         def _lin():
             return SGDClassifier(loss="log_loss", alpha=2e-6, max_iter=15, tol=None, class_weight="balanced", random_state=args.seed)
@@ -276,8 +281,10 @@ def run(args):
         st_te = proba(stack, np.c_[X[te], ng_te])
 
         def _row(name, s_):
+            lo_, hi_ = M.bootstrap_ci(yt[keep_pl], s_[keep_pl], gpl,
+                                      lambda a, b: M.recall_at_fpr(a, b, 0.01), args.boot, args.seed)
             return {"name": name, "roc_auc": M.roc_auc(yt, s_), "recall_1pct_all_benign": M.recall_at_fpr(yt, s_, 0.01),
-                    "recall_1pct_realistic_benign": real_recall(s_)}
+                    "recall_1pct_realistic_benign": real_recall(s_), "realistic_ci95": [lo_, hi_]}
         res["ngram_experiment"] = [_row("feature model alone", p_te), _row("character n-gram model alone", ng_te),
                                    _row("average of the two", (p_te + ng_te) / 2),
                                    _row("feature model + n-gram score as an extra feature", st_te)]
@@ -346,7 +353,9 @@ def report(res, args):
     if "ngram_experiment" in res:
         print("\nn-gram experiment (recall at 1% FPR, all benign | realistic benign):")
         for r in res["ngram_experiment"]:
-            print(f"  {r['name']:52s} ROC-AUC {r['roc_auc']:.3f} | {pct(r['recall_1pct_all_benign'])} | {pct(r['recall_1pct_realistic_benign'])}")
+            ci = r.get("realistic_ci95")
+            print(f"  {r['name']:52s} ROC-AUC {r['roc_auc']:.3f} | {pct(r['recall_1pct_all_benign'])} | {pct(r['recall_1pct_realistic_benign'])}"
+                  + (f"  (95%: {pct(ci[0])} to {pct(ci[1])})" if ci else ""))
     if "ablation" in res:
         a = res["ablation"]
         b = a["full_model_for_comparison"]
@@ -375,6 +384,7 @@ def main():
     ap.add_argument("--save", action="store_true", help="also write models/model_own_<out>.joblib")
     ap.add_argument("--out", default="run")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--ngram-host-only", action="store_true", help="control: n-gram on the host only")
     run(ap.parse_args())
 
 

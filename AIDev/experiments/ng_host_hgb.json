@@ -1,0 +1,346 @@
+{
+  "config": {
+    "data": "dataset_own.csv",
+    "split": "time",
+    "model": "hgb",
+    "trees": 300,
+    "fpr": 0.01,
+    "fpr_pool": "realistic",
+    "test_frac": 0.2,
+    "val_frac": 0.15,
+    "boot": 200,
+    "keep_service": false,
+    "ngram": true,
+    "ablate": false,
+    "ablate_trees": 100,
+    "save": false,
+    "out": "ng_host_hgb",
+    "seed": 42,
+    "ngram_host_only": true,
+    "feature_version": 3,
+    "data_rows": 251057,
+    "run_at": "2026-11-14T17:42:35+00:00"
+  },
+  "split_info": {
+    "rows": {
+      "train": 192905,
+      "val": 24414,
+      "test": 32701
+    },
+    "phishing": {
+      "train": 94762,
+      "val": 1939,
+      "test": 2623
+    },
+    "benign": {
+      "train": 98143,
+      "val": 22475,
+      "test": 30078
+    },
+    "train_phishing_dates": [
+      "2012-06-14",
+      "2026-07-01"
+    ],
+    "val_phishing_dates": [
+      "2026-07-01",
+      "2026-09-16"
+    ],
+    "test_phishing_dates": [
+      "2026-09-16",
+      "2026-11-13"
+    ]
+  },
+  "test": {
+    "roc_auc": 0.9542719238785866,
+    "pr_auc": 0.8438262636507659,
+    "pr_auc_ci95": [
+      0.8317402101472282,
+      0.8554241235529821
+    ],
+    "recall_at_fpr": {
+      "5%": 0.8585589020205872,
+      "2%": 0.7731605032405643,
+      "1%": 0.701868089973313,
+      "0.5%": 0.6256195196340069
+    },
+    "recall_at_1pct_fpr_ci95": [
+      0.6774187148820178,
+      0.7228311245317903
+    ],
+    "operating_point": {
+      "chosen_on_validation_for_fpr": 0.01,
+      "threshold": 0.9838318950167073,
+      "fpr": 0.0011303943081321897,
+      "recall": 0.4197483797178803,
+      "precision": 0.9700440528634361,
+      "tp": 1101,
+      "fp": 34,
+      "pos": 2623,
+      "neg": 30078
+    },
+    "old_thresholds": {
+      "0.5": {
+        "threshold": 0.5,
+        "fpr": 0.07613538134184454,
+        "recall": 0.882958444529165,
+        "precision": 0.5028224055579679,
+        "tp": 2316,
+        "fp": 2290,
+        "pos": 2623,
+        "neg": 30078
+      },
+      "0.7": {
+        "threshold": 0.7,
+        "fpr": 0.03138506549637609,
+        "recall": 0.8295844452916508,
+        "precision": 0.6974358974358974,
+        "tp": 2176,
+        "fp": 944,
+        "pos": 2623,
+        "neg": 30078
+      }
+    },
+    "brier_raw": 0.08879468643099474,
+    "brier_calibrated": 0.02635912386619898,
+    "calibration_table": [
+      {
+        "bin": "0.0-0.1",
+        "n": 29137,
+        "mean_predicted": 0.01121491483360295,
+        "observed_phishing": 0.013350722449119676
+      },
+      {
+        "bin": "0.1-0.2",
+        "n": 769,
+        "mean_predicted": 0.15151060228315036,
+        "observed_phishing": 0.19635890767230169
+      },
+      {
+        "bin": "0.2-0.3",
+        "n": 79,
+        "mean_predicted": 0.2775020660835972,
+        "observed_phishing": 0.26582278481012656
+      },
+      {
+        "bin": "0.3-0.4",
+        "n": 61,
+        "mean_predicted": 0.3060934824012922,
+        "observed_phishing": 0.45901639344262296
+      },
+      {
+        "bin": "0.4-0.5",
+        "n": 313,
+        "mean_predicted": 0.4335305421084945,
+        "observed_phishing": 0.2971246006389776
+      },
+      {
+        "bin": "0.5-0.6",
+        "n": 313,
+        "mean_predicted": 0.5155484154008939,
+        "observed_phishing": 0.4984025559105431
+      },
+      {
+        "bin": "0.6-0.7",
+        "n": 199,
+        "mean_predicted": 0.6253198213567234,
+        "observed_phishing": 0.592964824120603
+      },
+      {
+        "bin": "0.7-0.8",
+        "n": 353,
+        "mean_predicted": 0.7232442241533054,
+        "observed_phishing": 0.7592067988668555
+      },
+      {
+        "bin": "0.8-0.9",
+        "n": 508,
+        "mean_predicted": 0.8668486507845505,
+        "observed_phishing": 0.8838582677165354
+      },
+      {
+        "bin": "0.9-1.0",
+        "n": 969,
+        "mean_predicted": 0.9891360719200603,
+        "observed_phishing": 0.9803921568627451
+      }
+    ],
+    "threshold_pool": "realistic benign (pages_* + own_history)",
+    "fpr_crawled_real_benign": {
+      "n": 3328,
+      "fpr": 0.007512019230769231
+    },
+    "fpr_phiusiil_benign": {
+      "n": 26728,
+      "fpr": 0.00033672553127806046
+    },
+    "root_only": {
+      "roc_auc": 0.9229789052466637,
+      "recall_at_1pct_fpr": 0.602744948532215
+    }
+  },
+  "test_realistic_pool": {
+    "benign_n": 3328,
+    "positive_n": 2623,
+    "roc_auc": 0.9098736972675152,
+    "recall_at_fpr": {
+      "5%": 0.6572626763248189,
+      "2%": 0.5356462066336256,
+      "1%": 0.44681662218833396,
+      "0.5%": 0.39801753717117805
+    },
+    "recall_at_1pct_fpr_ci95": [
+      0.412590312412422,
+      0.4882656403537504
+    ],
+    "note": "benign side = crawled real sites + own history only; PhiUSIIL homepages and synthetic paths are left out"
+  },
+  "breakdown": {
+    "source": [
+      {
+        "value": "benign_crux_my",
+        "label": 0,
+        "n": 587,
+        "flagged": 0.0017035775127768314
+      },
+      {
+        "value": "benign_crux_tenants",
+        "label": 0,
+        "n": 950,
+        "flagged": 0.008421052631578947
+      },
+      {
+        "value": "own_history",
+        "label": 0,
+        "n": 20,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_benign_history",
+        "label": 0,
+        "n": 3,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_benign_tail",
+        "label": 0,
+        "n": 320,
+        "flagged": 0.015625
+      },
+      {
+        "value": "pages_benign_tail_login",
+        "label": 0,
+        "n": 54,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_benign_top",
+        "label": 0,
+        "n": 173,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_benign_top_login",
+        "label": 0,
+        "n": 31,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_phreshphish_benign",
+        "label": 0,
+        "n": 1190,
+        "flagged": 0.009243697478991597
+      },
+      {
+        "value": "phishtank",
+        "label": 1,
+        "n": 2623,
+        "flagged": 0.4197483797178803
+      },
+      {
+        "value": "phiusiil_benign",
+        "label": 0,
+        "n": 26728,
+        "flagged": 0.00033672553127806046
+      },
+      {
+        "value": "tranco_my",
+        "label": 0,
+        "n": 22,
+        "flagged": 0.0
+      }
+    ],
+    "kind": [
+      {
+        "value": "benign",
+        "label": 0,
+        "n": 30078,
+        "flagged": 0.0011303943081321897
+      },
+      {
+        "value": "phish",
+        "label": 1,
+        "n": 2623,
+        "flagged": 0.4197483797178803
+      }
+    ],
+    "benign_category": [
+      {
+        "value": "other_benign",
+        "n": 28864,
+        "flagged": 0.0012956823291795283
+      },
+      {
+        "value": "real_hard_negative",
+        "n": 85,
+        "flagged": 0.0
+      },
+      {
+        "value": "synthetic_id_or_my_path",
+        "n": 3752,
+        "flagged": 0.0
+      }
+    ]
+  },
+  "phish_on_service": {
+    "n": 4375,
+    "flagged_at_threshold": 0.29028571428571426,
+    "top_domains": {
+      "pinata.cloud": 100,
+      "fleek.co": 100,
+      "myhuaweicloud.com": 100,
+      "github.com": 100,
+      "campaign-archive.com": 100,
+      "cloudflare-ipfs.com": 100,
+      "office.com": 100,
+      "t.co": 100,
+      "google.com": 100,
+      "docs.google.com": 100
+    }
+  },
+  "ngram_experiment": [
+    {
+      "name": "feature model alone",
+      "roc_auc": 0.9542719238785866,
+      "recall_1pct_all_benign": 0.701868089973313,
+      "recall_1pct_realistic_benign": 0.44681662218833396
+    },
+    {
+      "name": "character n-gram model alone",
+      "roc_auc": 0.9518613784868454,
+      "recall_1pct_all_benign": 0.6614563476934807,
+      "recall_1pct_realistic_benign": 0.48189096454441477
+    },
+    {
+      "name": "average of the two",
+      "roc_auc": 0.9766949304536633,
+      "recall_1pct_all_benign": 0.745711017918414,
+      "recall_1pct_realistic_benign": 0.55165840640488
+    },
+    {
+      "name": "feature model + n-gram score as an extra feature",
+      "roc_auc": 0.9773876521881841,
+      "recall_1pct_all_benign": 0.7773541746092261,
+      "recall_1pct_realistic_benign": 0.5947388486465879
+    }
+  ]
+}
