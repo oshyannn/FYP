@@ -9,6 +9,10 @@ change here needs retraining but NOT a new crawl.
 
 Deliberately excluded: the URL scheme and anything that differs systematically between how phishing and benign
 pages are collected (see crawl_pages.py), so the model cannot learn the collection method instead of the phishing.
+
+Version 3 (added at the END of FEATURE_NAMES, nothing renamed or removed): six brand-imitation / structure signals
+    brand_asset_hotlink, brand_in_logo_alt, brand_in_meta, n_ext_domains, login_form_no_own_links,
+    form_posts_to_ip_or_http
 """
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ from urllib.parse import urljoin, urlsplit
 
 from aidev.core.features import BRANDS, split_host
 
-CONTENT_FEATURE_VERSION = 2
+CONTENT_FEATURE_VERSION = 3
 
 SENSITIVE_WORDS = ("password", "passcode", "verify", "account", "suspend", "confirm", "security", "bank", "credit card",
                    "card number", "cvv", "ssn", "social security", "otp", "wallet", "recovery", "unusual activity", "limited")
@@ -35,6 +39,8 @@ _DOWNLOAD_EXT = re.compile(r"\.(exe|msi|apk|dmg|crx|xpi|scr|bat|jar|zip|rar|pkg)
 _INSTALL_WORDS = ("install extension", "add to chrome", "install plugin", "download plugin", "update required", "install the app",
                   "download the app", "update your browser", "install now", "plug-in")
 _RIGHTCLICK = re.compile(r"contextmenu|event\.button\s*==\s*2|oncontextmenu\s*=\s*[\"']?\s*return\s+false", re.I)
+_IPV4 = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_META_BRAND_KEYS = ("og:site_name", "application-name", "description")
 
 FEATURE_NAMES = [
     "n_forms", "has_password_field", "n_password_fields", "n_inputs", "n_hidden_inputs", "hidden_input_ratio",
@@ -47,6 +53,9 @@ FEATURE_NAMES = [
     "n_iframes", "hidden_iframe", "meta_refresh", "favicon_missing", "favicon_external", "ext_resource_ratio",
     "n_sensitive_inputs", "js_redirect", "n_download_links", "install_words", "oauth_links", "thin_page",
     "has_copyright", "n_redirects", "redirect_cross_domain", "tls_invalid", "has_lang_attr",
+    # --- added in content feature version 3
+    "brand_asset_hotlink", "brand_in_logo_alt", "brand_in_meta", "n_ext_domains", "login_form_no_own_links",
+    "form_posts_to_ip_or_http",
 ]
 
 
@@ -62,6 +71,8 @@ class _Collector(HTMLParser):
         self.inputs: list[dict] = []
         self.links: list[str] = []
         self.images: list[str] = []
+        self.img_alts: list[str] = []
+        self.metas: list[str] = []                       # og:site_name / application-name / description contents
         self.scripts_src: list[str] = []
         self.inline_scripts: list[str] = []
         self.styles_src: list[str] = []
@@ -95,8 +106,11 @@ class _Collector(HTMLParser):
             self.buttons += 1
         elif tag == "a" and "href" in a:
             self.links.append(a["href"])
-        elif tag == "img" and a.get("src"):
-            self.images.append(a["src"])
+        elif tag == "img":
+            if a.get("alt"):
+                self.img_alts.append(a["alt"])
+            if a.get("src"):
+                self.images.append(a["src"])
         elif tag == "iframe":
             style = (a.get("style") or "").replace(" ", "").lower()
             hidden = a.get("width") in ("0", "1") or a.get("height") in ("0", "1") or "display:none" in style or "visibility:hidden" in style
@@ -107,8 +121,11 @@ class _Collector(HTMLParser):
                 self.icons.append(a["href"])
             elif "stylesheet" in rel and a.get("href"):
                 self.styles_src.append(a["href"])
-        elif tag == "meta" and (a.get("http-equiv") or "").lower() == "refresh":
-            self.meta_refresh = True
+        elif tag == "meta":
+            if (a.get("http-equiv") or "").lower() == "refresh":
+                self.meta_refresh = True
+            if (a.get("property") or a.get("name") or "").lower() in _META_BRAND_KEYS and a.get("content"):
+                self.metas.append(a["content"])
 
     def handle_endtag(self, tag):
         if tag == "title":
@@ -160,10 +177,13 @@ def extract(html: str, final_url: str, redirects: list[str] | None = None, tls_i
         u = (u or "").strip()
         if not u or u.startswith(("#", "javascript:", "mailto:", "tel:", "data:")):
             return None
-        host = urlsplit(urljoin(final_url, u)).hostname
+        try:
+            host = urlsplit(urljoin(final_url, u)).hostname
+        except ValueError:                                # e.g. href="http://[bad": used to make the whole page unscorable
+            return None
         return None if not host else _reg(host) != my_reg
 
-    text = " ".join(" ".join(c.text).split())
+    text =" ".join(" ".join(c.text).split())
     low_text = text.lower()
     title = " ".join(c.title.split())
     low_title = title.lower()
@@ -199,6 +219,62 @@ def extract(html: str, final_url: str, redirects: list[str] | None = None, tls_i
 
     n_sens_inputs = sum(bool(_SENSITIVE_INPUT.search(i["name"] + " " + i["hint"])) for i in c.inputs if i["type"] not in ("hidden", "submit", "button"))
     n_words = len(text.split())
+
+    # ---- version-3 helpers -------------------------------------------------------------------------------------
+    def reg_of(u: str) -> str:
+        """Registered domain of the address u points to ('' when relative-less, malformed or not a web address)."""
+        u = (u or "").strip()
+        if not u or u.startswith(("#", "javascript:", "mailto:", "tel:", "data:")):
+            return ""
+        try:
+            return _reg(urlsplit(urljoin(final_url, u)).hostname)
+        except ValueError:
+            return ""
+
+    def other_brand_in(s: str) -> bool:
+        """Brand name inside the already-alphanumeric string s, where the brand is not this page's own domain."""
+        return any(b in s and b != my_label and b not in my_reg for b in BRANDS)
+
+    # 1. a cloned page hotlinks pictures / style sheets / favicon from the REAL brand's domain. Scripts are left out
+    #    on purpose: legitimate sites load brand SDKs (reCAPTCHA, Facebook, PayPal buttons) from those domains.
+    hotlink = False
+    for u in c.images + c.styles_src + c.icons:
+        r = reg_of(u)
+        if r and r != my_reg and r.split(".")[0] in BRANDS and r.split(".")[0] != my_label:
+            hotlink = True
+            break
+    # 2. brand named in logo alt text, or in the file name of an image called "...logo..."
+    logo_alt = any(other_brand_in(_alnum(alt)) for alt in c.img_alts)
+    if not logo_alt:
+        for u in c.images:
+            try:
+                fname = urlsplit(u).path.rsplit("/", 1)[-1].lower()
+            except ValueError:
+                continue
+            if "logo" in fname and other_brand_in(_alnum(fname)):
+                logo_alt = True
+                break
+    # 3. brand named in og:site_name, application-name or the meta description
+    meta_brand = any(other_brand_in(_alnum(m)) for m in c.metas)
+    # 4. how many different foreign registered domains the page links to or loads things from
+    ext_domains = {r for r in (reg_of(u) for u in c.links + c.images + c.scripts_src + c.styles_src + c.icons)
+                   if r and r != my_reg}
+    # 5. a password page that never links to its own site (nothing else to click: typical of a one-page kit)
+    login_no_own = int(pw > 0 and not any(f is False for f in link_flags))
+    # 6. a form whose action is written as a full address that is plain http or a bare IP. Relative actions do NOT
+    #    count: on an http page they would only repeat the URL scheme, which is excluded from the model on purpose.
+    posts_ip_or_http = False
+    for a in actions:
+        if re.match(r"^(https?:)?//", a, re.I):
+            try:
+                parts = urlsplit(a if not a.startswith("//") else "https:" + a)
+            except ValueError:
+                continue
+            host = parts.hostname or ""
+            plain_http = parts.scheme.lower() == "http" and not a.startswith("//")
+            if plain_http or _IPV4.match(host) or ":" in host:
+                posts_ip_or_http = True
+                break
 
     return {
         "n_sensitive_inputs": n_sens_inputs,
@@ -251,6 +327,13 @@ def extract(html: str, final_url: str, redirects: list[str] | None = None, tls_i
         "redirect_cross_domain": int(redir_cross),
         "tls_invalid": int(tls_invalid),
         "has_lang_attr": int(c.has_lang),
+        # ---- version 3
+        "brand_asset_hotlink": int(hotlink),
+        "brand_in_logo_alt": int(logo_alt),
+        "brand_in_meta": int(meta_brand),
+        "n_ext_domains": math.log1p(len(ext_domains)),
+        "login_form_no_own_links": login_no_own,
+        "form_posts_to_ip_or_http": int(posts_ip_or_http),
     }
 
 

@@ -1,0 +1,146 @@
+{
+  "version": "content-20261113-2100",
+  "eval_mode": "random-domain-split",
+  "heldout": {
+    "accuracy": 0.8811013767209012,
+    "precision": 0.8970917225950783,
+    "recall": 0.8325259515570934,
+    "auc": 0.9459585130790314
+  },
+  "thresholds": [
+    {
+      "threshold": 0.3,
+      "recall": 0.9252595155709342,
+      "fpr": 0.2158766419189035,
+      "fpr_by_source": {
+        "benign_history": 0.3333333333333333,
+        "benign_tail": 0.3151515151515151,
+        "benign_tail_login": 0.4883720930232558,
+        "benign_top": 0.20114942528735633,
+        "benign_top_login": 0.41935483870967744,
+        "phreshphish_benign": 0.17435897435897435
+      }
+    },
+    {
+      "threshold": 0.5,
+      "recall": 0.8325259515570934,
+      "fpr": 0.07881210736721873,
+      "fpr_by_source": {
+        "benign_history": 0.3333333333333333,
+        "benign_tail": 0.11212121212121212,
+        "benign_tail_login": 0.20930232558139536,
+        "benign_top": 0.08045977011494253,
+        "benign_top_login": 0.12903225806451613,
+        "phreshphish_benign": 0.062393162393162394
+      }
+    },
+    {
+      "threshold": 0.7,
+      "recall": 0.7100346020761246,
+      "fpr": 0.022844089091947458,
+      "fpr_by_source": {
+        "benign_history": 0.3333333333333333,
+        "benign_tail": 0.04242424242424243,
+        "benign_tail_login": 0.13953488372093023,
+        "benign_top": 0.017241379310344827,
+        "benign_top_login": 0.03225806451612903,
+        "phreshphish_benign": 0.01282051282051282
+      }
+    },
+    {
+      "threshold": 0.8,
+      "recall": 0.6020761245674741,
+      "fpr": 0.009137635636778984,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.01818181818181818,
+        "benign_tail_login": 0.046511627906976744,
+        "benign_top": 0.011494252873563218,
+        "benign_top_login": 0.03225806451612903,
+        "phreshphish_benign": 0.004273504273504274
+      }
+    },
+    {
+      "threshold": 0.9,
+      "recall": 0.4961937716262976,
+      "fpr": 0.003997715591090805,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.006060606060606061,
+        "benign_tail_login": 0.023255813953488372,
+        "benign_top": 0.0,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.003418803418803419
+      }
+    },
+    {
+      "threshold": 0.95,
+      "recall": 0.42145328719723185,
+      "fpr": 0.002284408909194746,
+      "fpr_by_source": {
+        "benign_history": 0.0,
+        "benign_tail": 0.0,
+        "benign_tail_login": 0.023255813953488372,
+        "benign_top": 0.0,
+        "benign_top_login": 0.0,
+        "phreshphish_benign": 0.002564102564102564
+      }
+    }
+  ],
+  "top_features": [
+    [
+      "n_ext_domains",
+      0.10622807631726428
+    ],
+    [
+      "n_scripts",
+      0.07347982754327548
+    ],
+    [
+      "title_matches_domain",
+      0.07060997419445378
+    ],
+    [
+      "log_html_len",
+      0.06513586947469975
+    ],
+    [
+      "ext_link_ratio",
+      0.060896640149501774
+    ],
+    [
+      "title_len",
+      0.05957192557634579
+    ],
+    [
+      "n_words",
+      0.059010199009495154
+    ],
+    [
+      "log_inline_script_len",
+      0.05056313901982624
+    ],
+    [
+      "n_links",
+      0.04800244248669526
+    ],
+    [
+      "n_tags",
+      0.04772025186740393
+    ],
+    [
+      "log_text_len",
+      0.044620526250782236
+    ],
+    [
+      "text_per_tag",
+      0.028915620450404873
+    ]
+  ],
+  "n_pages": 15880,
+  "dropped": [
+    "n_redirects",
+    "redirect_cross_domain",
+    "tls_invalid"
+  ]
+}
