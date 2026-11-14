@@ -1,0 +1,293 @@
+{
+  "version": "content-20261114-1524",
+  "eval_mode": "own-pages-test",
+  "sizes": {
+    "train": 12463,
+    "val": 2054,
+    "test": 1113
+  },
+  "campaigns": {
+    "n_pages": 15880,
+    "n_domains": 13898,
+    "n_clusters": 11737,
+    "n_multi_domain_clusters": 487,
+    "domains_merged_away": 2161,
+    "pages_without_fingerprint": 553,
+    "generic_fingerprints_skipped": 0,
+    "largest_clusters_pages": [
+      199,
+      127,
+      89,
+      85,
+      70
+    ],
+    "largest_cluster_share": 0.012531486146095719,
+    "mixed_label_clusters": 87
+  },
+  "cap": {
+    "cap": 20,
+    "pages_before": 12463,
+    "pages_kept": 11850,
+    "pages_removed": 613,
+    "clusters_capped": 20
+  },
+  "threshold_eval_fit": 0.8695652173913044,
+  "threshold_saved_model": 0.823529411764706,
+  "test_raw": {
+    "n_pages": 1113,
+    "n_phishing": 267,
+    "n_benign": 846,
+    "n_groups": 995,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.5978643184582666,
+      "roc_auc": 0.7919112634030158,
+      "brier": 0.1557159324697209,
+      "ece": 0.10455951257096259,
+      "recall@fpr1%": 0.13857677902621723,
+      "recall@fpr0.5%": 0.10861423220973783
+    },
+    "ci95": {
+      "pr_auc": [
+        0.5205571088787182,
+        0.6687135814180499
+      ],
+      "roc_auc": [
+        0.7495987709480689,
+        0.8282978086810449
+      ],
+      "brier": [
+        0.13832277370481205,
+        0.17374763051010464
+      ],
+      "ece": [
+        0.0817740006364283,
+        0.1362468162505818
+      ],
+      "recall@fpr1%": [
+        0.07169137466307278,
+        0.2520546645155167
+      ],
+      "recall@fpr0.5%": [
+        0.02592353423534235,
+        0.2031361607142857
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.13857677902621723,
+        "threshold": 0.9222517822094377,
+        "fpr": 0.008274231678486997,
+        "allowed_fp": 8,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.10861423220973783,
+        "threshold": 0.9408631202602744,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 4,
+        "reliable": false
+      }
+    },
+    "fixed_threshold": null,
+    "by_source_at_first_fpr": {
+      "benign_history": {
+        "n": 1,
+        "fpr": 0.0
+      },
+      "benign_tail": {
+        "n": 507,
+        "fpr": 0.009861932938856016
+      },
+      "benign_tail_login": {
+        "n": 67,
+        "fpr": 0.029850746268656716
+      },
+      "benign_top": {
+        "n": 237,
+        "fpr": 0.0
+      },
+      "benign_top_login": {
+        "n": 34,
+        "fpr": 0.0
+      },
+      "phish_feed": {
+        "n": 267,
+        "recall": 0.13857677902621723
+      }
+    },
+    "notes": [
+      "recall@fpr0.5%: only 4 false positives allowed in this test set; treat as rough"
+    ]
+  },
+  "test_calibrated": {
+    "n_pages": 1113,
+    "n_phishing": 267,
+    "n_benign": 846,
+    "n_groups": 995,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.5585135354910301,
+      "roc_auc": 0.7838871623236912,
+      "brier": 0.15900010173791979,
+      "ece": 0.11045038773925608,
+      "recall@fpr1%": 0.08614232209737828,
+      "recall@fpr0.5%": 0.08614232209737828,
+      "fixed_recall": 0.2397003745318352,
+      "fixed_fpr": 0.02127659574468085,
+      "fixed_precision": 0.7804878048780488,
+      "fixed_accuracy": 0.8014375561545373
+    },
+    "ci95": {
+      "pr_auc": [
+        0.48416834196991226,
+        0.6263651820230015
+      ],
+      "roc_auc": [
+        0.7421872278699015,
+        0.820052514110876
+      ],
+      "brier": [
+        0.14118176954772751,
+        0.1771697661190205
+      ],
+      "ece": [
+        0.08547724199679956,
+        0.13955659431995007
+      ],
+      "recall@fpr1%": [
+        0.03946730147323033,
+        0.22818885575949882
+      ],
+      "recall@fpr0.5%": [
+        0.0,
+        0.12546160537651002
+      ],
+      "fixed_recall": [
+        0.17891209000762776,
+        0.30420952571542925
+      ],
+      "fixed_fpr": [
+        0.011884716551779573,
+        0.03180493947823471
+      ],
+      "fixed_precision": [
+        0.6746680599950823,
+        0.8718309859154929
+      ],
+      "fixed_accuracy": [
+        0.7768883424408014,
+        0.8280023670907739
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.08614232209737828,
+        "threshold": 0.9453125000000001,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 8,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.08614232209737828,
+        "threshold": 0.9453125000000001,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 4,
+        "reliable": false
+      }
+    },
+    "fixed_threshold": 0.8695652173913044,
+    "by_source_at_first_fpr": {
+      "benign_history": {
+        "n": 1,
+        "fpr": 0.0
+      },
+      "benign_tail": {
+        "n": 507,
+        "fpr": 0.01972386587771203
+      },
+      "benign_tail_login": {
+        "n": 67,
+        "fpr": 0.08955223880597014
+      },
+      "benign_top": {
+        "n": 237,
+        "fpr": 0.008438818565400843
+      },
+      "benign_top_login": {
+        "n": 34,
+        "fpr": 0.0
+      },
+      "phish_feed": {
+        "n": 267,
+        "recall": 0.2397003745318352
+      }
+    },
+    "notes": [
+      "recall@fpr0.5%: only 4 false positives allowed in this test set; treat as rough"
+    ]
+  },
+  "top_features": [],
+  "ablation": [],
+  "features_used": [
+    "n_forms",
+    "has_password_field",
+    "n_password_fields",
+    "n_inputs",
+    "n_hidden_inputs",
+    "hidden_input_ratio",
+    "form_external_action",
+    "form_null_action",
+    "form_script_or_mail_action",
+    "has_submit",
+    "has_email_field",
+    "n_links",
+    "ext_link_ratio",
+    "null_link_ratio",
+    "n_images",
+    "ext_image_ratio",
+    "log_text_len",
+    "n_words",
+    "n_tags",
+    "text_per_tag",
+    "log_html_len",
+    "title_len",
+    "title_empty",
+    "title_matches_domain",
+    "title_login_word",
+    "brand_in_title_not_domain",
+    "brand_in_text_not_domain",
+    "n_sensitive_words",
+    "n_scripts",
+    "log_inline_script_len",
+    "ext_script_ratio",
+    "obfuscation_density",
+    "rightclick_blocked",
+    "n_iframes",
+    "hidden_iframe",
+    "meta_refresh",
+    "favicon_missing",
+    "favicon_external",
+    "ext_resource_ratio",
+    "n_sensitive_inputs",
+    "js_redirect",
+    "n_download_links",
+    "install_words",
+    "oauth_links",
+    "thin_page",
+    "has_copyright",
+    "has_lang_attr",
+    "brand_asset_hotlink",
+    "brand_in_logo_alt",
+    "brand_in_meta",
+    "n_ext_domains",
+    "login_form_no_own_links",
+    "form_posts_to_ip_or_http"
+  ],
+  "dropped": [
+    "n_redirects",
+    "redirect_cross_domain",
+    "tls_invalid"
+  ],
+  "options": "--drop n_redirects,redirect_cross_domain,tls_invalid --model hgb --test-on own --out m2_v3_hgb_own"
+}

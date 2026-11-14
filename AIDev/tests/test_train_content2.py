@@ -77,6 +77,38 @@ class CalibrationTests(unittest.TestCase):
         grid = np.linspace(0, 1, 50)
         self.assertTrue((np.diff(cal.predict(grid)) >= -1e-12).all())
 
+    def test_gradient_boosting_option_works(self):
+        d = _df(1500)
+        names = cf.FEATURE_NAMES[:3]
+        tr, va, te = t2.split(d, "", seed=4)
+        model, cal, thr, _, _ = t2.fit_calibrated(d, names, tr, va, cap=0, seed=4, kind="hgb")
+        self.assertEqual(type(model).__name__, "HistGradientBoostingClassifier")
+        p = model.predict_proba(d[te][names])[:, 1]
+        self.assertGreater(ev.roc_auc(d[te].label.to_numpy(), p), 0.7)
+
+    def test_own_weight_and_own_only_validation(self):
+        d = _df(3000)
+        names = cf.FEATURE_NAMES[:3]
+        tr, va, te = t2.split(d, "", seed=6)
+        self.assertEqual(t2.is_own(d).sum(), (~d.source.str.startswith("phreshphish_")).sum())
+        _, _, thr1, _, _ = t2.fit_calibrated(d, names, tr, va, cap=0, seed=6, own_weight=3.0, val_own_only=True)
+        v = t2._calib_rows(d, va, True)
+        self.assertTrue(t2.is_own(v).all())
+        self.assertLess(len(v), va.sum())
+        w = np.where(t2.is_own(d[tr]), 3.0, 1.0)
+        self.assertGreater(w.max(), w.min())
+        self.assertTrue(0 <= thr1 <= 1)
+
+    def test_accuracy_at_half_is_reported(self):
+        rng = np.random.default_rng(0)
+        y = (rng.random(800) < 0.4).astype(int)
+        p = np.clip(rng.normal(0.3 + 0.4 * y, 0.2), 0, 1)
+        r = ev.evaluate(y, p, np.arange(len(y)), np.where(y == 1, "a", "b"), n_boot=20, extra_thresholds=(0.5,))
+        for k in ("accuracy", "recall", "fpr", "precision"):
+            self.assertIn(f"t0.5_{k}", r["point"])
+            self.assertIn(f"t0.5_{k}", r["ci95"])
+        self.assertAlmostEqual(r["point"]["t0.5_accuracy"], ev.at_threshold(y, p, 0.5)["accuracy"])
+
     def test_ablation_runs_and_skips_absent_groups(self):
         d = _df(1500)
         names = cf.FEATURE_NAMES[:3]                      # only "forms" and "links_resources"/"brand_title" members present

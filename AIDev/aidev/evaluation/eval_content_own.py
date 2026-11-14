@@ -157,7 +157,7 @@ def cluster_bootstrap(y, p, groups, metrics: dict, n_boot: int = 1000, seed: int
 
 # ---------------------------------------------------------------------------------------- driver
 def evaluate(label, prob, group, source, fprs=(0.01, 0.005), n_boot: int = 1000, seed: int = 42,
-             fixed_threshold: float | None = None) -> dict:
+             fixed_threshold: float | None = None, extra_thresholds=()) -> dict:
     """Full report for one set of test predictions.
 
     `recall@fpr...` pick the threshold ON the test set (the best the model could do). `fixed_threshold` is a threshold
@@ -175,6 +175,10 @@ def evaluate(label, prob, group, source, fprs=(0.01, 0.005), n_boot: int = 1000,
         ops[name] = r
         point[name] = r["recall"]
         metrics[name] = (lambda yy, pp, _t=t: recall_at_fpr(yy, pp, _t)["recall"])
+    for t in extra_thresholds:
+        for key in ("recall", "fpr", "precision", "accuracy"):
+            point[f"t{t:g}_{key}"] = at_threshold(y, p, t)[key]
+            metrics[f"t{t:g}_{key}"] = (lambda yy, pp, _k=key, _t=t: at_threshold(yy, pp, _t)[_k])
     if fixed_threshold is not None:
         for key in ("recall", "fpr", "precision", "accuracy"):
             point[f"fixed_{key}"] = at_threshold(y, p, fixed_threshold)[key]

@@ -18,7 +18,9 @@ What it does, in order
   7. Saves NAME.joblib / NAME.json / NAME_preds.csv / NAME_report.md under experiments/. --promote also copies the
      model to the live model_content.joblib (do this only for a model you accept).
 
-Other options: --test-on own (test only on pages you crawled yourself), --no-dedup (split by domain only and no cap,
+Other options: --own-weight W (pages crawled by ourselves count W times in training), --val-own-only (calibration and
+threshold from own-crawled validation pages, which look like the live ones), --model hgb (gradient boosting instead of Random Forest, same split and evaluation, for the comparison),
+--test-on own (test only on pages you crawled yourself), --no-dedup (split by domain only and no cap,
 to SEE how much the old split flattered the score), --only-v2 (drop the six version-3 features), --no-size,
 --cap N, --n-boot N, --pages-dir PATH, --seed N.
 
@@ -41,7 +43,7 @@ from datetime import datetime, timezone
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.isotonic import IsotonicRegression
 
 from aidev.core.common import CONTENT_METRICS_PATH, CONTENT_MODEL_PATH, EXPERIMENTS, PAGES
@@ -132,6 +134,36 @@ def _rf(seed: int) -> RandomForestClassifier:
                                   random_state=seed, n_jobs=-1)
 
 
+def _make(seed: int, kind: str = "rf"):
+    """The classifier to train: 'rf' = the project's Random Forest, 'hgb' = scikit-learn histogram gradient boosting."""
+    if kind == "hgb":
+        return HistGradientBoostingClassifier(max_iter=200, learning_rate=0.05, max_leaf_nodes=31, min_samples_leaf=20,
+                                              l2_regularization=1.0, early_stopping=False, class_weight="balanced",
+                                              random_state=seed)
+    return _rf(seed)
+
+
+def is_own(df: pd.DataFrame) -> np.ndarray:
+    """True for pages crawled by ourselves (what the live detector sees); False for PhreshPhish pages."""
+    return ~df.source.str.startswith("phreshphish_").to_numpy()
+
+
+def _fit(rows: pd.DataFrame, names: list[str], seed: int, kind: str, own_weight: float):
+    """Fit the classifier; pages crawled by ourselves count `own_weight` times as much as PhreshPhish pages."""
+    w = np.where(is_own(rows), own_weight, 1.0) if own_weight != 1.0 else None
+    return _make(seed, kind).fit(rows[names], rows.label, sample_weight=w)
+
+
+def _calib_rows(df: pd.DataFrame, val: np.ndarray, own_only: bool) -> pd.DataFrame:
+    """Validation pages used for calibration and for the threshold. own_only = only pages like the live ones."""
+    v = df[val]
+    if own_only:
+        v = v[is_own(v)]
+        if v.label.nunique() < 2 or (v.label == 0).sum() < 100:
+            raise SystemExit("--val-own-only: too few own-crawled validation pages (need both classes and >= 100 benign).")
+    return v
+
+
 # ---------------------------------------------------------------------------------------- split
 def split(df: pd.DataFrame, test_on: str = "", seed: int = 42, test_frac: float = 0.2, val_frac: float = 0.15):
     """Boolean masks (train, val, test) chosen by whole clusters. Needs df['cluster'] and df['source']."""
@@ -156,15 +188,16 @@ def split(df: pd.DataFrame, test_on: str = "", seed: int = 42, test_frac: float 
 
 
 # ------------------------------------------------------------------------------- fit + evaluate
-def fit_calibrated(df: pd.DataFrame, names: list[str], train: np.ndarray, val: np.ndarray, cap: int, seed: int):
+def fit_calibrated(df: pd.DataFrame, names: list[str], train: np.ndarray, val: np.ndarray, cap: int, seed: int, kind: str = "rf",
+                   own_weight: float = 1.0, val_own_only: bool = False):
     """RF on (capped) train, isotonic calibration + threshold on val. Returns (model, calibrator, threshold, cap_report)."""
     tr = df[train]
     cap_report = {"cap": 0, "pages_before": int(len(tr)), "pages_kept": int(len(tr)), "pages_removed": 0, "clusters_capped": 0}
     if cap:
         keep, cap_report = dedup.cap_per_cluster(tr.cluster.to_numpy(), tr.label.to_numpy(), cap=cap, seed=seed)
         tr = tr[keep]
-    model = _rf(seed).fit(tr[names], tr.label)
-    v = df[val]
+    model = _fit(tr, names, seed, kind, own_weight)
+    v = _calib_rows(df, val, val_own_only)
     if v.label.nunique() < 2:
         raise SystemExit("Validation part has only one class; cannot calibrate. Use more data or another --seed.")
     raw_v = model.predict_proba(v[names])[:, 1]
@@ -173,18 +206,18 @@ def fit_calibrated(df: pd.DataFrame, names: list[str], train: np.ndarray, val: n
     return model, cal, op["threshold"], cap_report, op
 
 
-def evaluate_split(df, names, train, val, test, cap, seed, n_boot):
-    model, cal, thr, cap_report, val_op = fit_calibrated(df, names, train, val, cap, seed)
+def evaluate_split(df, names, train, val, test, cap, seed, n_boot, kind="rf", own_weight=1.0, val_own_only=False):
+    model, cal, thr, cap_report, val_op = fit_calibrated(df, names, train, val, cap, seed, kind, own_weight, val_own_only)
     te = df[test]
     raw = model.predict_proba(te[names])[:, 1]
     calp = cal.predict(raw)
     args = (te.label.to_numpy(), None, te.cluster.to_numpy(), te.source.to_numpy())
-    res_raw = ev.evaluate(args[0], raw, args[2], args[3], n_boot=n_boot, seed=seed)
+    res_raw = ev.evaluate(args[0], raw, args[2], args[3], n_boot=n_boot, seed=seed, extra_thresholds=(0.5,))
     res_cal = ev.evaluate(args[0], calp, args[2], args[3], n_boot=n_boot, seed=seed, fixed_threshold=thr)
     return model, cal, thr, cap_report, val_op, raw, calp, res_raw, res_cal
 
 
-def ablation(df, names, train, val, test, cap, seed, n_boot) -> list[dict]:
+def ablation(df, names, train, val, test, cap, seed, n_boot, kind="rf", own_weight=1.0) -> list[dict]:
     """Retrain with each feature group removed (same split); report PR-AUC and recall@1% FPR on raw probabilities."""
     out = []
     metrics = {"pr_auc": ev.pr_auc, "recall@fpr1%": lambda y, p: ev.recall_at_fpr(y, p, FPR_TARGET)["recall"]}
@@ -196,7 +229,7 @@ def ablation(df, names, train, val, test, cap, seed, n_boot) -> list[dict]:
         tr = df[train]
         if cap:
             tr = tr[dedup.cap_per_cluster(tr.cluster.to_numpy(), tr.label.to_numpy(), cap=cap, seed=seed)[0]]
-        p = _rf(seed).fit(tr[use], tr.label).predict_proba(te[use])[:, 1]
+        p = _fit(tr, use, seed, kind, own_weight).predict_proba(te[use])[:, 1]
         y = te.label.to_numpy()
         ci = ev.cluster_bootstrap(y, p, te.cluster.to_numpy(), metrics, n_boot=n_boot, seed=seed)
         out.append({"removed": group, "n_features": len(use), "pr_auc": ev.pr_auc(y, p), "pr_auc_ci": ci["pr_auc"],
@@ -221,6 +254,9 @@ def markdown(name, mode, args, sizes, dedup_report, cap_report, res_raw, res_cal
          "## Test results (95% CI: bootstrap over campaigns)", "", "| metric | value | 95% CI |", "|---|---|---|"]
     for k in ("pr_auc", "roc_auc", "recall@fpr1%", "recall@fpr0.5%"):
         L.append(row(k + " (raw probability)", res_raw, k))
+    for k, nm in (("t0.5_accuracy", "accuracy"), ("t0.5_recall", "recall"), ("t0.5_fpr", "false-positive rate"), ("t0.5_precision", "precision")):
+        if k in res_raw["point"]:
+            L.append(row(f"{nm} at probability 0.5 (comparable with the old reports)", res_raw, k))
     for k in ("brier", "ece"):
         L.append(row(k + " (raw)", res_raw, k))
         L.append(row(k + " (calibrated)", res_cal, k))
@@ -242,7 +278,8 @@ def markdown(name, mode, args, sizes, dedup_report, cap_report, res_raw, res_cal
 
 # ------------------------------------------------------------------------------------------ main
 def main(pages_dir=PAGES, drop=None, test_on="", no_dedup=False, cap=20, n_boot=1000, seed=42, ablate=False,
-         out="", promote=False, argv_text="", use_cache=True, rebuild_cache=False) -> dict:
+         out="", promote=False, argv_text="", use_cache=True, rebuild_cache=False, kind="rf",
+         own_weight=1.0, val_own_only=False) -> dict:
     df = load(pages_dir, use_cache, rebuild_cache)
     names = [n for n in cf.FEATURE_NAMES if n not in (drop or [])]
     print(f"pages: {len(df)}  phishing {int(df.label.sum())}  benign {int((1 - df.label).sum())}  "
@@ -264,33 +301,35 @@ def main(pages_dir=PAGES, drop=None, test_on="", no_dedup=False, cap=20, n_boot=
     if df[test].label.nunique() < 2:
         raise SystemExit("Test set has only one class.")
 
-    model, cal, thr, cap_report, val_op, raw, calp, res_raw, res_cal = evaluate_split(df, names, train, val, test, cap, seed, n_boot)
-    print(f"\n== TEST, raw RF probability ==\n{ev.format_report(res_raw)}")
+    model, cal, thr, cap_report, val_op, raw, calp, res_raw, res_cal = evaluate_split(df, names, train, val, test, cap, seed, n_boot, kind, own_weight, val_own_only)
+    print(f"\n== TEST, raw model probability ==\n{ev.format_report(res_raw)}")
     print(f"\n== TEST, calibrated probability, threshold {thr:.4f} fixed on validation ==\n{ev.format_report(res_cal)}")
     print(f"training cap: {json.dumps(cap_report)}")
-    imp = sorted(zip(names, model.feature_importances_), key=lambda x: -x[1])[:12]
-    print("\nmost important features:")
+    imp = sorted(zip(names, getattr(model, "feature_importances_", np.zeros(len(names)))), key=lambda x: -x[1])[:12] \
+        if hasattr(model, "feature_importances_") else []
+    print("\nmost important features:" if imp else "\n(this model type has no built-in feature importance)")
     for n, v in imp:
         print(f"  {n:<28} {v:.3f}")
 
     abl = []
     if ablate:
         print("\n== ablation by feature group ==")
-        abl = ablation(df, names, train, val, test, cap, seed, max(100, n_boot // 3))
+        abl = ablation(df, names, train, val, test, cap, seed, max(100, n_boot // 3), kind, own_weight)
 
     # saved model: everything except the validation part (calibration + threshold need unseen data)
     fit_rows = df[~val]
     if cap:
         fit_rows = fit_rows[dedup.cap_per_cluster(fit_rows.cluster.to_numpy(), fit_rows.label.to_numpy(), cap=cap, seed=seed)[0]]
-    final = _rf(seed).fit(fit_rows[names], fit_rows.label)
-    raw_v = final.predict_proba(df[val][names])[:, 1]
-    cal_final = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip").fit(raw_v, df[val].label)
-    thr_final = ev.recall_at_fpr(df[val].label.to_numpy(), cal_final.predict(raw_v), FPR_TARGET)["threshold"]
+    final = _fit(fit_rows, names, seed, kind, own_weight)
+    cv = _calib_rows(df, val, val_own_only)
+    raw_v = final.predict_proba(cv[names])[:, 1]
+    cal_final = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip").fit(raw_v, cv.label)
+    thr_final = ev.recall_at_fpr(cv.label.to_numpy(), cal_final.predict(raw_v), FPR_TARGET)["threshold"]
     version = "content-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
     p = res_cal["point"]
     heldout = {"accuracy": p["fixed_accuracy"], "precision": p["fixed_precision"], "recall": p["fixed_recall"], "auc": p["roc_auc"]}
     bundle = {"model": final, "feature_names": names, "feature_version": cf.CONTENT_FEATURE_VERSION, "version": version,
-              "metrics": heldout, "eval_mode": mode, "calibrator": cal_final, "threshold": float(thr_final)}
+              "metrics": heldout, "eval_mode": mode, "calibrator": cal_final, "threshold": float(thr_final), "model_kind": kind}
     if out:
         EXPERIMENTS.mkdir(exist_ok=True)
         joblib.dump(bundle, EXPERIMENTS / f"{out}.joblib")
@@ -326,6 +365,9 @@ if __name__ == "__main__":
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--ablate", action="store_true")
+    ap.add_argument("--own-weight", type=float, default=1.0, help="training weight of pages crawled by ourselves (PhreshPhish pages weigh 1)")
+    ap.add_argument("--val-own-only", action="store_true", help="calibrate and choose the threshold on own-crawled validation pages only")
+    ap.add_argument("--model", default="rf", choices=["rf", "hgb"], help="rf = Random Forest (default), hgb = gradient boosting, for the comparison")
     ap.add_argument("--out", default="", help="save under experiments/NAME.*")
     ap.add_argument("--promote", action="store_true", help="also copy the saved model to the live model_content.joblib")
     ap.add_argument("--pages-dir", default="")
@@ -342,4 +384,4 @@ if __name__ == "__main__":
         kw["pages_dir"] = Path(a.pages_dir)
     main(drop=drop, test_on=a.test_on, no_dedup=a.no_dedup, cap=a.cap, n_boot=a.n_boot, seed=a.seed, ablate=a.ablate,
          out=a.out, promote=a.promote, argv_text=" ".join(sys.argv[1:]),
-         use_cache=not a.no_cache, rebuild_cache=a.rebuild_cache, **kw)
+         use_cache=not a.no_cache, rebuild_cache=a.rebuild_cache, kind=a.model, own_weight=a.own_weight, val_own_only=a.val_own_only, **kw)

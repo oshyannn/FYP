@@ -1,0 +1,362 @@
+{
+  "version": "content-20261114-1528",
+  "eval_mode": "own-pages-test",
+  "sizes": {
+    "train": 12463,
+    "val": 2054,
+    "test": 1113
+  },
+  "campaigns": {
+    "n_pages": 15880,
+    "n_domains": 13898,
+    "n_clusters": 11737,
+    "n_multi_domain_clusters": 487,
+    "domains_merged_away": 2161,
+    "pages_without_fingerprint": 553,
+    "generic_fingerprints_skipped": 0,
+    "largest_clusters_pages": [
+      199,
+      127,
+      89,
+      85,
+      70
+    ],
+    "largest_cluster_share": 0.012531486146095719,
+    "mixed_label_clusters": 87
+  },
+  "cap": {
+    "cap": 20,
+    "pages_before": 12463,
+    "pages_kept": 11850,
+    "pages_removed": 613,
+    "clusters_capped": 20
+  },
+  "threshold_eval_fit": 0.8981818181818183,
+  "threshold_saved_model": 0.8516746411483255,
+  "test_raw": {
+    "n_pages": 1113,
+    "n_phishing": 267,
+    "n_benign": 846,
+    "n_groups": 995,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.6223654282677268,
+      "roc_auc": 0.810903480578355,
+      "brier": 0.13862951582776165,
+      "ece": 0.06136292138844723,
+      "recall@fpr1%": 0.149812734082397,
+      "recall@fpr0.5%": 0.11235955056179775,
+      "t0.5_recall": 0.5655430711610487,
+      "t0.5_fpr": 0.10520094562647754,
+      "t0.5_precision": 0.6291666666666667,
+      "t0.5_accuracy": 0.8158131176999102
+    },
+    "ci95": {
+      "pr_auc": [
+        0.541923681787184,
+        0.6976422512497554
+      ],
+      "roc_auc": [
+        0.7702152580721899,
+        0.8460620006674211
+      ],
+      "brier": [
+        0.12363244116125997,
+        0.1555358127630632
+      ],
+      "ece": [
+        0.04824980962132086,
+        0.09190798722281104
+      ],
+      "recall@fpr1%": [
+        0.09468248663101604,
+        0.23654137606309406
+      ],
+      "recall@fpr0.5%": [
+        0.04529583853790021,
+        0.1934367877441505
+      ],
+      "t0.5_recall": [
+        0.48862748579545456,
+        0.635052777250156
+      ],
+      "t0.5_fpr": [
+        0.07177172795846906,
+        0.1467276327244432
+      ],
+      "t0.5_precision": [
+        0.5404282459181391,
+        0.7156153846153845
+      ],
+      "t0.5_accuracy": [
+        0.7833190025795357,
+        0.8458783353124925
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.149812734082397,
+        "threshold": 0.802315371676581,
+        "fpr": 0.009456264775413711,
+        "allowed_fp": 8,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.11235955056179775,
+        "threshold": 0.8286610578253009,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 4,
+        "reliable": false
+      }
+    },
+    "fixed_threshold": null,
+    "by_source_at_first_fpr": {
+      "benign_history": {
+        "n": 1,
+        "fpr": 0.0
+      },
+      "benign_tail": {
+        "n": 507,
+        "fpr": 0.007889546351084813
+      },
+      "benign_tail_login": {
+        "n": 67,
+        "fpr": 0.029850746268656716
+      },
+      "benign_top": {
+        "n": 237,
+        "fpr": 0.004219409282700422
+      },
+      "benign_top_login": {
+        "n": 34,
+        "fpr": 0.029411764705882353
+      },
+      "phish_feed": {
+        "n": 267,
+        "recall": 0.149812734082397
+      }
+    },
+    "notes": [
+      "recall@fpr0.5%: only 4 false positives allowed in this test set; treat as rough"
+    ]
+  },
+  "test_calibrated": {
+    "n_pages": 1113,
+    "n_phishing": 267,
+    "n_benign": 846,
+    "n_groups": 995,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.5813976035809044,
+      "roc_auc": 0.8057414933460834,
+      "brier": 0.14636862538049486,
+      "ece": 0.0979574580822022,
+      "recall@fpr1%": 0.11235955056179775,
+      "recall@fpr0.5%": 0.11235955056179775,
+      "fixed_recall": 0.11235955056179775,
+      "fixed_fpr": 0.004728132387706856,
+      "fixed_precision": 0.8823529411764706,
+      "fixed_accuracy": 0.7834681042228212
+    },
+    "ci95": {
+      "pr_auc": [
+        0.5035977600835624,
+        0.6624852194678591
+      ],
+      "roc_auc": [
+        0.7648959172385922,
+        0.8412596037289963
+      ],
+      "brier": [
+        0.1264194213315104,
+        0.17017845593359432
+      ],
+      "ece": [
+        0.07136194689696443,
+        0.1296943411683129
+      ],
+      "recall@fpr1%": [
+        0.06763759985902255,
+        0.15789473684210525
+      ],
+      "recall@fpr0.5%": [
+        0.0,
+        0.15626166044776119
+      ],
+      "fixed_recall": [
+        0.07376020634217355,
+        0.1590959372485921
+      ],
+      "fixed_fpr": [
+        0.001151941614171564,
+        0.009616254523522315
+      ],
+      "fixed_precision": [
+        0.7646671826625386,
+        0.9736842105263158
+      ],
+      "fixed_accuracy": [
+        0.7563849356469923,
+        0.8116525816329498
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.11235955056179775,
+        "threshold": 0.8981818181818183,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 8,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.11235955056179775,
+        "threshold": 0.8981818181818183,
+        "fpr": 0.004728132387706856,
+        "allowed_fp": 4,
+        "reliable": false
+      }
+    },
+    "fixed_threshold": 0.8981818181818183,
+    "by_source_at_first_fpr": {
+      "benign_history": {
+        "n": 1,
+        "fpr": 0.0
+      },
+      "benign_tail": {
+        "n": 507,
+        "fpr": 0.0039447731755424065
+      },
+      "benign_tail_login": {
+        "n": 67,
+        "fpr": 0.014925373134328358
+      },
+      "benign_top": {
+        "n": 237,
+        "fpr": 0.004219409282700422
+      },
+      "benign_top_login": {
+        "n": 34,
+        "fpr": 0.0
+      },
+      "phish_feed": {
+        "n": 267,
+        "recall": 0.11235955056179775
+      }
+    },
+    "notes": [
+      "recall@fpr0.5%: only 4 false positives allowed in this test set; treat as rough"
+    ]
+  },
+  "top_features": [
+    [
+      "title_matches_domain",
+      0.07552979791323386
+    ],
+    [
+      "n_ext_domains",
+      0.07002517854145246
+    ],
+    [
+      "n_words",
+      0.06816543931476901
+    ],
+    [
+      "log_html_len",
+      0.06722433782453849
+    ],
+    [
+      "n_tags",
+      0.06250138748967059
+    ],
+    [
+      "n_links",
+      0.05958329013722066
+    ],
+    [
+      "title_len",
+      0.053854251528341605
+    ],
+    [
+      "ext_link_ratio",
+      0.053349092576018685
+    ],
+    [
+      "log_text_len",
+      0.05270439910307506
+    ],
+    [
+      "n_scripts",
+      0.04852944390228241
+    ],
+    [
+      "log_inline_script_len",
+      0.04775423027685027
+    ],
+    [
+      "text_per_tag",
+      0.03649564427566966
+    ]
+  ],
+  "ablation": [],
+  "features_used": [
+    "n_forms",
+    "has_password_field",
+    "n_password_fields",
+    "n_inputs",
+    "n_hidden_inputs",
+    "hidden_input_ratio",
+    "form_external_action",
+    "form_null_action",
+    "form_script_or_mail_action",
+    "has_submit",
+    "has_email_field",
+    "n_links",
+    "ext_link_ratio",
+    "null_link_ratio",
+    "n_images",
+    "ext_image_ratio",
+    "log_text_len",
+    "n_words",
+    "n_tags",
+    "text_per_tag",
+    "log_html_len",
+    "title_len",
+    "title_empty",
+    "title_matches_domain",
+    "title_login_word",
+    "brand_in_title_not_domain",
+    "brand_in_text_not_domain",
+    "n_sensitive_words",
+    "n_scripts",
+    "log_inline_script_len",
+    "ext_script_ratio",
+    "obfuscation_density",
+    "rightclick_blocked",
+    "n_iframes",
+    "hidden_iframe",
+    "meta_refresh",
+    "favicon_missing",
+    "favicon_external",
+    "ext_resource_ratio",
+    "n_sensitive_inputs",
+    "js_redirect",
+    "n_download_links",
+    "install_words",
+    "oauth_links",
+    "thin_page",
+    "has_copyright",
+    "has_lang_attr",
+    "brand_asset_hotlink",
+    "brand_in_logo_alt",
+    "brand_in_meta",
+    "n_ext_domains",
+    "login_form_no_own_links",
+    "form_posts_to_ip_or_http"
+  ],
+  "dropped": [
+    "n_redirects",
+    "redirect_cross_domain",
+    "tls_invalid"
+  ],
+  "options": "--drop n_redirects,redirect_cross_domain,tls_invalid --test-on own --own-weight 6 --out own_w6"
+}

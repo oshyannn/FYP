@@ -1,0 +1,301 @@
+{
+  "config": {
+    "data": "dataset_own.csv",
+    "split": "time",
+    "model": "rf",
+    "trees": 300,
+    "fpr": 0.01,
+    "test_frac": 0.2,
+    "val_frac": 0.15,
+    "boot": 200,
+    "keep_service": false,
+    "ablate": true,
+    "ablate_trees": 100,
+    "save": false,
+    "out": "time_rf",
+    "seed": 42,
+    "feature_version": 3,
+    "data_rows": 234046,
+    "run_at": "2026-11-14T08:36:52+00:00"
+  },
+  "split_info": {
+    "rows": {
+      "train": 179189,
+      "val": 23133,
+      "test": 30840
+    },
+    "phishing": {
+      "train": 86380,
+      "val": 1756,
+      "test": 2363
+    },
+    "benign": {
+      "train": 92809,
+      "val": 21377,
+      "test": 28477
+    },
+    "train_phishing_dates": [
+      "2012-06-14",
+      "2026-07-12"
+    ],
+    "val_phishing_dates": [
+      "2026-07-12",
+      "2026-09-29"
+    ],
+    "test_phishing_dates": [
+      "2026-09-29",
+      "2026-11-13"
+    ]
+  },
+  "test": {
+    "roc_auc": 0.9545149331744972,
+    "pr_auc": 0.8544303226239229,
+    "pr_auc_ci95": [
+      0.8391543541505542,
+      0.868466761464064
+    ],
+    "recall_at_fpr": {
+      "5%": 0.8654253068133728,
+      "2%": 0.8027930596699111,
+      "1%": 0.739737621667372,
+      "0.5%": 0.6669487939060517
+    },
+    "recall_at_1pct_fpr_ci95": [
+      0.7127127844363385,
+      0.7623552696171755
+    ],
+    "operating_point": {
+      "chosen_on_validation_for_fpr": 0.01,
+      "threshold": 0.8411542656333022,
+      "fpr": 0.009937844576324753,
+      "recall": 0.739737621667372,
+      "precision": 0.8606597735105859,
+      "tp": 1748,
+      "fp": 283,
+      "pos": 2363,
+      "neg": 28477
+    },
+    "old_thresholds": {
+      "0.5": {
+        "threshold": 0.5,
+        "fpr": 0.08750921796537557,
+        "recall": 0.8920863309352518,
+        "precision": 0.4582608695652174,
+        "tp": 2108,
+        "fp": 2492,
+        "pos": 2363,
+        "neg": 28477
+      },
+      "0.7": {
+        "threshold": 0.7,
+        "fpr": 0.030375390666151632,
+        "recall": 0.8307236563690225,
+        "precision": 0.6941301272984441,
+        "tp": 1963,
+        "fp": 865,
+        "pos": 2363,
+        "neg": 28477
+      }
+    },
+    "brier_raw": 0.09381597510356737,
+    "brier_calibrated": 0.023570212284894053,
+    "calibration_table": [
+      {
+        "bin": "0.0-0.1",
+        "n": 27135,
+        "mean_predicted": 0.010416100155898065,
+        "observed_phishing": 0.011018979178183159
+      },
+      {
+        "bin": "0.1-0.2",
+        "n": 1166,
+        "mean_predicted": 0.12364613854048526,
+        "observed_phishing": 0.13550600343053174
+      },
+      {
+        "bin": "0.2-0.3",
+        "n": 276,
+        "mean_predicted": 0.26068459283020806,
+        "observed_phishing": 0.2318840579710145
+      },
+      {
+        "bin": "0.3-0.4",
+        "n": 282,
+        "mean_predicted": 0.3762467284647454,
+        "observed_phishing": 0.4078014184397163
+      },
+      {
+        "bin": "0.4-0.5",
+        "n": 160,
+        "mean_predicted": 0.4367591643521228,
+        "observed_phishing": 0.56875
+      },
+      {
+        "bin": "0.6-0.7",
+        "n": 435,
+        "mean_predicted": 0.6449166769317528,
+        "observed_phishing": 0.6896551724137931
+      },
+      {
+        "bin": "0.7-0.8",
+        "n": 3,
+        "mean_predicted": 0.7516660561049647,
+        "observed_phishing": 1.0
+      },
+      {
+        "bin": "0.8-0.9",
+        "n": 137,
+        "mean_predicted": 0.844595225443954,
+        "observed_phishing": 0.8905109489051095
+      },
+      {
+        "bin": "0.9-1.0",
+        "n": 1246,
+        "mean_predicted": 0.9800072089534776,
+        "observed_phishing": 0.9719101123595506
+      }
+    ],
+    "root_only": {
+      "roc_auc": 0.9201637077065304,
+      "recall_at_1pct_fpr": 0.6961489631823953
+    }
+  },
+  "breakdown": {
+    "source": [
+      {
+        "value": "own_history",
+        "label": 0,
+        "n": 24,
+        "flagged": 0.125
+      },
+      {
+        "value": "pages_benign_history",
+        "label": 0,
+        "n": 6,
+        "flagged": 0.3333333333333333
+      },
+      {
+        "value": "pages_benign_tail",
+        "label": 0,
+        "n": 360,
+        "flagged": 0.03611111111111111
+      },
+      {
+        "value": "pages_benign_tail_login",
+        "label": 0,
+        "n": 43,
+        "flagged": 0.0
+      },
+      {
+        "value": "pages_benign_top",
+        "label": 0,
+        "n": 156,
+        "flagged": 0.019230769230769232
+      },
+      {
+        "value": "pages_benign_top_login",
+        "label": 0,
+        "n": 22,
+        "flagged": 0.045454545454545456
+      },
+      {
+        "value": "pages_phreshphish_benign",
+        "label": 0,
+        "n": 1229,
+        "flagged": 0.07078925956061839
+      },
+      {
+        "value": "phishtank",
+        "label": 1,
+        "n": 2363,
+        "flagged": 0.739737621667372
+      },
+      {
+        "value": "phiusiil_benign",
+        "label": 0,
+        "n": 26637,
+        "flagged": 0.006532267147201261
+      }
+    ],
+    "kind": [
+      {
+        "value": "benign",
+        "label": 0,
+        "n": 28477,
+        "flagged": 0.009937844576324753
+      },
+      {
+        "value": "phish",
+        "label": 1,
+        "n": 2363,
+        "flagged": 0.739737621667372
+      }
+    ],
+    "benign_category": [
+      {
+        "value": "other_benign",
+        "n": 27305,
+        "flagged": 0.011306230454654799
+      },
+      {
+        "value": "real_hard_negative",
+        "n": 65,
+        "flagged": 0.015384615384615385
+      },
+      {
+        "value": "synthetic_id_or_my_path",
+        "n": 3470,
+        "flagged": 0.0
+      }
+    ]
+  },
+  "phish_on_service": {
+    "n": 7239,
+    "flagged_at_threshold": 0.5774278215223098,
+    "top_domains": {
+      "wsimg.com": 100,
+      "infura-ipfs.io": 100,
+      "plesk.page": 100,
+      "myhuaweicloud.com": 100,
+      "200.14.250.72": 100,
+      "deliverylifesupport.com": 100,
+      "start.page": 100,
+      "new.express.adobe.com": 100,
+      "dropbox.com": 100,
+      "regruhosting.ru": 100
+    }
+  },
+  "ablation": {
+    "full_model_for_comparison": {
+      "pr_auc": 0.8544303226239229,
+      "recall_at_1pct_fpr": 0.739737621667372
+    },
+    "rows": [
+      {
+        "removed": "host_shape",
+        "n_features_left": 17,
+        "pr_auc": 0.7157864611067161,
+        "recall_at_1pct_fpr": 0.5366060093101989
+      },
+      {
+        "removed": "host_randomness",
+        "n_features_left": 24,
+        "pr_auc": 0.8547416547545205,
+        "recall_at_1pct_fpr": 0.7410071942446043
+      },
+      {
+        "removed": "host_risk",
+        "n_features_left": 26,
+        "pr_auc": 0.8319599356367947,
+        "recall_at_1pct_fpr": 0.7113838341091833
+      },
+      {
+        "removed": "path",
+        "n_features_left": 20,
+        "pr_auc": 0.8004859080104371,
+        "recall_at_1pct_fpr": 0.6889547185780787
+      }
+    ],
+    "note": "ablation models use 100 trees, so compare rows with each other and with a 100-tree full model, not exactly with the main run"
+  }
+}

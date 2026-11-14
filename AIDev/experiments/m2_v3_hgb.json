@@ -1,0 +1,297 @@
+{
+  "version": "content-20261114-1524",
+  "eval_mode": "random-campaign-split",
+  "sizes": {
+    "train": 10932,
+    "val": 1863,
+    "test": 3085
+  },
+  "campaigns": {
+    "n_pages": 15880,
+    "n_domains": 13898,
+    "n_clusters": 11737,
+    "n_multi_domain_clusters": 487,
+    "domains_merged_away": 2161,
+    "pages_without_fingerprint": 553,
+    "generic_fingerprints_skipped": 0,
+    "largest_clusters_pages": [
+      199,
+      127,
+      89,
+      85,
+      70
+    ],
+    "largest_cluster_share": 0.012531486146095719,
+    "mixed_label_clusters": 87
+  },
+  "cap": {
+    "cap": 20,
+    "pages_before": 10932,
+    "pages_kept": 10388,
+    "pages_removed": 544,
+    "clusters_capped": 19
+  },
+  "threshold_eval_fit": 0.7142857142857144,
+  "threshold_saved_model": 0.8823529411764707,
+  "test_raw": {
+    "n_pages": 3085,
+    "n_phishing": 1330,
+    "n_benign": 1755,
+    "n_groups": 2347,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.9399402063408827,
+      "roc_auc": 0.9454919349656192,
+      "brier": 0.09026727360864041,
+      "ece": 0.0182459662323021,
+      "recall@fpr1%": 0.5819548872180451,
+      "recall@fpr0.5%": 0.5180451127819549
+    },
+    "ci95": {
+      "pr_auc": [
+        0.9170691758352393,
+        0.9576251204346499
+      ],
+      "roc_auc": [
+        0.9316263775239517,
+        0.9568539357658218
+      ],
+      "brier": [
+        0.08000160329658056,
+        0.10062984263969971
+      ],
+      "ece": [
+        0.013714134521452023,
+        0.03586278395136115
+      ],
+      "recall@fpr1%": [
+        0.4841855940544236,
+        0.6523613885893106
+      ],
+      "recall@fpr0.5%": [
+        0.4467809518865857,
+        0.6041118101830886
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.5819548872180451,
+        "threshold": 0.9037160637486835,
+        "fpr": 0.009686609686609686,
+        "allowed_fp": 17,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.5180451127819549,
+        "threshold": 0.9354412993300143,
+        "fpr": 0.004558404558404558,
+        "allowed_fp": 8,
+        "reliable": true
+      }
+    },
+    "fixed_threshold": null,
+    "by_source_at_first_fpr": {
+      "benign_tail": {
+        "n": 344,
+        "fpr": 0.020348837209302327
+      },
+      "benign_tail_login": {
+        "n": 41,
+        "fpr": 0.0
+      },
+      "benign_top": {
+        "n": 147,
+        "fpr": 0.006802721088435374
+      },
+      "benign_top_login": {
+        "n": 26,
+        "fpr": 0.0
+      },
+      "phish_feed": {
+        "n": 190,
+        "recall": 0.16842105263157894
+      },
+      "phreshphish_benign": {
+        "n": 1197,
+        "fpr": 0.007518796992481203
+      },
+      "phreshphish_phish": {
+        "n": 1140,
+        "recall": 0.6508771929824562
+      }
+    },
+    "notes": []
+  },
+  "test_calibrated": {
+    "n_pages": 3085,
+    "n_phishing": 1330,
+    "n_benign": 1755,
+    "n_groups": 2347,
+    "skipped_resamples": 0,
+    "point": {
+      "pr_auc": 0.931592026124074,
+      "roc_auc": 0.9448345222029433,
+      "brier": 0.09051108691594617,
+      "ece": 0.017291715967704967,
+      "recall@fpr1%": 0.5796992481203007,
+      "recall@fpr0.5%": 0.5105263157894737,
+      "fixed_recall": 0.5729323308270676,
+      "fixed_fpr": 0.009116809116809116,
+      "fixed_precision": 0.9794344473007712,
+      "fixed_accuracy": 0.8106969205834684
+    },
+    "ci95": {
+      "pr_auc": [
+        0.9063688676825872,
+        0.951482983108475
+      ],
+      "roc_auc": [
+        0.9310143126135227,
+        0.9563015382519076
+      ],
+      "brier": [
+        0.08107801704331359,
+        0.10055898429394493
+      ],
+      "ece": [
+        0.015069423760646947,
+        0.03568337373314517
+      ],
+      "recall@fpr1%": [
+        0.465124159630326,
+        0.6359222000713962
+      ],
+      "recall@fpr0.5%": [
+        0.43844571850960873,
+        0.5976377855627375
+      ],
+      "fixed_recall": [
+        0.49911618816423275,
+        0.6403610205245469
+      ],
+      "fixed_fpr": [
+        0.004697043378944504,
+        0.014221516105556872
+      ],
+      "fixed_precision": [
+        0.9649652642373298,
+        0.9894740300159071
+      ],
+      "fixed_accuracy": [
+        0.7876346685082873,
+        0.8307421417756629
+      ]
+    },
+    "operating_points": {
+      "recall@fpr1%": {
+        "recall": 0.5796992481203007,
+        "threshold": 0.7075471698113208,
+        "fpr": 0.009686609686609686,
+        "allowed_fp": 17,
+        "reliable": true
+      },
+      "recall@fpr0.5%": {
+        "recall": 0.5105263157894737,
+        "threshold": 0.9166666666666667,
+        "fpr": 0.0011396011396011395,
+        "allowed_fp": 8,
+        "reliable": true
+      }
+    },
+    "fixed_threshold": 0.7142857142857144,
+    "by_source_at_first_fpr": {
+      "benign_tail": {
+        "n": 344,
+        "fpr": 0.020348837209302327
+      },
+      "benign_tail_login": {
+        "n": 41,
+        "fpr": 0.0
+      },
+      "benign_top": {
+        "n": 147,
+        "fpr": 0.006802721088435374
+      },
+      "benign_top_login": {
+        "n": 26,
+        "fpr": 0.0
+      },
+      "phish_feed": {
+        "n": 190,
+        "recall": 0.1631578947368421
+      },
+      "phreshphish_benign": {
+        "n": 1197,
+        "fpr": 0.006683375104427736
+      },
+      "phreshphish_phish": {
+        "n": 1140,
+        "recall": 0.6412280701754386
+      }
+    },
+    "notes": []
+  },
+  "top_features": [],
+  "ablation": [],
+  "features_used": [
+    "n_forms",
+    "has_password_field",
+    "n_password_fields",
+    "n_inputs",
+    "n_hidden_inputs",
+    "hidden_input_ratio",
+    "form_external_action",
+    "form_null_action",
+    "form_script_or_mail_action",
+    "has_submit",
+    "has_email_field",
+    "n_links",
+    "ext_link_ratio",
+    "null_link_ratio",
+    "n_images",
+    "ext_image_ratio",
+    "log_text_len",
+    "n_words",
+    "n_tags",
+    "text_per_tag",
+    "log_html_len",
+    "title_len",
+    "title_empty",
+    "title_matches_domain",
+    "title_login_word",
+    "brand_in_title_not_domain",
+    "brand_in_text_not_domain",
+    "n_sensitive_words",
+    "n_scripts",
+    "log_inline_script_len",
+    "ext_script_ratio",
+    "obfuscation_density",
+    "rightclick_blocked",
+    "n_iframes",
+    "hidden_iframe",
+    "meta_refresh",
+    "favicon_missing",
+    "favicon_external",
+    "ext_resource_ratio",
+    "n_sensitive_inputs",
+    "js_redirect",
+    "n_download_links",
+    "install_words",
+    "oauth_links",
+    "thin_page",
+    "has_copyright",
+    "has_lang_attr",
+    "brand_asset_hotlink",
+    "brand_in_logo_alt",
+    "brand_in_meta",
+    "n_ext_domains",
+    "login_form_no_own_links",
+    "form_posts_to_ip_or_http"
+  ],
+  "dropped": [
+    "n_redirects",
+    "redirect_cross_domain",
+    "tls_invalid"
+  ],
+  "options": "--drop n_redirects,redirect_cross_domain,tls_invalid --model hgb --out m2_v3_hgb"
+}
