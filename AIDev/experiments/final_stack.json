@@ -1,0 +1,185 @@
+{
+  "roc_auc": 0.9773876521881841,
+  "pr_auc": 0.9001185075616686,
+  "pr_auc_ci95": [
+    0.8891623563527524,
+    0.9106478832531952
+  ],
+  "recall_at_fpr_all_benign": {
+    "5%": 0.9176515440335493,
+    "2%": 0.8429279451010293,
+    "1%": 0.7773541746092261,
+    "0.5%": 0.706824247045368
+  },
+  "recall_at_fpr_realistic_benign": {
+    "5%": 0.7479984750285932,
+    "2%": 0.6614563476934807,
+    "1%": 0.5947388486465879,
+    "0.5%": 0.540221120853984
+  },
+  "recall_1pct_all_ci95": [
+    0.7554170385679716,
+    0.7962078917163768
+  ],
+  "recall_1pct_realistic_ci95": [
+    0.5622721879449455,
+    0.6317030150394742
+  ],
+  "operating_point_all": {
+    "threshold": 0.987141313263105,
+    "fpr": 0.000731431611144358,
+    "recall": 0.5508959207014869,
+    "precision": 0.9850034083162917,
+    "tp": 1445,
+    "fp": 22,
+    "pos": 2623,
+    "neg": 30078
+  },
+  "operating_point_realistic": {
+    "threshold": 0.987141313263105,
+    "fpr": 0.005709134615384615,
+    "recall": 0.5508959207014869,
+    "precision": 0.9870218579234973,
+    "tp": 1445,
+    "fp": 19,
+    "pos": 2623,
+    "neg": 3328
+  },
+  "threshold_pool": "realistic benign",
+  "brier_raw": 0.07416691521369137,
+  "brier_calibrated": 0.02075369138853705,
+  "by_source": [
+    {
+      "value": "benign_crux_my",
+      "label": 0,
+      "n": 587,
+      "flagged": 0.0
+    },
+    {
+      "value": "benign_crux_tenants",
+      "label": 0,
+      "n": 950,
+      "flagged": 0.01368421052631579
+    },
+    {
+      "value": "own_history",
+      "label": 0,
+      "n": 20,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_history",
+      "label": 0,
+      "n": 3,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_tail",
+      "label": 0,
+      "n": 320,
+      "flagged": 0.003125
+    },
+    {
+      "value": "pages_benign_tail_login",
+      "label": 0,
+      "n": 54,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_top",
+      "label": 0,
+      "n": 173,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_top_login",
+      "label": 0,
+      "n": 31,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_phreshphish_benign",
+      "label": 0,
+      "n": 1190,
+      "flagged": 0.004201680672268907
+    },
+    {
+      "value": "phishtank",
+      "label": 1,
+      "n": 2623,
+      "flagged": 0.5508959207014869
+    },
+    {
+      "value": "phiusiil_benign",
+      "label": 0,
+      "n": 26728,
+      "flagged": 0.00011224184375935348
+    },
+    {
+      "value": "tranco_my",
+      "label": 0,
+      "n": 22,
+      "flagged": 0.0
+    }
+  ],
+  "by_host_type": [
+    {
+      "name": "hosting platforms",
+      "train_phishing": 25782,
+      "train_benign": 3198,
+      "test_phishing": 517,
+      "recall": 0.44294003868471954,
+      "test_benign": 954,
+      "false_positive_rate": 0.013626834381551363
+    },
+    {
+      "name": "other hosts",
+      "train_phishing": 68980,
+      "train_benign": 94945,
+      "test_phishing": 2106,
+      "recall": 0.577397910731244,
+      "test_benign": 29124,
+      "false_positive_rate": 0.00030902348578491963
+    },
+    {
+      "name": ".my hosts",
+      "train_phishing": 56,
+      "train_benign": 2263,
+      "test_phishing": 4,
+      "recall": 0.5,
+      "test_benign": 638,
+      "false_positive_rate": 0.0
+    }
+  ],
+  "phish_on_service": {
+    "n": 4375,
+    "flagged": 0.2861714285714286
+  },
+  "tld_swap_probe": {
+    "phishing_to_com_my": {
+      "n": 2097,
+      "flagged_before": 0.5765379113018598,
+      "flagged_after": 0.2722937529804483
+    },
+    "benign_my_to_com": {
+      "n": 638,
+      "flagged_before": 0.0,
+      "flagged_after": 0.001567398119122257
+    }
+  },
+  "consistency_check_max_abs_diff": 0.0,
+  "config": {
+    "data": "dataset_own.csv",
+    "split": "time",
+    "trees": 300,
+    "fpr": 0.01,
+    "test_frac": 0.2,
+    "val_frac": 0.15,
+    "boot": 200,
+    "seed": 42,
+    "out": "final_stack",
+    "feature_version": 3,
+    "data_rows": 251057,
+    "run_at": "2026-11-15T14:59:47+00:00"
+  }
+}

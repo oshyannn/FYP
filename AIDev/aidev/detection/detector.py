@@ -177,9 +177,10 @@ def _phishtank(url: str) -> phishtank.PhishTankVerdict:
     return verdict
 
 
-# The model is lexical only (see ML_HANDOFF.md): on the test set a probability of 0.7 gives roughly
-# a 2% false-positive rate, while 0.3 gives ~39%. Probabilities below ML_SUSPICIOUS_PROB therefore
-# map to scores below the Suspicious threshold, and the model alone can never exceed Suspicious.
+# Model 1 reads only the text of the address. predict.py returns a RISK SCORE on a rescaled 0..1 line on which the
+# model's validated threshold (chosen on validation data for at most 1% false positives on realistic benign URLs)
+# sits exactly at ML_SUSPICIOUS_PROB. Scores below it map to detector scores below the Suspicious threshold, and the
+# model alone can never exceed Suspicious. This value must equal predict.WARNING_LEVEL (check_result_shape.py tests it).
 ML_SUSPICIOUS_PROB = 0.7
 
 # The content model reads the page itself (forms, title vs domain, hidden iframes...). Measured on pages you crawled
@@ -365,7 +366,7 @@ def _ai1_block(ml: dict | None, ml_score: int | None, shared: bool) -> dict:
     note = " On a public hosting platform only the host name is scored, because the path is a random document ID." if shared else ""
     return {"name": AI1_NAME, "state": "ok", "available": True, "probability": _pct(p), "percent": _pct(p), "score": ml_score,
             "level": _ai_level(ml_score),
-            "description": f"{base} Phishing probability {_pct(p)}%. {verdict} On its own it can raise Suspicious but never Malicious.{note}"}
+            "description": f"{base} Risk score {_pct(p)}% (the warning starts at {ML_SUSPICIOUS_PROB:.0%}). {verdict} On its own it can raise Suspicious but never Malicious.{note}"}
 
 
 def _ai2_block(content: dict | None, ai2_score: int | None, skipped_why: str | None) -> dict:
@@ -514,7 +515,7 @@ def _ai_for_list(url: str, ck: _Checks) -> dict:
     comb = _ai_combined(ml_score, content_score)
     ai1_hit = ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS
     ck.add("ai1", "no_opinion" if ml_score is None else "match" if ai1_hit else "clear",
-           f"Phishing probability {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
+           f"Risk score {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
            ml_score, "risk" if ai1_hit else "none")
     if ai2["state"] == "ok":
         hot = [c for c in ai2["categories"] if c["triggered"]]
@@ -712,7 +713,7 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     if ml is not None:
         ml_score = _ml_to_score(ml["probability"])
         scores.append(ml_score)
-        reasons.append(f"ML model phishing probability {ml['probability']:.0%}")
+        reasons.append(f"URL model risk score {ml['probability']:.0%} (the warning starts at {ML_SUSPICIOUS_PROB:.0%})")
 
     pt_score = pt.risk_contribution if pt is not None else None
     non_ml = [x for x in (pt_score, sb_score, la_score) if x is not None]
@@ -798,7 +799,7 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     ai2 = _ai2_block(content, ai2_score, ai2_skip)
     ai_comb = _ai_combined(ml_score, ai2_score)
     ck.add("ai1", "no_opinion" if ml_score is None else "match" if ml_score >= THRESHOLD_SUSPICIOUS else "clear",
-           f"Phishing probability {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
+           f"Risk score {ai1['percent']}%" if ml is not None else "No opinion (model missing or address could not be scored)",
            ml_score, "risk" if ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS else "none")
     if ai2["state"] == "ok":
         hot = [c for c in ai2["categories"] if c["triggered"]]

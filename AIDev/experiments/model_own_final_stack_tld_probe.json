@@ -1,0 +1,60 @@
+{
+  "model": "model_own_final_stack.joblib",
+  "threshold": 0.987141313263105,
+  "all_ordinary_phishing": {
+    "original": {
+      "n": 2102,
+      "flagged": 0.5775451950523312,
+      "mean_raw_probability": 0.9041586277848045
+    },
+    ".com": {
+      "n": 1501,
+      "flagged": 0.5463024650233178,
+      "flagged_before_same_urls": 0.737508327781479,
+      "mean_raw_probability": 0.8804904558774967
+    },
+    ".com.sg": {
+      "n": 2097,
+      "flagged": 0.4587505960896519,
+      "flagged_before_same_urls": 0.5765379113018598,
+      "mean_raw_probability": 0.8573309081325926
+    },
+    ".com.au": {
+      "n": 2097,
+      "flagged": 0.43061516452074394,
+      "flagged_before_same_urls": 0.5765379113018598,
+      "mean_raw_probability": 0.8205560732217976
+    },
+    ".com.my": {
+      "n": 2097,
+      "flagged": 0.2722937529804483,
+      "flagged_before_same_urls": 0.5765379113018598,
+      "mean_raw_probability": 0.6130001263126625
+    }
+  },
+  "originally_dot_com": {
+    "original": {
+      "n": 596,
+      "flagged": 0.17114093959731544,
+      "mean_raw_probability": 0.7856877624479942
+    },
+    ".com.sg": {
+      "n": 596,
+      "flagged": 0.1644295302013423,
+      "flagged_before_same_urls": 0.17114093959731544,
+      "mean_raw_probability": 0.7714363954397556
+    },
+    ".com.au": {
+      "n": 596,
+      "flagged": 0.13926174496644295,
+      "flagged_before_same_urls": 0.17114093959731544,
+      "mean_raw_probability": 0.7120897269940921
+    },
+    ".com.my": {
+      "n": 596,
+      "flagged": 0.04697986577181208,
+      "flagged_before_same_urls": 0.17114093959731544,
+      "mean_raw_probability": 0.40475361596486725
+    }
+  }
+}

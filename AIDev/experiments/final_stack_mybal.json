@@ -1,0 +1,187 @@
+{
+  "roc_auc": 0.9753582228967425,
+  "pr_auc": 0.8976652353474318,
+  "pr_auc_ci95": [
+    0.8881046807355704,
+    0.9077612600630695
+  ],
+  "recall_at_fpr_all_benign": {
+    "5%": 0.9149828440716736,
+    "2%": 0.8444529165078155,
+    "1%": 0.770110560426992,
+    "0.5%": 0.7155928326343881
+  },
+  "recall_at_fpr_realistic_benign": {
+    "5%": 0.7510484178421655,
+    "2%": 0.6629813191002669,
+    "1%": 0.6050324056423942,
+    "0.5%": 0.497140678612276
+  },
+  "recall_1pct_all_ci95": [
+    0.7532509599116614,
+    0.7931629432416046
+  ],
+  "recall_1pct_realistic_ci95": [
+    0.5624672369424323,
+    0.6333343012001549
+  ],
+  "operating_point_all": {
+    "threshold": 0.9878132009818806,
+    "fpr": 0.0008311722853913159,
+    "recall": 0.5478459778879146,
+    "precision": 0.9829001367989056,
+    "tp": 1437,
+    "fp": 25,
+    "pos": 2623,
+    "neg": 30078
+  },
+  "operating_point_realistic": {
+    "threshold": 0.9878132009818806,
+    "fpr": 0.006310096153846154,
+    "recall": 0.5478459778879146,
+    "precision": 0.98559670781893,
+    "tp": 1437,
+    "fp": 21,
+    "pos": 2623,
+    "neg": 3328
+  },
+  "threshold_pool": "realistic benign",
+  "brier_raw": 0.07653155000674063,
+  "brier_calibrated": 0.021006615441012295,
+  "by_source": [
+    {
+      "value": "benign_crux_my",
+      "label": 0,
+      "n": 587,
+      "flagged": 0.0017035775127768314
+    },
+    {
+      "value": "benign_crux_tenants",
+      "label": 0,
+      "n": 950,
+      "flagged": 0.01263157894736842
+    },
+    {
+      "value": "own_history",
+      "label": 0,
+      "n": 20,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_history",
+      "label": 0,
+      "n": 3,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_tail",
+      "label": 0,
+      "n": 320,
+      "flagged": 0.00625
+    },
+    {
+      "value": "pages_benign_tail_login",
+      "label": 0,
+      "n": 54,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_top",
+      "label": 0,
+      "n": 173,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_benign_top_login",
+      "label": 0,
+      "n": 31,
+      "flagged": 0.0
+    },
+    {
+      "value": "pages_phreshphish_benign",
+      "label": 0,
+      "n": 1190,
+      "flagged": 0.005042016806722689
+    },
+    {
+      "value": "phishtank",
+      "label": 1,
+      "n": 2623,
+      "flagged": 0.5478459778879146
+    },
+    {
+      "value": "phiusiil_benign",
+      "label": 0,
+      "n": 26728,
+      "flagged": 0.000149655791679138
+    },
+    {
+      "value": "tranco_my",
+      "label": 0,
+      "n": 22,
+      "flagged": 0.0
+    }
+  ],
+  "by_host_type": [
+    {
+      "name": "hosting platforms",
+      "train_phishing": 25782,
+      "train_benign": 3198,
+      "test_phishing": 517,
+      "recall": 0.44294003868471954,
+      "test_benign": 954,
+      "false_positive_rate": 0.012578616352201259
+    },
+    {
+      "name": "other hosts",
+      "train_phishing": 68980,
+      "train_benign": 94945,
+      "test_phishing": 2106,
+      "recall": 0.5735992402659069,
+      "test_benign": 29124,
+      "false_positive_rate": 0.00044636725724488395
+    },
+    {
+      "name": ".my hosts",
+      "train_phishing": 56,
+      "train_benign": 2263,
+      "test_phishing": 4,
+      "recall": 0.5,
+      "test_benign": 638,
+      "false_positive_rate": 0.001567398119122257
+    }
+  ],
+  "phish_on_service": {
+    "n": 4375,
+    "flagged": 0.3001142857142857
+  },
+  "synthetic_my_phishing_rows": 2102,
+  "tld_swap_probe": {
+    "phishing_to_com_my": {
+      "n": 2097,
+      "flagged_before": 0.5727229375298045,
+      "flagged_after": 0.4372913686218407
+    },
+    "benign_my_to_com": {
+      "n": 638,
+      "flagged_before": 0.001567398119122257,
+      "flagged_after": 0.001567398119122257
+    }
+  },
+  "consistency_check_max_abs_diff": 0.0,
+  "config": {
+    "data": "dataset_own.csv",
+    "split": "time",
+    "trees": 300,
+    "fpr": 0.01,
+    "test_frac": 0.2,
+    "val_frac": 0.15,
+    "boot": 200,
+    "seed": 42,
+    "balance_my": true,
+    "out": "final_stack_mybal",
+    "feature_version": 3,
+    "data_rows": 251057,
+    "run_at": "2026-11-15T15:43:24+00:00"
+  }
+}
