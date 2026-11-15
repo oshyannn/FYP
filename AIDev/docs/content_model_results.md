@@ -19,6 +19,10 @@ generic templates). Training cap of 20 pages per campaign removed 544 of 10,932 
 | split by campaign (`m2_v3`) | 3,085 | 0.938 [0.915, 0.957] | 0.944 [0.929, 0.956] | 0.538 [0.459, 0.641] |
 | only pages crawled by ourselves, by campaign (`m2_v3_own`) | 1,113 | 0.610 [0.532, 0.683] | 0.794 [0.751, 0.832] | 0.131 [0.081, 0.250] |
 
+Accuracy at probability 0.5 (the operating point of the first, uncorrected report), campaign split: accuracy 0.877 [0.858, 0.893],
+recall 0.802, false-positive rate 6.7%, precision 0.900. Own pages only: accuracy 0.810, recall 0.569, false-positive rate 11.5%,
+precision 0.610. The final re-runs (`m2_v3_final`, `m2_v3_own_final`, seed 42) reproduced every number above exactly.
+
 The old-style split is a little more optimistic than the campaign split, but the two test sets differ and the intervals
 overlap, so this is a direction, not proof. The large gap is between the first two rows and the last: on pages like the ones
 the live detector fetches, the model is much weaker than the headline numbers. The first two rows are dominated by PhreshPhish
@@ -105,8 +109,51 @@ Own crawl: 1,021 phishing pages (`phish_feed`) and 3,000 benign pages; PhreshPhi
 phishing pages are only 6.5% of all pages, which is one reason for the weak result on pages that look like the live ones
 (see `--own-weight` and `--val-own-only` in `train_content2.py`).
 
-## 10. Limits (state in the report)
+## 10. Own-crawl pages: what goes wrong (error analysis at the 1% false-positive point)
 
+Own-pages test (267 phishing, 846 benign): 232 of 267 phishing pages missed (86.9%), 8 benign pages flagged (0.9%).
+
+| why the phishing page was missed | pages | share |
+|---|---|---|
+| tiny page: almost no text (< 30 words) | 97 | 41.8% |
+| no form at all (landing / lure page) | 55 | 23.7% |
+| has a form, nothing sensitive | 53 | 22.8% |
+| redirector page (meta refresh / JavaScript) | 21 | 9.1% |
+| credential form, no other strong signal | 6 | 2.6% |
+
+Benign pages wrongly flagged: 62.5% (own pages) and 76.5% (mixed test) are also tiny pages. Many missed own-crawl phishing URLs are
+link shorteners (`qrco.de`, `l.ead.me`, `1sh.co`, `ezurl.nl`), redirect pages (`vk.com/away.php`) or pages on legitimate form /
+page-builder platforms (`jotform`, `surveysparrow`, `plutio`, `kobotoolbox`): the saved HTML is the platform's own page, and the
+phishing is only at the destination. A static page-content model cannot see it; the label belongs to the URL, not to the saved page.
+
+## 11. Weighting pages crawled by ourselves (`--own-weight`), own-pages test, seed 42
+
+| run | PR-AUC | ROC-AUC | recall at 1% FPR | accuracy / recall / FPR at probability 0.5 | recall / FPR at validation threshold |
+|---|---|---|---|---|---|
+| weight 1 | 0.610 [0.532, 0.683] | 0.794 | 0.131 | 0.810 / 0.569 / 0.115 | 0.266 / 0.020 |
+| weight 3 | 0.626 [0.549, 0.697] | 0.808 | 0.142 | 0.818 / 0.558 / 0.100 | 0.135 / 0.005 |
+| weight 6 | 0.622 [0.542, 0.698] | 0.811 | 0.150 | 0.816 / 0.566 / 0.105 | 0.112 / 0.005 |
+
+Weighting gives a small gain in ranking (ROC-AUC 0.794 -> 0.808) that is far inside the confidence intervals (about +-0.07): not
+a demonstrated improvement. `--val-own-only` does not change the model, only calibration and threshold; the resulting threshold
+keeps the false-positive rate at 0.5% (target 1%) and recall at 0.11. For comparison with the first, uncorrected report: accuracy
+at probability 0.5 is 0.81-0.82 on own pages (the original 0.88 was measured on the mixed split).
+
+## 12. Limits (state in the report)
+
+- Platform/shortener rule (exploratory; defined after the first error analysis, so not a clean test). A domain with at least 5
+  phishing pages in the data is a platform; the rule uses the SUBMITTED host (`url_domain`), not `group` (the landing domain;
+  the first version used `group` and excluded 0 pages). Test pages without the phishing pages on such domains:
+
+  | test | phishing pages removed | PR-AUC | ROC-AUC | recall at 1% FPR | accuracy at 0.5 |
+  |---|---|---|---|---|---|
+  | campaign split, all pages | 0 | 0.938 | 0.944 | 0.538 | 0.877 |
+  | campaign split, without platform phishing | 57 of 1,330 | 0.946 | 0.954 | 0.561 | 0.888 |
+  | own pages, all pages | 0 | 0.610 | 0.794 | 0.131 | 0.810 |
+  | own pages, without platform phishing | 65 of 267 | 0.633 | 0.856 | 0.173 | 0.843 |
+
+  Removing phishing pages changes the class balance, so PR-AUC is not comparable between rows. Even without these pages, recall
+  at 1% false positives on own pages is only 0.17: platform pages explain part of the weakness, not all of it.
 - Static HTML only: content built by JavaScript and cloaked pages are not seen. Headless rendering, screenshot similarity and
   re-crawling are future work.
 - Part of the own-crawl phishing pages are on shared platforms or link shorteners, where the saved page is the platform's own

@@ -36,7 +36,7 @@ class AnalyseTests(unittest.TestCase):
         self.pred = pd.DataFrame({"label": (np.arange(n) % 2), "prob": np.clip(rng.normal(0.3 + 0.4 * (np.arange(n) % 2), 0.25), 0, 1),
                                   "group": np.arange(n) // 3,                      # numeric campaign ids, as train_content2 writes them
                                   "source": np.where(np.arange(n) % 2 == 1, "phish_feed", np.where(np.arange(n) % 4 == 0, "benign_history", "benign_top")),
-                                  "url": [f"http://s{i}.example.com/x" for i in range(n)]})
+                                  "url": [f"http://s{i}.{'tinyurl.com' if i % 5 == 0 else f'site{i}.com'}/x" for i in range(n)]})
         self.feats = pd.DataFrame({"url": self.pred.url, "group": [f"g{i}.com" if i % 5 else "tinyurl.com" for i in range(n)], "n_words": rng.integers(0, 300, n), "n_forms": rng.integers(0, 3, n),
                                    "has_password_field": rng.integers(0, 2, n), "ext_link_ratio": rng.random(n), "thin_page": 0})
 
@@ -52,10 +52,34 @@ class AnalyseTests(unittest.TestCase):
                 self.assertTrue(x["url"].startswith("(hidden"))
         self.assertIn("shared hosting", " ".join(r["fn_causes"]))
         self.assertIn("# Error analysis", ea.to_markdown(r, "t"))
+        rd = r["readability"]
+        self.assertEqual(sum(v["phishing"] + v["benign"] for v in rd.values()), r["n_pages"])
+        self.assertEqual(sum(v["phishing_flagged"] for v in rd.values()), r["n_phishing"] - r["n_fn"])
+        self.assertEqual(sum(v["benign_flagged"] for v in rd.values()), r["n_fp"])
+        self.assertIn("page length alone", ea.to_markdown(r, "t"))
 
     def test_default_threshold_is_one_percent_fpr(self):
         r = ea.analyse(self.pred, self.feats, n=5)
         self.assertLessEqual(r["n_fp"] / r["n_benign"], 0.0101)
+
+
+class PlatformTests(unittest.TestCase):
+    def test_domains_with_many_phishing_pages(self):
+        from aidev.evaluation.platform_domains import platform_domains
+        d = ["a.com"] * 5 + ["b.com"] * 4 + ["c.com"] * 9
+        y = [1] * 5 + [1] * 4 + [0] * 9                       # c.com is benign: never a platform
+        self.assertEqual(platform_domains(d, y, 5), {"a.com"})
+        self.assertEqual(platform_domains(d, y, 4), {"a.com", "b.com"})
+
+    def test_error_analysis_uses_the_rule(self):
+        n = 60
+        pred = pd.DataFrame({"label": [1] * n, "prob": [0.1] * n, "group": range(n), "source": "phish_feed",
+                             "url": ["http://short.ly/a%d" % i for i in range(10)] + [f"http://x{i}.com/" for i in range(n - 10)]})
+        # `group` is the LANDING domain (as in the real cache): the shortener's pages land on 10 different sites
+        feats = pd.DataFrame({"url": pred.url, "label": 1, "group": [f"land{i}.com" for i in range(n)],
+                              "n_words": 500, "n_forms": 1, "has_password_field": 1})
+        r = ea.analyse(pred, feats, threshold=0.5, n=5, shared=set())
+        self.assertEqual(sum(v for k, v in r["fn_causes"].items() if "shared hosting" in k), 10)
 
 
 class CoverageTests(unittest.TestCase):

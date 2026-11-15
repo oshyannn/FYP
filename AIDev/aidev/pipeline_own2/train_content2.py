@@ -50,6 +50,7 @@ from aidev.core.common import CONTENT_METRICS_PATH, CONTENT_MODEL_PATH, EXPERIME
 from aidev.detection import content_features as cf
 from aidev.evaluation import campaign_dedup as dedup
 from aidev.evaluation import eval_content_own as ev
+from aidev.evaluation.platform_domains import platform_domains, url_domain
 
 V3_FEATURES = ["brand_asset_hotlink", "brand_in_logo_alt", "brand_in_meta", "n_ext_domains", "login_form_no_own_links",
                "form_posts_to_ip_or_http"]
@@ -214,6 +215,14 @@ def evaluate_split(df, names, train, val, test, cap, seed, n_boot, kind="rf", ow
     args = (te.label.to_numpy(), None, te.cluster.to_numpy(), te.source.to_numpy())
     res_raw = ev.evaluate(args[0], raw, args[2], args[3], n_boot=n_boot, seed=seed, extra_thresholds=(0.5,))
     res_cal = ev.evaluate(args[0], calp, args[2], args[3], n_boot=n_boot, seed=seed, fixed_threshold=thr)
+    # exploratory: the same test pages without phishing pages that sit on platform / shortener domains
+    sub = df.url.map(url_domain)                      # submitted host; `group` is the landing domain
+    plat = platform_domains(sub, df.label)
+    keep = ~((te.label.to_numpy() == 1) & sub[te.index].isin(plat).to_numpy())
+    res_raw["without_platform_phishing"] = {
+        "excluded_pages": int((~keep).sum()), "n_platform_domains": len(plat),
+        **ev.evaluate(te.label.to_numpy()[keep], raw[keep], te.cluster.to_numpy()[keep], te.source.to_numpy()[keep],
+                      n_boot=max(100, n_boot // 3), seed=seed, extra_thresholds=(0.5,))}
     return model, cal, thr, cap_report, val_op, raw, calp, res_raw, res_cal
 
 
@@ -267,6 +276,15 @@ def markdown(name, mode, args, sizes, dedup_report, cap_report, res_raw, res_cal
         L.append(f"| {s} | {d['n']} | {d.get('fpr', float('nan')):.4f} | {d.get('recall', float('nan')):.4f} |")
     if res_raw["notes"]:
         L += ["", *[f"- NOTE: {n}" for n in res_raw["notes"]]]
+    w = res_raw.get("without_platform_phishing")
+    if w:
+        L += ["", "## Exploratory: phishing pages on platform / shortener domains left out", "",
+              f"Rule fixed after the first error analysis (domain with at least 5 phishing pages in the data; {w['n_platform_domains']} such domains); "
+              f"{w['excluded_pages']} test pages excluded. Report next to, never instead of, the table above.", "",
+              "| metric (raw probability) | value | 95% CI |", "|---|---|---|"]
+        for k in ("pr_auc", "roc_auc", "recall@fpr1%", "t0.5_accuracy", "t0.5_recall", "t0.5_fpr"):
+            if k in w["point"]:
+                L.append(f"| {k} | {w['point'][k]:.4f} | [{w['ci95'][k][0]:.4f}, {w['ci95'][k][1]:.4f}] |")
     if abl:
         L += ["", "## Ablation by feature group (group removed, same split, raw probabilities)", "",
               "| removed group | features left | PR-AUC [95% CI] | recall @1% FPR [95% CI] |", "|---|---|---|---|"]
@@ -304,6 +322,9 @@ def main(pages_dir=PAGES, drop=None, test_on="", no_dedup=False, cap=20, n_boot=
     model, cal, thr, cap_report, val_op, raw, calp, res_raw, res_cal = evaluate_split(df, names, train, val, test, cap, seed, n_boot, kind, own_weight, val_own_only)
     print(f"\n== TEST, raw model probability ==\n{ev.format_report(res_raw)}")
     print(f"\n== TEST, calibrated probability, threshold {thr:.4f} fixed on validation ==\n{ev.format_report(res_cal)}")
+    w = res_raw["without_platform_phishing"]
+    print(f"\n== exploratory: without {w['excluded_pages']} phishing test pages on platform/shortener domains ==")
+    print("  " + "  ".join(f"{k} {w['point'][k]:.3f}" for k in ("pr_auc", "roc_auc", "recall@fpr1%", "t0.5_accuracy", "t0.5_recall", "t0.5_fpr")))
     print(f"training cap: {json.dumps(cap_report)}")
     imp = sorted(zip(names, getattr(model, "feature_importances_", np.zeros(len(names)))), key=lambda x: -x[1])[:12] \
         if hasattr(model, "feature_importances_") else []

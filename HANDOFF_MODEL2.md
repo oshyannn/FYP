@@ -169,3 +169,47 @@ Paste back: the `campaigns:` line, the `split` line, and the "TEST" blocks + abl
   * BUG found by the user's run: `error_analysis.py` crashed (`'int' object has no attribute 'lower'`) because the preds CSV stores numeric campaign ids in `group`; fixed (domain now taken from the feature table); test now mirrors the real file. 
   * Delivered ONE cumulative zip `model2_all.zip` (supersedes patches 1-4): unpack once over the repo.
   Next: user unpacks, reruns error_analysis (both preds files), then the own-weight / val-own-only runs (see message), then seeds 7 and 11 for the winner.
+- 2026-11-14 23:45 (chat 2): user unpacked model2_all.zip (58 tests OK) and ran error_analysis + own-weight runs.
+  * error_analysis own (m2_v3_own): 232/267 phishing missed at 1% FPR; causes: tiny page 41.8%, no form 23.7%, form but nothing sensitive 22.8%, redirector 9.1%, credential form 2.6%. FPs (8): 62.5% tiny pages. Mixed test: 614/1,330 missed (462 phreshphish, 152 phish_feed); 17 FPs, 76.5% tiny pages. Missed own-crawl URLs are mostly link shorteners / redirect pages / legitimate form platforms (saved HTML = the platform's page; label belongs to the URL). The `shared_hosts.txt` rule caught almost none (0.7%): shorteners are not in that list.
+  * own-weight (own pages, seed 42): w1 ROC 0.794 / PR 0.610; w3 0.808 / 0.626; w6 0.811 / 0.622: gain far inside CI. Accuracy@0.5 0.81-0.82 on own pages (recall 0.56, FPR 0.10-0.115). val-own-only: same model as w3; threshold 0.875 gives recall 0.109, FPR 0.5%.
+  * OPEN QUESTION (diagnostic added to error_analysis.py, section "Are the catches coming from page length alone?"): tiny pages get high scores both for phishing and benign pages; if most caught phishing pages are tiny pages, the model's own-page skill is largely "short page = suspicious". User to rerun error_analysis (m2_v3_own, own_w3, m2_v3). Depending on the answer: option A, abstain on tiny pages (probability None = no opinion, same convention as JS-only pages; report coverage honestly); option B, keep as is and state the limitation.
+  * results doc extended (sections 11-12; limits now section 13).
+- 2026-11-15 06:20 (chat 2): user ran patch-4 options + error analysis. Results (all in docs/content_model_results.md sections 10-12):
+  * error analysis own pages: 232/267 phishing missed at the 1%-FPR point; causes: tiny page 41.8%, no form 23.7%, form nothing sensitive 22.8%, redirector 9.1%, credential form 2.6%. About 20 of 30 sampled misses are on shorteners / QR redirectors / survey+form builders / free hosts (saved page = platform's own). Benign FPs mostly tiny pages (62%-76%).
+  * own-weight 1/3/6: PR-AUC 0.610/0.626/0.622, ROC 0.794/0.808/0.811, recall@1%FPR 0.131/0.142/0.150: not significant (CI width ~0.07). Default stays weight 1. accuracy@0.5 own pages 0.81 (recall 0.56-0.57, FPR 10-11.5%, precision 0.61-0.64). val-own-only changes only the calibrated threshold (recall 0.109 at FPR 0.5%).
+  * NOTE: while I worked, `AIDev/aidev/evaluation/error_analysis.py` on disk gained a `readability()` function and a "Are the catches coming from page length alone?" table that I did not write (not in the user's earlier run output). Kept it; made it tolerant of missing columns.
+  * New in this round: `evaluation/platform_domains.py` (domain with >= 5 phishing pages = platform / shortener; domain+label only, never a prediction; defined AFTER the first error analysis, so exploratory), used by error_analysis (cause "shared hosting / link-shortener platform") and by train_content2 (supplementary block `without_platform_phishing` in the report: same test pages without phishing pages on such domains; printed as "exploratory"). 60 tests pass in the sandbox.
+  Still open: seeds 7 and 11 for w1 and w3 (only if the user wants a claim about weighting); rerun m2_v3 / m2_v3_own to get the exploratory block; final zip = model2_all.zip (cumulative).
+
+## 2026-11-16 (model 2 chat)
+- m2_v3_final and m2_v3_own_final re-run on the user's PC: every number identical to m2_v3 / m2_v3_own (reproducible, seed 42).
+- Accuracy at probability 0.5 added to docs/content_model_results.md section 2 (campaign split 0.877; own pages 0.810).
+- Docs sections renumbered 1-12 (old file jumped from 9 to 11).
+- OPEN: the exploratory platform-domain block prints "without 0 phishing test pages" on both real runs. The logic works on a toy
+  example, so the cause is in the real `group` values. Diagnostic for the user:
+  python -c "import joblib,pandas as pd; d=joblib.load('data/pages/features_cache.joblib')['df']; p=d[d.label==1]; print(p.group.value_counts().head(12)); print(d[d.url.str.contains('qrco.de')][['url','group','source']].head())"
+  No exploratory number may be claimed until this is resolved.
+- The zip sent earlier on 2026-11-15/16 had the old doc and handoff; superseded by the zip below.
+
+## 2026-11-16 00:55 (model 2 chat)
+- DIAGNOSED: platform rule excluded 0 pages because cache `group` = landing domain (qrco.de/bftmjd has group linkedin.com);
+  max 4 phishing pages per group. Fix: `platform_domains.url_domain(url)` = registered domain of the submitted URL; used in
+  train_content2.evaluate_split and error_analysis.analyse. Tests updated (group now landing domain, as in real data).
+- TODO (user): re-run `m2_v3_final` / `m2_v3_own_final` (same names ok, numbers outside the exploratory line must stay identical)
+  and `error_analysis` for both; then read the exploratory line. Do not quote it before.
+
+## 2026-11-16 01:00 (model 2 chat)
+- User PC: 60 tests OK. m2_v3_final2 reproduces all main numbers; exploratory platform rule now works.
+  campaign split: 57/1330 phishing removed -> PR-AUC 0.946, ROC 0.954, recall@1% 0.561, acc@0.5 0.888.
+  own pages: 65/267 removed -> PR-AUC 0.633, ROC 0.856, recall@1% 0.173, acc@0.5 0.843. Documented in results section 12.
+- Next (optional): error_analysis re-run for both preds files (now uses submitted host); seeds 7/11; threshold on own validation.
+
+## 2026-11-16 01:10 (model 2 chat): end-to-end check on synthetic data
+- Ran in the sandbox on synthetic pages (plumbing only; synthetic data is trivially separable, so metrics of 1.0 mean nothing):
+  train_content2 default / --test-on own / --model hgb / --own-weight 3 --val-own-only / --ablate --no-cache / --promote,
+  then error_analysis, summarize_runs, feature_coverage, eval_content_own CLI: all ran without errors.
+- Promoted bundle loads: keys calibrator, feature_names, feature_version (== content_features), model, threshold; one HTML
+  page goes through extract -> model -> calibrator -> threshold -> flagged. Zip unpacks with the repo's relative paths and compiles.
+- Known cosmetic: sklearn warns "X does not have valid feature names" (predict_content passes a list, as in the old code).
+- Edge case: on perfectly separable data the saved threshold can be ~0 (5e-324); not reachable on real data (0.87 / 0.80).
+- Not testable in the sandbox: pagefetch / page_signals (model 1 files, no network). The user's PC ran those tests: 60 OK.

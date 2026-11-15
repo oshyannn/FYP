@@ -21,6 +21,7 @@ import pandas as pd
 from aidev.core import common
 from aidev.core.common import PAGES
 from aidev.evaluation import eval_content_own as ev
+from aidev.evaluation.platform_domains import platform_domains, url_domain
 
 
 def defang(url: str) -> str:
@@ -30,7 +31,7 @@ def defang(url: str) -> str:
 def cause_fn(f: dict, on_shared_host: bool) -> str:
     """Why was this PHISHING page missed? First matching rule wins."""
     if on_shared_host:
-        return "on a shared hosting / link-shortener platform (the saved page may be the platform's own)"
+        return "on a shared hosting / link-shortener platform (the saved page may be the platform's own; domain with many phishing pages)"
     if f.get("thin_page", 0) or f.get("n_words", 0) < 30:
         return "tiny page: almost no text to judge"
     if f.get("meta_refresh", 0) or f.get("js_redirect", 0):
@@ -61,9 +62,11 @@ def _shared(group, shared: set[str]) -> bool:
 
 
 def analyse(pred: pd.DataFrame, feats: pd.DataFrame, threshold: float | None = None, n: int = 30, seed: int = 42,
-            shared: set[str] | None = None) -> dict:
+            shared: set[str] | None = None, platform_min: int = 5) -> dict:
     """Join predictions with features by url, find the errors, give each a cause."""
-    shared = shared or set()
+    shared = set(shared or set())
+    if {"url", "label"} <= set(feats.columns):                     # the feature cache has both
+        shared |= platform_domains(feats.url.map(url_domain), feats.label, platform_min)
     f = feats.drop_duplicates("url").set_index("url")
     d = pred.copy()
     d = d[d.url.isin(f.index)].reset_index(drop=True)
@@ -72,14 +75,32 @@ def analyse(pred: pd.DataFrame, feats: pd.DataFrame, threshold: float | None = N
     fp = d[(d.label == 0) & (d.prob >= threshold)]
     fn = d[(d.label == 1) & (d.prob < threshold)]
     # the predictions file only has numeric campaign ids in `group`; the domain comes from the feature table
-    rows = lambda x, fn_: [fn_(f.loc[u].to_dict(), f.loc[u].get("group", "")) for u in x.url]
+    rows = lambda x, fn_: [fn_(f.loc[u].to_dict(), url_domain(u)) for u in x.url]
     fn_c = pd.Series(rows(fn, lambda ft, g: cause_fn(ft, _shared(g, shared))), index=fn.index, dtype=object)
     fp_c = pd.Series(rows(fp, lambda ft, g: cause_fp(ft)), index=fp.index, dtype=object)
     return {"threshold": float(threshold), "n_pages": int(len(d)), "n_fp": int(len(fp)), "n_fn": int(len(fn)),
             "n_benign": int((d.label == 0).sum()), "n_phishing": int((d.label == 1).sum()),
+            "readability": readability(d, f, threshold),
             "fn_causes": fn_c.value_counts().to_dict(), "fp_causes": fp_c.value_counts().to_dict(),
             "fn_sources": fn.source.value_counts().to_dict(), "fp_sources": fp.source.value_counts().to_dict(),
             "fn_sample": _sample(fn, fn_c, f, n, seed, True), "fp_sample": _sample(fp, fp_c, f, n, seed, False)}
+
+
+def readability(d: pd.DataFrame, f: pd.DataFrame, threshold: float) -> dict:
+    """At the threshold: how many pages are 'tiny' (thin_page or fewer than 30 words) and how many of each class are
+    flagged inside the tiny and the readable group. Shows whether the catches come from page length alone."""
+    ft = f.loc[d.url]
+    thin = ft["thin_page"].to_numpy() > 0 if "thin_page" in ft.columns else np.zeros(len(ft), dtype=bool)
+    words = ft["n_words"].to_numpy() if "n_words" in ft.columns else np.full(len(ft), 10_000)
+    tiny = thin | (words < 30)
+    flagged = d.prob.to_numpy() >= threshold
+    y = d.label.to_numpy()
+    out = {}
+    for name, m in (("tiny page (< 30 words)", tiny), ("readable page", ~tiny)):
+        ph, be = m & (y == 1), m & (y == 0)
+        out[name] = {"phishing": int(ph.sum()), "phishing_flagged": int((ph & flagged).sum()),
+                     "benign": int(be.sum()), "benign_flagged": int((be & flagged).sum())}
+    return out
 
 
 def _sample(errs: pd.DataFrame, causes: pd.Series, f: pd.DataFrame, n: int, seed: int, is_phish: bool) -> list[dict]:
@@ -103,6 +124,13 @@ def to_markdown(res: dict, title: str = "") -> str:
          "## Why phishing pages were missed (all of them)", "", "| cause | pages | share |", "|---|---|---|"]
     L += [f"| {k} | {v} | {v / max(res['n_fn'], 1):.1%} |" for k, v in res["fn_causes"].items()]
     L += ["", "False negatives by source: " + ", ".join(f"{k} {v}" for k, v in res["fn_sources"].items()), "",
+          "## Are the catches coming from page length alone?", "",
+          "| group | phishing pages | phishing flagged | recall | benign pages | benign flagged | false-positive rate |",
+          "|---|---|---|---|---|---|---|"]
+    for k, v in res["readability"].items():
+        L.append(f"| {k} | {v['phishing']} | {v['phishing_flagged']} | {v['phishing_flagged'] / max(v['phishing'], 1):.1%} | "
+                 f"{v['benign']} | {v['benign_flagged']} | {v['benign_flagged'] / max(v['benign'], 1):.1%} |")
+    L += ["",
           "## Why benign pages were flagged (all of them)", "", "| cause | pages | share |", "|---|---|---|"]
     L += [f"| {k} | {v} | {v / max(res['n_fp'], 1):.1%} |" for k, v in res["fp_causes"].items()]
     L += ["", "False positives by source: " + ", ".join(f"{k} {v}" for k, v in res["fp_sources"].items()), ""]
