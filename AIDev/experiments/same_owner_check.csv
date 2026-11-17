@@ -1,0 +1,20 @@
+domain_a,domain_b,sim,verdict,evidence,human_label
+medallia.com,medallia.eu,1,same,"page of medallia.eu links to medallia.com | same copyright owner text: ['associated', 'copy', 'logo', 'marks', 'medallia']",same
+cloud.microsoft,office.com,1,same,"page of cloud.microsoft links to office.com | page of office.com links to cloud.microsoft | same copyright owner text: ['copy', 'microsoft']",same
+shopee.sg,shopee.com,1,unknown,no shared link or copyright owner found,same
+shopee.vn,shopee.sg,1,unknown,no shared link or copyright owner found,same
+xhnetwork.live,xhamster46.desi,0.9,same,"same copyright owner text: ['copy', 'd16dd', 'false', 'isdesktop', 'iso']",
+mercadolivre.com.br,mercadolibre.com.mx,0.988,same,"page of mercadolivre.com.br links to mercadolibre.com.mx | page of mercadolibre.com.mx links to mercadolivre.com.br | same copyright owner text: ['are', 'auto', 'below', 'border', 'color']",same
+fb.com,fb.me,0.952,same,"same copyright owner text: ['bot', 'dashboard', 'error', 'intern', 'list']",same
+wix.com,dmac-solutions.net,0.6,unknown,no shared link or copyright owner found,
+filmyfly.soy,filmyfly.fail,1,unknown,no shared link or copyright owner found,
+1drv.com,cloudappsecurity.com,1,same,same copyright owner text: ['microsoft'],same
+gb.net,us.com,0.779,same,same copyright owner text: ['copyright'],
+shopee.co.id,shopee.sg,1,unknown,no shared link or copyright owner found,same
+esquire.com,goodhousekeeping.com,0.604,same,"same copyright owner text: ['comp', 'copyright', 'family', 'font', 'footer']",same
+tech.blog,home.blog,0.565,unknown,no shared link or copyright owner found,
+hotstar.com,hulu.com,1,same,"same copyright owner text: ['disney', 'entities', 'its', 'related']",same
+shopee.com.my,shopee.sg,1,unknown,no shared link or copyright owner found,same
+xn--12c1ezaww.com,ex.co,0.625,unknown,no shared link or copyright owner found,
+tinyletter.com,mailchimp.com,0.522,same,page of tinyletter.com links to mailchimp.com,same
+vivacom.it,xn--12c1ezaww.com,0.773,unknown,no shared link or copyright owner found,

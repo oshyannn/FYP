@@ -1,0 +1,42 @@
+[
+  {
+    "file": "benign_login.html",
+    "title": "1. Ordinary login page (own domain)",
+    "url": "https://examplebank.test/login",
+    "expected": "not flagged",
+    "why": "The form sends data to its own domain, and the page has normal content.",
+    "note": "Fictional demonstration page. The model was trained on real pages, so its score here only illustrates the behaviour; it is not an accuracy measurement."
+  },
+  {
+    "file": "lookalike_login.html",
+    "title": "2. Lookalike login page (sends password elsewhere)",
+    "url": "https://examp1ebank.test/login",
+    "expected": "flagged",
+    "why": "Same layout as sample 1, but the password form submits to a different website.",
+    "note": "Fictional demonstration page. The model was trained on real pages, so its score here only illustrates the behaviour; it is not an accuracy measurement."
+  },
+  {
+    "file": "short_password.html",
+    "title": "3. Very short page with a password field",
+    "url": "https://collect-data.test/p",
+    "expected": "no decision or flagged",
+    "why": "Short pages carry little evidence. The model is weak here (see error analysis), so this is a known limit.",
+    "note": "Fictional demonstration page. The model was trained on real pages, so its score here only illustrates the behaviour; it is not an accuracy measurement."
+  },
+  {
+    "file": "benign_article.html",
+    "title": "4. Ordinary news-style article",
+    "url": "https://localnews.test/bakery",
+    "expected": "not flagged",
+    "why": "Plain text, no forms, no links to other websites.",
+    "note": "Fictional demonstration page. The model was trained on real pages, so its score here only illustrates the behaviour; it is not an accuracy measurement."
+  },
+  {
+    "file": "meta_redirect.html",
+    "title": "5. Page that forces a program download",
+    "url": "https://collect-data.test/start",
+    "expected": "flagged or downloaded",
+    "why": "The page redirects to a program file by itself (meta refresh). The detector counts this as a download signal, not as content.",
+    "note": "Fictional demonstration page. The model was trained on real pages, so its score here only illustrates the behaviour; it is not an accuracy measurement."
+  }
+]
