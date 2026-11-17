@@ -5,14 +5,14 @@ GET /api/lists/<kind>?search= &page= &per_page=   kind: trusted | blocked | feed
 GET /api/lists/check?domain=                   which lists a website is on
 
 The adult list has about a million domains, so it can only be searched (at least 3 letters), not browsed.
-Staff change these lists in URL Approval / Whitelist (see controllers/system_lists.py and controllers/threats.py).
+Staff change these lists in URL Approval / Trusted Sites (see controllers/system_lists.py and controllers/threats.py).
 """
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 
 from web.controllers.common import err, int_arg
-from web.controllers.whitelist import parse_domain
+from web.controllers.whitelist import parse_site
 from web.db_models import lists_view
 from web.guards import auth_required
 
@@ -32,10 +32,11 @@ def summary():
 @bp.get("/check")
 @auth_required("user", "staff")
 def check():
-    domain, problem = parse_domain(request.args.get("domain", "").strip()[:2048])
+    # The lists are checked by domain, so any page path typed here is ignored.
+    host, _path, problem = parse_site(request.args.get("domain", "").strip()[:2048])
     if problem:
         return err("validation", problem, 400, {"domain": problem})
-    return jsonify(lists_view.check(domain))
+    return jsonify(lists_view.check(host))
 
 
 @bp.get("/<kind>")

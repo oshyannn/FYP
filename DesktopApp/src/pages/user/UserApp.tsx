@@ -5,20 +5,19 @@ import { USER_NAV } from "../../components/layout/nav";
 import type { ScanRecord } from "../../lib/analysis";
 import type { Session } from "../../types";
 import Dashboard from "./Dashboard";
-import BrowserActivity from "./activity/BrowserActivity";   // added
+import BrowserActivity from "./activity/BrowserActivity";
 import Feedback from "./feedback/Feedback";
 import DetailedAnalysis from "./scan/DetailedAnalysis";
 import DetectionHistory from "./scan/DetectionHistory";
 import Profile from "../shared/Profile";
-import ThreatUrlList from "../shared/ThreatUrlList";
-import Whitelist from "../shared/Whitelist";
+import TrustedSites from "../shared/TrustedSites";
 import DetectionLists from "../shared/DetectionLists";
 import SavedUrls from "../shared/SavedUrls";
 import SiteSettings from "../shared/SiteSettings";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "threats" | "whitelist" | "lists" | "saved" | "sites" | "activity" | "feedback" | "profile";   // added: activity
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "trusted" | "lists" | "saved" | "sites" | "activity" | "feedback" | "profile";
 
 interface Props {
   session: Session;
@@ -31,12 +30,11 @@ const TITLES: Record<Page, string> = {
   result: "URL Scan Result",
   details: "Detailed Analysis",
   history: "Detection History",
-  threats: "Threat URL List",
-  whitelist: "Trusted Websites",
+  trusted: "Trusted Sites",
   lists: "Detection Lists",
   saved: "Saved URLs",
   sites: "Site settings",
-  activity: "Browser Activity",   // added
+  activity: "Browser Activity",
   feedback: "Feedback",
   profile: "Profile",
 };
@@ -47,7 +45,7 @@ export default function UserApp({ session, onLogout }: Props) {
   const user = { ...session.user, full_name: name };
   const [page, setPage] = useState<Page>("dashboard");
   const [scan, setScan] = useState<ScanRecord | null>(null);
-  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard" | "activity">("history");   // added: activity
+  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard" | "activity">("history");
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null);
 
   const report = (s: ScanRecord) => {
@@ -72,7 +70,7 @@ export default function UserApp({ session, onLogout }: Props) {
     onLogout();
   }
 
-  // changed: details opened from Browser Activity keep "Browser Activity" highlighted in the sidebar
+  // details opened from Browser Activity keep "Browser Activity" highlighted in the sidebar
   const active: string =
     page === "result"
       ? "scanner"
@@ -119,17 +117,15 @@ export default function UserApp({ session, onLogout }: Props) {
     content = <Profile onSessionEnd={onLogout} onNameChanged={setName} />;
   } else if (page === "feedback") {
     content = <Feedback key={reportScan?.id ?? "none"} initialScan={reportScan} onSessionEnd={onLogout} />;
-  } else if (page === "whitelist") {
-    content = <Whitelist role="user" onSessionEnd={onLogout} />;
+  } else if (page === "trusted") {
+    content = <TrustedSites role="user" onSessionEnd={onLogout} />;
   } else if (page === "lists") {
     content = <DetectionLists onSessionEnd={onLogout} />;
   } else if (page === "saved") {
     content = <SavedUrls onSessionEnd={onLogout} />;
   } else if (page === "sites") {
     content = <SiteSettings onSessionEnd={onLogout} />;
-  } else if (page === "threats") {
-    content = <ThreatUrlList onSessionEnd={onLogout} />;
-  } else if (page === "activity") {   // added
+  } else if (page === "activity") {
     content = (
       <BrowserActivity
         onSessionEnd={onLogout}
