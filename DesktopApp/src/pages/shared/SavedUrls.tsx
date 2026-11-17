@@ -7,6 +7,7 @@ import { Alert } from "../../components/ui";
 import { LEVEL_STYLE } from "../../lib/analysis";
 import type { Level } from "../../lib/analysis";
 import type { SavedUrl } from "../../lib/sites";
+import { normalizeUrlKey, validateUrlInput } from "../../lib/urlValidation";
 
 const PER_PAGE = 10;
 const TONE: Record<Level, "green" | "amber" | "red" | "slate"> = { safe: "green", suspicious: "amber", malicious: "red", unknown: "slate" };
@@ -46,6 +47,16 @@ export default function SavedUrls({ onSessionEnd }: { onSessionEnd: () => void }
   async function add() {
     const url = input.trim();
     if (!url || adding) return;
+    const parsed = validateUrlInput(url);
+    if (!parsed.valid) {
+      setError(parsed.error);
+      return;
+    }
+    const key = normalizeUrlKey(url);
+    if (items.some((i) => normalizeUrlKey(i.url) === key)) {
+      setError("This URL is already in your Saved URLs list.");
+      return;
+    }
     setAdding(true);
     setError("");
     setNotice("");
@@ -100,7 +111,7 @@ export default function SavedUrls({ onSessionEnd }: { onSessionEnd: () => void }
     <div className="max-w-4xl space-y-5">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Saved URLs</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Websites you starred in the browser extension. Star a page there to keep it here.</p>
+        <p className="text-slate-500 text-sm mt-0.5">Websites you saved from Detection History, the Chrome extension, or added manually.</p>
       </div>
       {error && <Alert kind="error">{error}</Alert>}
       {notice && <Alert kind="success">{notice}</Alert>}

@@ -30,8 +30,9 @@ LEFT JOIN public.users d ON d.id = i.decided_by
 """
 
 _CHANGE = """
-SELECT r.id, r.action, r.status, r.created_at, r.decided_at, r.decision_note, r.target_id, r.requested_by AS requested_by_id,
-       t.full_name AS target_name, t.email::text AS target_email, rb.full_name AS requested_by_name,
+SELECT r.id, r.action, r.status, r.created_at, r.decided_at, r.decision_note, r.reason, r.target_id,
+       r.requested_by AS requested_by_id, t.full_name AS target_name, t.email::text AS target_email,
+       t.role::text AS target_role, rb.full_name AS requested_by_name,
        rb.email::text AS requested_by_email, dd.full_name AS decided_by_name
 FROM public.admin_change_requests r
 JOIN public.users t ON t.id = r.target_id
@@ -190,19 +191,23 @@ def pending_for(ids) -> dict:
                                   "requested_by": r["requested_by_name"] or r["requested_by_email"]} for r in rows}
 
 
-def create_change(target_id, action: str, requester_id):
+def create_change(target_id, action: str, requester_id, requester_role: str = "admin", reason: str = ""):
     """('ok', {'id', 'email'}) | ('not_found', None) | ('conflict', reason)."""
+    allowed_target = "role::text = 'admin'" if requester_role == "admin" else "role::text = 'user'"
     with db.transaction() as c:
         t = c.execute("SELECT status::text AS status, role::text AS role, email::text AS email, is_email_verified "
-                      "FROM public.users WHERE id = %s AND id <> %s AND role::text = 'admin' FOR UPDATE",
+                      f"FROM public.users WHERE id = %s AND id <> %s AND {allowed_target} FOR UPDATE",
                       (target_id, requester_id)).fetchone()
         if not t:
             return "not_found", None
         why = _valid_change(action, t["status"], t["is_email_verified"])
         if why:
             return "conflict", why
-        row = c.execute("INSERT INTO public.admin_change_requests (target_id, action, requested_by) VALUES (%s, %s, %s) "
-                        "ON CONFLICT DO NOTHING RETURNING id", (target_id, action, requester_id)).fetchone()
+        row = c.execute(
+            "INSERT INTO public.admin_change_requests (target_id, action, requested_by, reason) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT DO NOTHING RETURNING id",
+            (target_id, action, requester_id, reason or None),
+        ).fetchone()
         if row is None:
             return "conflict", "A request for this account is already waiting for approval."
     return "ok", {"id": row["id"], "email": t["email"]}
@@ -231,10 +236,10 @@ def decide_change(change_id, decider_id, approve: bool, note: str):
             return "same_person", None
         info = {"action": r["action"], "target_id": r["target_id"], "email": r["email"]}
         if approve:
-            t = c.execute("SELECT status::text AS status, is_email_verified FROM public.users WHERE id = %s FOR UPDATE",
+            t = c.execute("SELECT status::text AS status, role::text AS role, is_email_verified FROM public.users WHERE id = %s FOR UPDATE",
                           (r["target_id"],)).fetchone()
             why = _valid_change(r["action"], t["status"], t["is_email_verified"]) if t else "The account no longer exists."
-            if not why and r["action"] in ("deactivate", "delete"):
+            if not why and t["role"] == "admin" and r["action"] in ("deactivate", "delete"):
                 left = c.execute("SELECT count(*) AS n FROM public.users WHERE role::text = 'admin' "
                                  "AND status::text = 'active' AND id <> %s", (r["target_id"],)).fetchone()["n"]
                 if left < 1:

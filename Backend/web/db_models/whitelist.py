@@ -229,19 +229,49 @@ def get_request(req_id):
 
 def review_request(req_id, reviewer_id, decision: str, note: str) -> str:
     """decision: 'approve' | 'reject'. Only a pending request can be reviewed.
+    Approving adds the address to the GLOBAL trusted list via public.review_whitelist_request().
     Returns 'ok', 'not_found' or 'conflict' (already reviewed)."""
+    row = db.one(
+        "SELECT public.review_whitelist_request(%s, %s, %s, %s) AS outcome",
+        (req_id, reviewer_id, decision, note or ""),
+    )
+    return row["outcome"] if row else "not_found"
+
+
+def update_approved_request(req_id, host: str, path: str) -> str:
+    """Updates domain/path_prefix on an approved whitelist request and its global whitelist_entries row."""
     with db.transaction() as c:
-        row = c.execute("SELECT user_id, domain, path_prefix, status FROM public.whitelist_requests WHERE id = %s FOR UPDATE",
-                        (req_id,)).fetchone()
+        row = c.execute("SELECT status FROM public.whitelist_requests WHERE id = %s FOR UPDATE", (req_id,)).fetchone()
         if not row:
             return "not_found"
-        if row["status"] != "pending":
+        if row["status"] != "approved":
             return "conflict"
-        new = "approved" if decision == "approve" else "rejected"
-        if new == "approved":
-            c.execute("INSERT INTO public.whitelist_entries (scope, user_id, domain, path_prefix, added_by, request_id) "
-                      "VALUES ('user', %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-                      (row["user_id"], row["domain"], row["path_prefix"], row["user_id"], req_id))
-        c.execute("UPDATE public.whitelist_requests SET status = %s, review_note = %s, reviewed_by = %s, "
-                  "reviewed_at = now() WHERE id = %s", (new, note or None, reviewer_id, req_id))
+        dup = c.execute(
+            "SELECT 1 FROM public.whitelist_entries WHERE scope = 'global' AND domain = %s "
+            "AND coalesce(path_prefix, '') = %s AND (request_id IS NULL OR request_id <> %s)",
+            (host, path, req_id),
+        ).fetchone()
+        if dup:
+            return "duplicate"
+        c.execute(
+            "UPDATE public.whitelist_requests SET domain = %s, path_prefix = %s WHERE id = %s",
+            (host, path or None, req_id),
+        )
+        c.execute(
+            "UPDATE public.whitelist_entries SET domain = %s, path_prefix = %s WHERE request_id = %s",
+            (host, path or None, req_id),
+        )
+    return "ok"
+
+
+def delete_approved_request(req_id) -> str:
+    """Removes an approved whitelist request and its corresponding global whitelist_entries row."""
+    with db.transaction() as c:
+        row = c.execute("SELECT status FROM public.whitelist_requests WHERE id = %s FOR UPDATE", (req_id,)).fetchone()
+        if not row:
+            return "not_found"
+        if row["status"] != "approved":
+            return "conflict"
+        c.execute("DELETE FROM public.whitelist_entries WHERE request_id = %s", (req_id,))
+        c.execute("DELETE FROM public.whitelist_requests WHERE id = %s", (req_id,))
     return "ok"

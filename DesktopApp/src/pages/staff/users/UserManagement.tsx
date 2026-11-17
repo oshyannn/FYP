@@ -136,7 +136,7 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === key ? "border-[#1e3a5f] text-[#1e3a5f]" : "border-transparent text-slate-500 hover:text-slate-700"}`}
           >
             {label}
-            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}
+            {key === "approvals" && waitingForMe > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{waitingForMe}</span>}
             {key === "resets" && resetCount > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{resetCount}</span>}
           </button>
         ))}
@@ -253,6 +253,7 @@ export default function UserManagement({ role, onSessionEnd }: Props) {
         <ManageUserModal
           key={selected.id}
           user={selected}
+          actorRole={role}
           onClose={() => setSelected(null)}
           onSessionEnd={onSessionEnd}
           onChanged={(message) => {

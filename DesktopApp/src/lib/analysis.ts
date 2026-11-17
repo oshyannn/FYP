@@ -84,6 +84,7 @@ export interface ScanRecord {
   threat_type?: string | null;
   list_status?: string | null;
   detection_count?: number | null;
+  is_saved?: boolean;
 }
 
 export const LEVEL_STYLE: Record<Level, { bar: string; text: string; bg: string; border: string; label: string }> = {

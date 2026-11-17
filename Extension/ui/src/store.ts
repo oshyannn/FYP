@@ -6,7 +6,7 @@
 // LATER (Supabase): replace the bodies of getSettings / saveSettings with calls to the backend so settings follow the user.
 import type { Auth, Settings } from "./types";
 
-export const DEFAULT_SETTINGS: Settings = { realtime: true, autoscan: true, blocking: true, notifications: true };
+export const DEFAULT_SETTINGS: Settings = { realtime: true, backgroundScan: false, blocking: true, notifications: true };
 
 async function read<T>(key: string, fallback: T): Promise<T> {
   try {

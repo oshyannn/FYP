@@ -10,7 +10,8 @@ from psycopg.types.json import Jsonb
 from web import db
 
 _LIST_COLS = ("h.id, h.url, h.domain, h.scan_type::text AS scan_type, h.user_action::text AS user_action, "
-              "h.scanned_at, h.risk_level::text AS risk_level, h.risk_score")
+              "h.scanned_at, h.risk_level::text AS risk_level, h.risk_score, "
+              "EXISTS (SELECT 1 FROM public.saved_urls s WHERE s.user_id = h.user_id AND (s.url_hash = h.url_hash OR s.url = h.url)) AS is_saved")
 
 
 def canonical_url(url: str) -> str:

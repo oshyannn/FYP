@@ -17,9 +17,9 @@ log = logging.getLogger(__name__)
 # What staff can do that belongs in the trail. feedback_<status> events are matched by prefix.
 STAFF_ACTIONS = (
     "employer_approved", "employer_rejected",
-    "threat_approve", "threat_remove",
+    "threat_add", "threat_update", "threat_delete", "threat_approve", "threat_remove",
     "threat_submission_create", "threat_submission_approve", "threat_submission_reject",
-    "whitelist_add", "whitelist_remove", "whitelist_request_approve", "whitelist_request_reject",
+    "whitelist_add", "whitelist_update", "whitelist_remove", "whitelist_request_approve", "whitelist_request_reject",
     "user_activated", "user_deactivated", "user_updated", "user_deleted", "user_password_reset_sent",
 )
 _IN = ", ".join(f"'{a}'" for a in STAFF_ACTIONS)

@@ -204,10 +204,61 @@ def review_request(req_id):
     if decision not in ("approve", "reject"):
         return err("validation", "Choose approve or reject.", 400)
     note = s(data, "note", 1000)
+    if g.user["role"] == "employer" and len(note) < 3:
+        return err("validation", "A reason is required for employers.", 400,
+                   {"note": "Enter a reason (at least 3 characters)."})
     outcome = whitelist.review_request(req_id, g.user["id"], decision, note)
     if outcome == "not_found":
         return err("not_found", "Request not found.", 404)
     if outcome == "conflict":
         return err("conflict", "This request has already been reviewed.", 409)
-    audit.log(f"whitelist_request_{decision}", "whitelist", g.user["id"], {"request_id": str(req_id)})
+    audit.log(f"whitelist_request_{decision}", "whitelist", g.user["id"],
+              {"request_id": str(req_id), **({"reason": note} if note else {})})
     return jsonify({"request": _request_json(whitelist.get_request(req_id), staff=True)})
+
+
+@bp.patch("/staff/whitelist-requests/<uuid:req_id>")
+@limiter.limit("60 per hour")
+@auth_required("staff")
+@role_required("employer", "admin")
+def update_whitelist_request(req_id):
+    data = body()
+    host, path, problem = parse_site(s(data, "url", 2048) or s(data, "domain", 2048))
+    if problem:
+        return err("validation", problem, 400, {"url": problem})
+    reason = s(data, "reason", 500)
+    if g.user["role"] == "employer" and len(reason) < 3:
+        return err("validation", "A reason is required for employers.", 400,
+                   {"reason": "Enter a reason (at least 3 characters)."})
+    outcome = whitelist.update_approved_request(req_id, host, path)
+    if outcome == "not_found":
+        return err("not_found", "Request not found.", 404)
+    if outcome == "conflict":
+        return err("conflict", "Only approved whitelist entries can be modified.", 409)
+    if outcome == "duplicate":
+        return err("conflict", "This address is already on the global trusted list.", 409, {"url": "Duplicate address."})
+    audit.log("whitelist_update", "whitelist", g.user["id"],
+              {"request_id": str(req_id), "domain": _display(host, path), **({"reason": reason} if reason else {})})
+    return jsonify({"request": _request_json(whitelist.get_request(req_id), staff=True)})
+
+
+@bp.delete("/staff/whitelist-requests/<uuid:req_id>")
+@limiter.limit("60 per hour")
+@auth_required("staff")
+@role_required("employer", "admin")
+def delete_whitelist_request(req_id):
+    data = body()
+    reason = s(data, "reason", 500)
+    if g.user["role"] == "employer" and len(reason) < 3:
+        return err("validation", "A reason is required for employers.", 400,
+                   {"reason": "Enter a reason (at least 3 characters)."})
+    req = whitelist.get_request(req_id)
+    outcome = whitelist.delete_approved_request(req_id)
+    if outcome == "not_found":
+        return err("not_found", "Request not found.", 404)
+    if outcome == "conflict":
+        return err("conflict", "Only approved whitelist entries can be deleted.", 409)
+    audit.log("whitelist_remove", "whitelist", g.user["id"],
+              {"request_id": str(req_id), "domain": _display(req["domain"], req["path_prefix"]) if req else "",
+               **({"reason": reason} if reason else {})})
+    return jsonify({"deleted": 1})

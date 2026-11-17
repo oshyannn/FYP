@@ -7,6 +7,7 @@ export type ReviewStatus = "pending" | "approved" | "rejected";
 export interface WhitelistEntry {
   id: string;
   domain: string;
+  path?: string;
   scope: "user" | "global";
   added_at: string;
   added_by: string;
@@ -15,6 +16,7 @@ export interface WhitelistEntry {
 export interface WhitelistRequest {
   id: string;
   domain: string;
+  path?: string;
   reason: string | null;
   risk_score: number | null; // null = the detector had no data
   risk_level: Level;

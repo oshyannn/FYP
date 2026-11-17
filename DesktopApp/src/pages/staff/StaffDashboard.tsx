@@ -40,13 +40,13 @@ export default function StaffDashboard({ role, name, onNavigate, onSessionEnd }:
       ? [
           { label: "Total Users", value: st?.total_users, icon: "👤", color: "text-[#1e3a5f]", bg: "bg-blue-50" },
           { label: "Total Employers", value: st?.total_employers, icon: "🏢", color: "text-purple-600", bg: "bg-purple-50" },
-          { label: "Pending Verification", value: st?.pending_employers, icon: "⏳", color: "text-amber-600", bg: "bg-amber-50", go: "employers" },
-          { label: "Threat URLs", value: st?.active_threats, icon: "⚠", color: "text-red-600", bg: "bg-red-50", go: "threats" },
+          { label: "Pending Approvals", value: st?.pending_threats, icon: "⏳", color: "text-amber-600", bg: "bg-amber-50", go: "approval" },
+          { label: "Threat URLs", value: st?.active_threats, icon: "⚠", color: "text-red-600", bg: "bg-red-50", go: "lists" },
         ]
       : [
           { label: "Total Scanned URLs", value: st?.total_scans, icon: "🔍", color: "text-[#1e3a5f]", bg: "bg-blue-50" },
-          { label: "Threat URLs", value: st?.active_threats, icon: "⚠", color: "text-red-600", bg: "bg-red-50", go: "threats" },
-          { label: "Pending Approvals", value: st?.pending_threats, icon: "⏳", color: "text-amber-600", bg: "bg-amber-50", go: "threats" },
+          { label: "Threat URLs", value: st?.active_threats, icon: "⚠", color: "text-red-600", bg: "bg-red-50", go: "lists" },
+          { label: "Pending Approvals", value: st?.pending_threats, icon: "⏳", color: "text-amber-600", bg: "bg-amber-50", go: "approval" },
           { label: "User Feedback", value: st?.open_feedback, icon: "✉", color: "text-purple-600", bg: "bg-purple-50", go: "feedback" },
         ];
   const total = s ? s.distribution.safe + s.distribution.suspicious + s.distribution.malicious + s.distribution.unknown : 0;
@@ -102,8 +102,8 @@ export default function StaffDashboard({ role, name, onNavigate, onSessionEnd }:
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-800">Waiting for review</h3>
-            <button onClick={() => onNavigate("threats")} className="text-sm text-[#1e3a5f] hover:underline font-medium">Review</button>
+            <h3 className="font-semibold text-slate-800">Waiting for Review</h3>
+            <button onClick={() => onNavigate("approval")} className="text-sm text-[#1e3a5f] hover:underline font-medium">Review</button>
           </div>
           {s && s.waiting.length === 0 ? (
             <p className="text-sm text-slate-400">Nothing is waiting for review.</p>

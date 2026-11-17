@@ -82,7 +82,7 @@ export interface RecentScan {
 
 export interface Settings {
   realtime: boolean; // master switch: check every page you open
-  autoscan: boolean; // popup scans the current page by itself when opened
+  backgroundScan: boolean; // let pages load first and scan in background; only stop browsing if a threat is found
   blocking: boolean; // redirect malicious pages to the warning page
   notifications: boolean; // desktop notifications for suspicious pages
 }

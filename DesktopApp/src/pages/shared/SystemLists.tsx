@@ -4,6 +4,7 @@ import Badge from "../../components/Badge";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Pager from "../../components/Pager";
 import { Alert } from "../../components/ui";
+import { normalizeUrlKey, validateUrlInput } from "../../lib/urlValidation";
 
 type ListType = "whitelist" | "not_trusted" | "blacklist" | "adult_manual" | "adblock_block" | "adblock_allow";
 interface Entry {
@@ -75,6 +76,16 @@ export default function SystemLists({ role, onSessionEnd }: { role: "employer" |
 
   async function add() {
     setConfirmAdd(false);
+    const parsed = validateUrlInput(domain);
+    if (!parsed.valid) {
+      setFieldError(parsed.error);
+      return;
+    }
+    const key = normalizeUrlKey(domain);
+    if (entries.some((e) => e.active && normalizeUrlKey(e.domain) === key)) {
+      setFieldError("This domain is already active on this list.");
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
@@ -109,11 +120,14 @@ export default function SystemLists({ role, onSessionEnd }: { role: "employer" |
   }
 
   async function lookup() {
-    const d = look.trim();
-    if (!d) return;
+    const parsed = validateUrlInput(look);
+    if (!parsed.valid) {
+      setError(parsed.error);
+      return;
+    }
     setInfo(null);
     setError("");
-    const res = await api.get(`/api/staff/system-lists/lookup?domain=${encodeURIComponent(d)}`);
+    const res = await api.get(`/api/staff/system-lists/lookup?domain=${encodeURIComponent(parsed.host)}`);
     if (res.status === 401) return onSessionEnd();
     if (res.status !== 200) return setError(problem(res).message);
     setInfo(res.data as Lookup);

@@ -5,7 +5,6 @@ import { USER_NAV } from "../../components/layout/nav";
 import type { ScanRecord } from "../../lib/analysis";
 import type { Session } from "../../types";
 import Dashboard from "./Dashboard";
-import BrowserActivity from "./activity/BrowserActivity";
 import Feedback from "./feedback/Feedback";
 import DetailedAnalysis from "./scan/DetailedAnalysis";
 import DetectionHistory from "./scan/DetectionHistory";
@@ -17,7 +16,7 @@ import SiteSettings from "../shared/SiteSettings";
 import ScanResult from "./scan/ScanResult";
 import UrlScanner from "./scan/UrlScanner";
 
-type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "trusted" | "lists" | "saved" | "sites" | "activity" | "feedback" | "profile";
+type Page = "dashboard" | "scanner" | "result" | "details" | "history" | "trusted" | "lists" | "saved" | "sites" | "feedback" | "profile";
 
 interface Props {
   session: Session;
@@ -33,8 +32,7 @@ const TITLES: Record<Page, string> = {
   trusted: "Trusted Sites",
   lists: "Detection Lists",
   saved: "Saved URLs",
-  sites: "Site settings",
-  activity: "Browser Activity",
+  sites: "Site Settings",
   feedback: "Feedback",
   profile: "Profile",
 };
@@ -45,7 +43,7 @@ export default function UserApp({ session, onLogout }: Props) {
   const user = { ...session.user, full_name: name };
   const [page, setPage] = useState<Page>("dashboard");
   const [scan, setScan] = useState<ScanRecord | null>(null);
-  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard" | "activity">("history");
+  const [cameFrom, setCameFrom] = useState<"result" | "history" | "dashboard">("history");
   const [reportScan, setReportScan] = useState<ScanRecord | null>(null);
 
   const report = (s: ScanRecord) => {
@@ -70,12 +68,11 @@ export default function UserApp({ session, onLogout }: Props) {
     onLogout();
   }
 
-  // details opened from Browser Activity keep "Browser Activity" highlighted in the sidebar
   const active: string =
     page === "result"
       ? "scanner"
       : page === "details"
-        ? cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history"
+        ? cameFrom === "result" ? "scanner" : cameFrom === "dashboard" ? "dashboard" : "history"
         : page;
 
   let content;
@@ -107,9 +104,9 @@ export default function UserApp({ session, onLogout }: Props) {
       <DetailedAnalysis
         scan={scan}
         backLabel={
-          cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : cameFrom === "activity" ? "Back to Browser Activity" : "Back to Detection History"
+          cameFrom === "result" ? "Back to Result" : cameFrom === "dashboard" ? "Back to Dashboard" : "Back to Detection History"
         }
-        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : cameFrom === "activity" ? "activity" : "history")}
+        onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : "history")}
         onReport={() => report(scan)}
       />
     );
@@ -125,17 +122,6 @@ export default function UserApp({ session, onLogout }: Props) {
     content = <SavedUrls onSessionEnd={onLogout} />;
   } else if (page === "sites") {
     content = <SiteSettings onSessionEnd={onLogout} />;
-  } else if (page === "activity") {
-    content = (
-      <BrowserActivity
-        onSessionEnd={onLogout}
-        onOpen={(s) => {
-          setScan(s);
-          setCameFrom("activity");
-          setPage("details");
-        }}
-      />
-    );
   } else if (page === "history") {
     content = (
       <DetectionHistory

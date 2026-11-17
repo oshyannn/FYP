@@ -4,11 +4,8 @@ import AppLayout from "../../components/layout/AppLayout";
 import { ADMIN_NAV, EMPLOYER_NAV } from "../../components/layout/nav";
 import type { Session } from "../../types";
 import Profile from "../shared/Profile";
-import ThreatUrlList from "../shared/ThreatUrlList";
 import Whitelist from "../shared/Whitelist";
 import DetectionLists from "../shared/DetectionLists";
-import SystemLists from "../shared/SystemLists";
-import EmployerVerification from "./EmployerVerification";
 import StaffFeedback from "../StaffFeedback";
 import StaffDashboard from "./StaffDashboard";
 import UrlApproval from "./approval/UrlApproval";
@@ -22,14 +19,11 @@ interface Props {
 
 const TITLES: Record<string, string> = {
   dashboard: "Dashboard",
-  employers: "Employer Verification",
   users: "User Management",
   logs: "Activity Logs",
-  threats: "Threat URL Management",
   approval: "URL Approval",
   whitelist: "Trusted Websites",
   lists: "Detection Lists",
-  rules: "Detection Rules",
   feedback: "User Feedback",
   profile: "Profile",
 };
@@ -48,16 +42,13 @@ export default function StaffApp({ session, onLogout }: Props) {
   }
 
   let content;
-  if (page === "employers" && admin) content = <EmployerVerification onSessionEnd={onLogout} />;
-  else if (page === "users") content = <UserManagement role={role} onSessionEnd={onLogout} />;
+  if (page === "users") content = <UserManagement role={role} onSessionEnd={onLogout} />;
   else if (page === "logs") content = <ActivityLogs role={role} onSessionEnd={onLogout} />;
   else if (page === "approval") content = <UrlApproval role={role} onSessionEnd={onLogout} />;
   else if (page === "whitelist" && admin) content = <Whitelist role="admin" onSessionEnd={onLogout} />;
-  else if (page === "lists") content = <DetectionLists onSessionEnd={onLogout} />;
-  else if (page === "rules") content = <SystemLists role={role} onSessionEnd={onLogout} />;
+  else if (page === "lists" || page === "threats") content = <DetectionLists staffRole={role} onSessionEnd={onLogout} />;
   else if (page === "profile") content = <Profile onSessionEnd={onLogout} onNameChanged={setName} />;
   else if (page === "feedback") content = <StaffFeedback onSessionEnd={onLogout} />;
-  else if (page === "threats") content = <ThreatUrlList staffRole={role} onSessionEnd={onLogout} />;
   else content = <StaffDashboard role={role} name={user.full_name ?? user.email} onNavigate={setPage} onSessionEnd={onLogout} />;
 
   return (

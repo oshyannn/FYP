@@ -189,8 +189,8 @@ export default function App() {
   useEffect(() => {
     if (boot !== "ready" || !target || scanned.current) return;
     scanned.current = true;
-    if (settings.realtime && settings.autoscan) scanCurrent(false);
-  }, [boot, target, settings.realtime, settings.autoscan, scanCurrent]);
+    if (settings.realtime) scanCurrent(false);
+  }, [boot, target, settings.realtime, scanCurrent]);
 
   // ── actions
   async function submitCode(code: string): Promise<string | null> {

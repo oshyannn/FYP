@@ -22,32 +22,8 @@ def _like(q: str) -> str:
 
 
 def summary() -> dict:
-    with db.transaction() as c:
-        one = lambda sql: c.execute(sql).fetchone()["n"]          # noqa: E731
-        top_n = one(f"SELECT {_TOP_N} AS n")
-        manual = one("SELECT count(*) AS n FROM public.detection_lists WHERE list_type = 'whitelist' AND is_active")
-        not_trusted = one("SELECT count(*) AS n FROM public.detection_lists WHERE list_type = 'not_trusted' AND is_active")
-        tranco = one(f"SELECT count(*) AS n FROM public.trusted_top_sites t WHERE t.rank <= {_TOP_N} "
-                     "AND t.domain NOT IN (SELECT value FROM public.detection_lists WHERE list_type = 'not_trusted' AND is_active)")
-        manual_bl = one("SELECT count(*) AS n FROM public.detection_lists WHERE list_type = 'blacklist' AND is_active")
-        admin_bl = one("SELECT count(*) AS n FROM public.global_urls WHERE status = 'active' AND risk_level IN ('suspicious', 'malicious')")
-        shared = one("SELECT count(*) AS n FROM public.detection_lists WHERE list_type = 'shared_hosts' AND is_active")
-        adult_manual = one("SELECT count(*) AS n FROM public.detection_lists WHERE list_type = 'adult_manual' AND is_active")
-        sync = {r["name"]: r for r in c.execute("SELECT name, row_count, synced_at FROM public.list_sync_status").fetchall()}
-
-    def big(name):
-        r = sync.get(name)
-        return {"count": int(r["row_count"]) if r else 0, "synced_at": r["synced_at"].isoformat() if r else None}
-    adult = big("adult_domains")
-    adult["count"] += adult_manual
-    return {
-        "trusted": {"count": tranco + manual, "top_sites": tranco, "manual": manual, "not_trusted": not_trusted, "top_n": top_n,
-                    "synced_at": big("trusted_top_sites")["synced_at"]},
-        "blocked": {"count": manual_bl + admin_bl, "manual": manual_bl, "admin_approved": admin_bl},
-        "feed": big("threat_feed_urls"),
-        "adult": adult,
-        "shared": {"count": shared},
-    }
+    row = db.one("SELECT public.get_lists_summary() AS summary")
+    return dict(row["summary"]) if row and row["summary"] else {}
 
 
 def _page(c, sql_rows: str, sql_count: str, p: dict):

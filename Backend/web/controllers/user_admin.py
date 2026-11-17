@@ -51,15 +51,17 @@ def _actions(r) -> dict:
                    and status != "deleted")
     return {
         "edit": can,
-        "deactivate": can and status in ("active", "pending"),
+        "deactivate": can and status in ("active", "pending") and actor["role"] == "admin",
         "activate": can and status == "inactive",
-        "delete": can and actor["role"] == "admin",
+        "delete": False,
         "reset_password": can and status == "active",
         "reset_direct": can and status == "active" and actor["role"] == "admin",
-        # another administrator's account: asking is allowed, a third administrator decides
-        "request_deactivate": other_admin and status == "active",
+        # another administrator's account, or an employer requesting user deactivation: requires admin approval
+        "request_deactivate": (other_admin and status == "active") or (
+            actor["role"] == "employer" and r["role"] == "user" and status == "active"
+        ),
         "request_activate": other_admin and status == "inactive",
-        "request_delete": other_admin,
+        "request_delete": False,
     }
 
 
@@ -149,13 +151,21 @@ def edit_user(user_id):
         return err("not_found", "Account not found.", 404)
     if not _actions(r)["edit"]:
         return _not_allowed(r)
-    full_name = " ".join(s(body(), "full_name", 100).split())
+    data = body()
+    full_name = " ".join(s(data, "full_name", 100).split())
     if len(full_name) < 2:
         return err("validation", "Enter the full name.", 400, {"full_name": "Enter the full name."})
+    reason = s(data, "reason", 500)
+    if g.user["role"] == "employer" and len(reason) < 3:
+        return err("validation", "A reason is required for employers to modify user data.", 400,
+                   {"reason": "Enter a reason (at least 3 characters)."})
     email = user_admin.rename(g.user["role"], g.user["id"], user_id, full_name)
     if email is None:
         return err("not_found", "Account not found.", 404)
-    audit.log("user_updated", "user_management", g.user["id"], {"user_id": str(user_id), "email": email})
+    details = {"user_id": str(user_id), "email": email}
+    if reason:
+        details["reason"] = reason
+    audit.log("user_updated", "user_management", g.user["id"], details)
     return jsonify({"user": _one(_find(user_id))})
 
 
@@ -169,10 +179,17 @@ def set_user_status(user_id):
         return err("not_found", "Account not found.", 404)
     if not _actions(r)["edit"]:
         return _not_allowed(r)
-    wanted = s(body(), "status", 10)
+    data = body()
+    wanted = s(data, "status", 10)
     if wanted not in ("active", "inactive"):
         return err("validation", "Choose active or inactive.", 400)
+    reason = s(data, "reason", 500)
+    if g.user["role"] == "employer" and len(reason) < 3:
+        return err("validation", "A reason is required for employers to change user status.", 400,
+                   {"reason": "Enter a reason (at least 3 characters)."})
     activate = wanted == "active"
+    if not activate and g.user["role"] != "admin":
+        return err("forbidden", "Employers cannot deactivate accounts directly. Submit a deactivation request for admin approval.", 403)
     outcome, info = user_admin.set_status(g.user["role"], g.user["id"], user_id, activate)
     if outcome == "not_found":
         return err("not_found", "Account not found.", 404)
@@ -183,8 +200,10 @@ def set_user_status(user_id):
         return err("conflict", info, 409)
     if not activate:
         sessions.revoke_all_for_user(user_id)           # signed out everywhere, now
-    audit.log("user_activated" if activate else "user_deactivated", "user_management", g.user["id"],
-              {"user_id": str(user_id), "email": info})
+    details = {"user_id": str(user_id), "email": info}
+    if reason:
+        details["reason"] = reason
+    audit.log("user_activated" if activate else "user_deactivated", "user_management", g.user["id"], details)
     return jsonify({"user": _one(_find(user_id))})
 
 
@@ -193,18 +212,7 @@ def set_user_status(user_id):
 @auth_required("staff")
 @role_required("admin")
 def delete_user(user_id):
-    r = _find(user_id)
-    if not r:
-        return err("not_found", "Account not found.", 404)
-    if not _actions(r)["delete"]:
-        return _not_allowed(r)
-    outcome, email, permanent = user_admin.delete_account(g.user["role"], g.user["id"], user_id)
-    if outcome == "not_found":
-        return err("not_found", "Account not found.", 404)
-    sessions.revoke_all_for_user(user_id)
-    audit.log("user_deleted", "user_management", g.user["id"],
-              {"user_id": str(user_id), "email": email, "permanent": permanent})
-    return jsonify({"deleted": True, "permanent": permanent, "email": email})
+    return err("forbidden", "User accounts cannot be deleted.", 403)
 
 
 @bp.post("/users/<uuid:user_id>/password-reset")
@@ -223,10 +231,14 @@ def send_password_reset(user_id):
         return err("conflict", "Only an active account can be sent a reset.", 409)
 
     if g.user["role"] != "admin":
+        reason = s(body(), "reason", 500)
+        if len(reason) < 3:
+            return err("validation", "A reason is required for employers to request a password reset.", 400,
+                       {"reason": "Enter a reason (at least 3 characters)."})
         if not pr.create_request(user_id):
             return err("conflict", "A password reset for this account is already waiting for approval.", 409)
         audit.log("password_reset_asked", "user_management", g.user["id"],
-                  {"user_id": str(user_id), "email": r["email"], "role": r["role"]})
+                  {"user_id": str(user_id), "email": r["email"], "role": r["role"], "reason": reason})
         return jsonify({"requested": True, "email": r["email"]}), 201
 
     temp, hours = make_temp_password(), config.TEMP_PASSWORD_HOURS

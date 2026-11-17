@@ -17,6 +17,7 @@ export interface ThreatItem {
   url: string;
   domain: string;
   risk_level: Level;
+  is_malicious?: boolean;
   risk_score: number;
   threat_type: string;
   status: ThreatStatus;
@@ -24,6 +25,7 @@ export interface ThreatItem {
   created_at: string;
   last_verified_at: string;
   match_scope?: MatchScope;
+  notes?: string | null;
 }
 
 export interface ThreatStats {
@@ -32,6 +34,7 @@ export interface ThreatStats {
   malware: number;
   suspicious: number;
   pending?: number;
+  revoked?: number;
 }
 
 export const THREAT_TYPE_OPTIONS: [string, string][] = [

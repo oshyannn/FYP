@@ -40,6 +40,7 @@ def _scan_json(r, with_analysis: bool = False) -> dict:
         "id": str(r["id"]), "url": r["url"], "domain": r["domain"], "scan_type": r["scan_type"],
         "user_action": r["user_action"], "scanned_at": r["scanned_at"].isoformat(),
         "risk_level": r["risk_level"], "risk_score": float(r["risk_score"]),
+        "is_saved": bool(r.get("is_saved", False)),
     }
     if with_analysis:
         out["analysis"] = r["analysis"]

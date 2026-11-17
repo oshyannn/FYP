@@ -39,9 +39,9 @@ export default function StaffLogin({ go, onLoggedIn, notice }: Props) {
   return (
     <AuthShell
       portal="staff"
-      title="SafeBrowse Staff"
-      subtitle="Employer and administrator sign-in"
-      footer={<LinkButton onClick={() => go("user-login")}>← Back to user login</LinkButton>}
+      title="SafeBrowse Staff Portal"
+      subtitle="Sign in as an administrator or employer"
+      footer={<LinkButton onClick={() => go("user-login")}>← Back to User Sign In</LinkButton>}
     >
       {notice && <Alert kind="success">{notice}</Alert>}
       {error && <Alert kind="error">{error}</Alert>}
@@ -53,7 +53,7 @@ export default function StaffLogin({ go, onLoggedIn, notice }: Props) {
         <div className="flex justify-end">
           <LinkButton onClick={() => go("staff-forgot")} className="text-sm">Forgot Password?</LinkButton>
         </div>
-        <PrimaryButton type="submit" busy={busy} staff>Staff Login</PrimaryButton>
+        <PrimaryButton type="submit" busy={busy} staff>Sign In</PrimaryButton>
       </form>
       <p className="text-center text-sm text-slate-500 mt-5">
         Invited as an administrator? <LinkButton onClick={() => go("staff-accept")}>Activate your account</LinkButton>

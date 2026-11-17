@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, problem } from "../../../api";
 import { Alert } from "../../../components/ui";
 import type { ScanRecord } from "../../../lib/analysis";
+import { validateUrlInput } from "../../../lib/urlValidation";
 
 interface Props {
   onScanned: (scan: ScanRecord) => void;
@@ -22,6 +23,11 @@ export default function UrlScanner({ onScanned, onSessionEnd }: Props) {
 
   async function scan() {
     if (!url.trim() || scanning) return;
+    const parsed = validateUrlInput(url);
+    if (!parsed.valid) {
+      setError(parsed.error);
+      return;
+    }
     setScanning(true);
     setError("");
     const res = await api.post("/api/scans", { url: url.trim(), use_ai: useAi });   // changed: use_ai added

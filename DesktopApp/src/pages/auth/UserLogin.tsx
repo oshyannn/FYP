@@ -41,10 +41,10 @@ export default function UserLogin({ go, onLoggedIn, notice }: Props) {
     <AuthShell
       portal="user"
       title="SafeBrowse"
-      subtitle="Welcome back"
+      subtitle="Sign in to your account"
       footer={
         <>
-          Employer or administrator? <LinkButton onClick={() => go("staff-login")}>Staff login</LinkButton>
+          Employer or administrator? <LinkButton onClick={() => go("staff-login")}>Staff Portal</LinkButton>
         </>
       }
     >
@@ -63,7 +63,7 @@ export default function UserLogin({ go, onLoggedIn, notice }: Props) {
           </label>
           <LinkButton onClick={() => go("forgot")} className="text-sm">Forgot Password?</LinkButton>
         </div>
-        <PrimaryButton type="submit" busy={busy}>Login</PrimaryButton>
+        <PrimaryButton type="submit" busy={busy}>Sign In</PrimaryButton>
       </form>
       <p className="text-center text-sm text-slate-500 mt-5">
         Don't have an account? <LinkButton onClick={() => go("register")}>Create Account</LinkButton>

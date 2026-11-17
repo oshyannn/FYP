@@ -389,7 +389,7 @@ export function SettingsScreen({ settings, email, onSave, onDisconnect }: {
   const toggle = (k: keyof Settings) => { setDraft((s) => ({ ...s, [k]: !s[k] })); setSaved(false); };
   const rows: { key: keyof Settings; label: string; hint?: (on: boolean) => string }[] = [
     { key: "realtime", label: "Real-Time URL Detection", hint: (on) => (on ? "Every page you open is checked first." : "Protection is off. Pages are not checked.") },
-    { key: "autoscan", label: "Automatic Website Scanning", hint: (on) => (on ? "This popup scans the current page when opened." : "Use Scan Again to check the current page.") },
+    { key: "backgroundScan", label: "Scan in Background", hint: (on) => (on ? "Load pages first, scan in background, warn if unsafe." : "Show scanning screen until verification finishes.") },
     { key: "blocking", label: "Website Blocking", hint: (on) => (on ? "SafeBrowse will block malicious websites." : "Detection only — no automatic blocking.") },
     { key: "notifications", label: "Security Notifications" },
   ];
@@ -399,9 +399,9 @@ export function SettingsScreen({ settings, email, onSave, onDisconnect }: {
       <div className="space-y-1 mb-4 -mt-1.5">
         {rows.map((r) => (
           <div key={r.key} className="flex items-center justify-between gap-3 py-2.5 border-b border-gray-100 last:border-0">
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-[12px] font-medium text-gray-800">{r.label}</div>
-              {r.hint && <div className="text-[10px] text-gray-400 mt-0.5">{r.hint(draft[r.key])}</div>}
+              {r.hint && <div className="text-[10px] text-gray-400 mt-0.5 leading-snug">{r.hint(draft[r.key])}</div>}
             </div>
             <Toggle checked={draft[r.key]} onChange={() => toggle(r.key)} />
           </div>

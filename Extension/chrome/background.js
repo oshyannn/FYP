@@ -57,7 +57,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------------------------------------------------------------- account (paired with the desktop app), settings, history
 // The popup stores {auth, settings, history} in chrome.storage.local. The token comes from the pairing code, never from a password.
-const DEFAULT_SETTINGS = { realtime: true, autoscan: true, blocking: true, notifications: true };
+const DEFAULT_SETTINGS = { realtime: true, backgroundScan: false, blocking: true, notifications: true };
 async function getSettings() {
     try { return { ...DEFAULT_SETTINGS, ...((await chrome.storage.local.get("settings")).settings || {}) }; }
     catch { return { ...DEFAULT_SETTINGS }; }
@@ -243,7 +243,8 @@ async function notifyBlockingOff(url, data) {
 
 // ---------------------------------------------------------------- 1. check every navigation before the page shows
 chrome.webNavigation?.onBeforeNavigate.addListener(async (d) => {
-    if (!(await getSettings()).realtime) return;     // "Real-Time URL Detection" is off
+    const settings = await getSettings();
+    if (!settings.realtime) return;                 // "Real-Time URL Detection" is off
     await noteNavigation(d);                        // remember navigations a person started (localhost included)
     if (d.frameId !== 0 || !shouldScan(d.url)) return;
     if (await siteGate(d)) return;                  // the person's own rule for this website (always block / always allow / for a while)
@@ -252,10 +253,11 @@ chrome.webNavigation?.onBeforeNavigate.addListener(async (d) => {
     const p = analyze(d.url, { record: true });
     p.catch(() => {});                              // handled below; avoids an unhandled-rejection warning
     const host = new URL(d.url).hostname;
-    if (await mapHas("good", host)) {
-        // Known clean recently: no waiting page. The check still runs; if it turns bad the page is blocked.
+    if (settings.backgroundScan || await mapHas("good", host)) {
+        // Scan in background (or known clean recently): let the page load first; if a threat is found, stop browsing via act().
         p.then((data) => {
             if (isBlockable(data) || (data && data.status === "Suspicious")) mapDel("good", host);
+            else rememberIfClean(d.url, data);
             act(d.tabId, d.url, data);
         }).catch(() => {});
         return;

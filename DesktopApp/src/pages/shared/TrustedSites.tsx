@@ -6,6 +6,7 @@ import Pager from "../../components/Pager";
 import { Alert } from "../../components/ui";
 import { reviewLabel, reviewTone, shortDate, WHITELIST_PER_PAGE } from "../../lib/approvals";
 import type { WhitelistEntry, WhitelistRequest } from "../../lib/approvals";
+import { normalizeUrlKey, validateUrlInput } from "../../lib/urlValidation";
 
 interface Props {
   /** user: own trusted sites (a new one is a request that an employer or admin approves) | admin: the list for everyone */
@@ -51,6 +52,16 @@ export default function TrustedSites({ role, onSessionEnd }: Props) {
   async function add() {
     const value = input.trim();
     if (!value || adding) return;
+    const parsed = validateUrlInput(value);
+    if (!parsed.valid) {
+      setFieldError(parsed.error);
+      return;
+    }
+    const key = normalizeUrlKey(value);
+    if (entries.some((e) => normalizeUrlKey(e.domain) === key) || requests.some((r) => r.status === "pending" && normalizeUrlKey(r.domain) === key)) {
+      setFieldError("This URL or domain is already listed or pending review.");
+      return;
+    }
     setAdding(true);
     setError("");
     setFieldError("");
@@ -113,7 +124,14 @@ export default function TrustedSites({ role, onSessionEnd }: Props) {
       )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="font-semibold text-slate-800 mb-3">Add Trusted Site</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-800">Add Trusted Site</h3>
+          {input.trim() && validateUrlInput(input).valid && (
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${validateUrlInput(input).scope === "domain" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}`}>
+              {validateUrlInput(input).scope === "domain" ? "Covers full domain" : "Specific page URL"}
+            </span>
+          )}
+        </div>
         <div className="flex gap-3">
           <input
             value={input}

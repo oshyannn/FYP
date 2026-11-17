@@ -6,7 +6,7 @@ export const api = {
   post: (path: string, body?: unknown) => window.sb.api("POST", path, body),
   put: (path: string, body?: unknown) => window.sb.api("PUT", path, body),
   patch: (path: string, body?: unknown) => window.sb.api("PATCH", path, body),
-  del: (path: string) => window.sb.api("DELETE", path),
+  del: (path: string, body?: unknown) => window.sb.api("DELETE", path, body),
 };
 
 export function problem(res: ApiResult): { message: string; fields: Record<string, string> } {

@@ -40,7 +40,7 @@ bp = Blueprint("staff_accounts", __name__, url_prefix="/api/staff")
 
 INVITE_HOURS = 24
 INVITE_STATUSES = ("awaiting_approval", "sent", "accepted", "revoked", "rejected", "expired", "locked")
-CHANGE_ACTIONS = ("deactivate", "activate", "delete")
+CHANGE_ACTIONS = ("deactivate", "activate")
 BAD_INVITE = "That invitation is invalid, expired, or the details do not match."
 
 
@@ -210,22 +210,30 @@ def decide_invitation(inv_id):
 @bp.post("/admin-changes")
 @limiter.limit("30 per hour")
 @auth_required("staff")
-@role_required("admin")
+@role_required("employer", "admin")
 def request_admin_change():
     data = body()
     action = s(data, "action", 12)
+    reason = s(data, "reason", 500)
     try:
         target = uuid.UUID(s(data, "user_id", 40))
     except ValueError:
-        return err("validation", "Choose an administrator account.", 400)
+        return err("validation", "Choose an account.", 400)
     if action not in CHANGE_ACTIONS:
-        return err("validation", "Choose deactivate, activate or delete.", 400)
-    outcome, info = staff_accounts.create_change(target, action, g.user["id"])
+        return err("validation", "Choose deactivate or activate.", 400)
+    if g.user["role"] == "employer":
+        if action != "deactivate":
+            return err("forbidden", "Employers can only request user deactivation.", 403)
+        if len(reason) < 3:
+            return err("validation", "A reason is required for employers to request deactivation.", 400,
+                       {"reason": "Enter a reason (at least 3 characters)."})
+    outcome, info = staff_accounts.create_change(target, action, g.user["id"], g.user["role"], reason)
     if outcome == "not_found":
-        return err("not_found", "Administrator account not found.", 404)
+        return err("not_found", "Account not found.", 404)
     if outcome == "conflict":
         return err("conflict", info, 409)
-    audit.log("admin_change_requested", "user_management", g.user["id"], {"email": info["email"], "action": action})
+    audit.log("admin_change_requested", "user_management", g.user["id"],
+              {"email": info["email"], "action": action, **({"reason": reason} if reason else {})})
     return jsonify({"requested": True, "id": str(info["id"])}), 201
 
 
@@ -274,11 +282,13 @@ def approvals():
         })
     for r in staff_accounts.list_changes():
         j = _change_json(r)
+        is_user = r.get("target_role") == "user"
         items.append({
             "kind": "change", "id": j["id"], "status": r["status"], "created_at": j["created_at"],
-            "title": {"deactivate": "Deactivate administrator", "activate": "Activate administrator",
-                      "delete": "Delete administrator"}[r["action"]],
-            "detail": f"{j['target']}" + (f" ({j['target_email']})" if j["target"] != j["target_email"] else ""),
+            "title": ("Deactivate user" if is_user else "Deactivate administrator") if r["action"] == "deactivate"
+                     else {"activate": "Activate administrator", "delete": "Delete administrator"}.get(r["action"], r["action"]),
+            "detail": f"{j['target']}" + (f" ({j['target_email']})" if j["target"] != j["target_email"] else "")
+                      + (f" — Reason: {r['reason']}" if r.get("reason") else ""),
             "requested_by": j["requested_by"], "decided_by": j["decided_by"], "can_decide": j["can_decide"],
         })
     waiting = sorted((i for i in items if i["status"] in ("pending", "awaiting_approval")),
