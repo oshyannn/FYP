@@ -1,0 +1,931 @@
+AIDev\.venv\Lib\site-packages\charset_normalizer\api.py:602:        # speedup without sacrificing coherence accuracy.
+AIDev\.venv\Lib\site-packages\huggingface_hub\cli\upload.py:48:    'hf upload Wauplin/my-cool-model ./models . --commit-message="Epoch 34/50" --commit-description="Val accuracy: 68%"',
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:380:            ...     metrics=['accuracy'],
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:396:            ...             metric_type='accuracy',
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:622:        ...         metrics_pretty_name="Accuracy",
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:623:        ...         metrics_id="accuracy",
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:648:        ...                             'type': 'accuracy',
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard.py:650:        ...                             'name': 'Accuracy',
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard_data.py:303:            at https://hf.co/metrics. Example: 'accuracy'. Defaults to None.
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard_data.py:598:        ...                         "type": "accuracy",
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard_data.py:612:        'accuracy'
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard_data.py:706:        ...         metric_type="accuracy",  # Required
+AIDev\.venv\Lib\site-packages\huggingface_hub\repocard_data.py:711:        [{'name': 'my-cool-model', 'results': [{'task': {'type': 'image-classification'}, 'dataset': {'name': 'Beans', 'type': 'beans'}, 'metrics': [{'type': 'accuracy', 'value': 0.9}]}]}]
+AIDev\.venv\Lib\site-packages\huggingface_hub\_tensorboard_logger.py:96:        writer.add_scalar('Accuracy/train', np.random.random(), n_iter)
+AIDev\.venv\Lib\site-packages\huggingface_hub\_tensorboard_logger.py:97:        writer.add_scalar('Accuracy/test', np.random.random(), n_iter)
+AIDev\.venv\Lib\site-packages\narwhals\_spark_like\expr.py:296:                # Use percentile_approx with default accuracy parameter (10000)
+AIDev\.venv\Lib\site-packages\numpy\fft\_pocketfft.py:226:    ``ifft(fft(a)) == a`` to within numerical accuracy.
+AIDev\.venv\Lib\site-packages\numpy\fft\_pocketfft.py:429:    accuracy. (See Notes below for why ``len(a)`` is necessary here.)
+AIDev\.venv\Lib\site-packages\numpy\fft\_pocketfft.py:895:    ``ifftn(fftn(a)) == a`` to within numerical accuracy.
+AIDev\.venv\Lib\site-packages\numpy\fft\_pocketfft.py:1152:    to within numerical accuracy.  By default, the inverse transform is
+AIDev\.venv\Lib\site-packages\numpy\fft\_pocketfft.py:1482:    accuracy. (The ``a.shape`` is necessary like ``len(a)`` is for `irfft`,
+AIDev\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:1279:    # endpoints. This preserves second order-accuracy over the full domain.
+AIDev\.venv\Lib\site-packages\numpy\lib\_nanfunctions_impl.py:1784:    below).  Specifying a higher-accuracy accumulator using the ``dtype``
+AIDev\.venv\Lib\site-packages\numpy\lib\_nanfunctions_impl.py:1982:    below).  Specifying a higher-accuracy accumulator using the `dtype`
+AIDev\.venv\Lib\site-packages\numpy\linalg\_linalg.py:478:    ``tensordot(a, b, ind)``, i. e., up to floating-point accuracy,
+AIDev\.venv\Lib\site-packages\numpy\linalg\_linalg.py:635:    accuracy on top of what would be lost to the numerical method due to loss
+AIDev\.venv\Lib\site-packages\numpy\polynomial\_polybase.py:903:        Compute the roots for the series. Note that the accuracy of the
+AIDev\.venv\Lib\site-packages\numpy\testing\_private\utils.py:1606:    timing accuracy.
+AIDev\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:3991:    Specifying a higher-accuracy accumulator using the `dtype` keyword can
+AIDev\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:4191:    below).  Specifying a higher-accuracy accumulator using the ``dtype``
+AIDev\.venv\Lib\site-packages\numpy\_core\tests\test_einsum.py:1355:    Calling the inner-loop more often actually improves accuracy slightly
+AIDev\.venv\Lib\site-packages\numpy\_core\tests\test_numeric.py:258:    def test_dunder_round_accuracy(self):
+AIDev\.venv\Lib\site-packages\numpy\_core\tests\test_umath_accuracy.py:47:class TestAccuracy:
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1888:        self, accuracy: int | None = None, use_eng_prefix: bool = False
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1890:        self.accuracy = accuracy
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1897:        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1900:        >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1903:        >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix=False)
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1945:        if self.accuracy is None:  # pragma: no cover
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1948:            format_str = f"{{mant: .{self.accuracy:d}f}}{{prefix}}"
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1956:def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1965:    accuracy : int, default 3
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:1992:    >>> pd.set_eng_float_format(accuracy=1)
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:2010:    >>> pd.set_eng_float_format(accuracy=1, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\io\formats\format.py:2021:    set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
+AIDev\.venv\Lib\site-packages\pandas\io\parsers\readers.py:208:    without losing accuracy. Raises a ValueError if that is
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:30:        set_eng_float_format(accuracy=0)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:52:        set_eng_float_format(accuracy=0)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:77:        formatter = EngFormatter(accuracy=3, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:135:        formatter = EngFormatter(accuracy=4, use_eng_prefix=False)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:193:        formatter = EngFormatter(accuracy=3, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:204:        formatter = EngFormatter(accuracy=1, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:215:        formatter = EngFormatter(accuracy=0, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:226:        formatter = EngFormatter(accuracy=3, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:233:        formatter = EngFormatter(accuracy=1, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:245:        set_eng_float_format(accuracy=1)
+AIDev\.venv\Lib\site-packages\pandas\tests\io\formats\test_eng_formatting.py:252:        formatter = EngFormatter(accuracy=1, use_eng_prefix=True)
+AIDev\.venv\Lib\site-packages\pandas\tests\window\test_rolling.py:951:def test_rolling_numerical_accuracy_kahan_mean(add, unit):
+AIDev\.venv\Lib\site-packages\pandas\tests\window\test_rolling.py:985:def test_rolling_numerical_accuracy_kahan_sum():
+AIDev\.venv\Lib\site-packages\pandas\tests\window\test_rolling.py:993:def test_rolling_numerical_accuracy_jump():
+AIDev\.venv\Lib\site-packages\pandas\tests\window\test_rolling.py:1005:def test_rolling_numerical_accuracy_small_values():
+AIDev\.venv\Lib\site-packages\scipy\differentiate\tests\test_differentiate.py:36:    def test_accuracy(self, case):
+AIDev\.venv\Lib\site-packages\scipy\differentiate\tests\test_differentiate.py:177:        # Test that step factors have the expected effect on accuracy
+AIDev\.venv\Lib\site-packages\scipy\differentiate\_differentiate.py:334:    accuracy:
+AIDev\.venv\Lib\site-packages\scipy\differentiate\_differentiate.py:513:          to produce a higher order approximation seemed to retain accuracy up
+AIDev\.venv\Lib\site-packages\scipy\differentiate\_differentiate.py:693:        # Enforce identities to improve accuracy
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:180:    ``ifft(fft(x)) == x`` to within numerical accuracy.
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:383:    accuracy. (See Notes below for why ``len(a)`` is necessary here.)
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:743:    ``ifftn(fftn(x)) == x`` to within numerical accuracy.
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:948:    to within numerical accuracy. By default, the inverse transform is
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:1209:    accuracy. (The ``a.shape`` is necessary like ``len(a)`` is for `irfft`,
+AIDev\.venv\Lib\site-packages\scipy\fft\_basic.py:1368:    words, ``ihfftn(hfftn(x, s)) == x`` to within numerical accuracy. (``s``
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:251:    def test_size_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:252:        # Sanity check for the accuracy for prime and non-prime sized inputs
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:412:    def test_size_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:413:        # Sanity check for the accuracy for prime and non-prime sized inputs
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:474:    def test_size_accuracy_small(self, size):
+AIDev\.venv\Lib\site-packages\scipy\fft\_duccfft\tests\test_basic.py:484:    def test_size_accuracy_large(self, size):
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:161:              "until accuracy issues with large prime powers are resolved")
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:233:    def test_size_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:234:        # Sanity check for the accuracy for prime and non-prime sized inputs
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:356:    def test_size_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:357:        # Sanity check for the accuracy for prime and non-prime sized inputs
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:430:    def test_size_accuracy_small(self, size):
+AIDev\.venv\Lib\site-packages\scipy\fftpack\tests\test_basic.py:440:    def test_size_accuracy_large(self, size):
+AIDev\.venv\Lib\site-packages\scipy\fftpack\_basic.py:84:    >>> np.allclose(fft(ifft(x)), x, atol=1e-15)  # within numerical accuracy.
+AIDev\.venv\Lib\site-packages\scipy\fftpack\_basic.py:140:    >>> np.allclose(ifft(fft(x)), x, atol=1e-15)  # within numerical accuracy.
+AIDev\.venv\Lib\site-packages\scipy\fftpack\_basic.py:185:    Within numerical accuracy, ``y == rfft(irfft(y))``.
+AIDev\.venv\Lib\site-packages\scipy\fftpack\_pseudo_diffs.py:46:    numerical accuracy).
+AIDev\.venv\Lib\site-packages\scipy\integrate\tests\test_tanhsinh.py:259:    def test_accuracy(self, ref, case, xp):
+AIDev\.venv\Lib\site-packages\scipy\integrate\tests\test_tanhsinh.py:1048:        # Test accuracy when we start sum on an uphill slope.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_bvp.py:520:    0: "The algorithm converged to the desired accuracy.",
+AIDev\.venv\Lib\site-packages\scipy\integrate\_bvp.py:853:            * 0: The algorithm converged to the desired accuracy.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_bvp.py:860:            True if the algorithm converged to the desired accuracy (``status=0``).
+AIDev\.venv\Lib\site-packages\scipy\integrate\_cubature.py:102:        relative accuracy (number of correct digits), while `atol` controls absolute
+AIDev\.venv\Lib\site-packages\scipy\integrate\_cubature.py:103:        accuracy (number of correct decimal places). To achieve the desired `rtol`, set
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\base.py:241:    Evaluation outside this interval is not forbidden, but the accuracy is not
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\bdf.py:79:    An accuracy enhancement using modified formulas (NDF) [2]_ is also implemented.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\bdf.py:104:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\bdf.py:105:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\common.py:146:    the accuracy is not guaranteed.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\common.py:166:        interpolants' accuracy: different integrators use different
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\ivp.py:204:          The error is controlled assuming accuracy of the fourth-order
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\ivp.py:210:          is controlled assuming accuracy of the second-order method, but
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\ivp.py:226:          in [6]_. A quasi-constant step scheme is used and accuracy is
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\ivp.py:312:            relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\ivp.py:313:            absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\lsoda.py:41:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\lsoda.py:42:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\radau.py:207:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\radau.py:208:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:52:        Solution at t + h computed with a higher accuracy.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:187:    assuming accuracy of the second-order method, but steps are taken using the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:214:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:215:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:378:    assuming accuracy of the fourth-order method accuracy, but steps are taken
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:407:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:408:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:600:        relative accuracy (number of correct digits), while `atol` controls
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ivp\rk.py:601:        absolute accuracy (number of correct decimal places). To achieve the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_lebedev.py:90:    #     algebraic order of accuracy"
+AIDev\.venv\Lib\site-packages\scipy\integrate\_lebedev.py:5401:           the 131st algebraic order of accuracy". Doklady Mathematics, Vol. 59,
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ode.py:458:        -2           Excess accuracy requested. (Tolerances too small.)
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ode.py:474:        -2           Excess accuracy requested. (Tolerances too small.)
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ode.py:516:        -2           Excess accuracy requested (tolerances too small).
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ode.py:822:                -2: 'Excess accuracy requested. (Tolerances too small.)',
+AIDev\.venv\Lib\site-packages\scipy\integrate\_ode.py:1245:        -2: "Excess accuracy requested (tolerances too small).",
+AIDev\.venv\Lib\site-packages\scipy\integrate\_odepack_py.py:21:         -2: "Excess accuracy requested (tolerances too small).",
+AIDev\.venv\Lib\site-packages\scipy\integrate\_odepack_py.py:110:                 computed when a request for too much accuracy was detected
+AIDev\.venv\Lib\site-packages\scipy\integrate\_quadpack_py.py:84:        an accuracy of ``abs(i-result) <= max(epsabs, epsrel*abs(i))``
+AIDev\.venv\Lib\site-packages\scipy\integrate\_quadpack_py.py:517:                "accuracy\n  has not been achieved.",
+AIDev\.venv\Lib\site-packages\scipy\integrate\_quadpack_py.py:531:            "not converge to within the requested accuracy.  "
+AIDev\.venv\Lib\site-packages\scipy\integrate\_quadpack_py.py:546:                      "required accuracy) due to roundoff in the extrapolation "
+AIDev\.venv\Lib\site-packages\scipy\integrate\_quadpack_py.py:724:        an accuracy of ``abs(i-result) <= max(epsabs, epsrel*abs(i))``
+AIDev\.venv\Lib\site-packages\scipy\integrate\_rules\_base.py:260:        Higher accuracy rule.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_rules\_base.py:263:        Lower accuracy rule.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_rules\_base.py:360:    difference with a lower-accuracy N-dimensional cubature rule obtained using the
+AIDev\.venv\Lib\site-packages\scipy\integrate\_tanhsinh.py:279:    accuracy:
+AIDev\.venv\Lib\site-packages\scipy\integrate\_tanhsinh.py:1105:    In these cases, accuracy may be poor, and `nsum` may return status code ``4``.
+AIDev\.venv\Lib\site-packages\scipy\integrate\_tanhsinh.py:1361:    # the tolerance, there is no need to compute the integral to better accuracy.
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_bary_rational.py:259:        # check accuracy
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_bsplines.py:3057:        # target accuracy of 1e-14. (the relation between solver atol/rtol
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_bsplines.py:3058:        # and the accuracy of the final result is not direct and needs experimenting)
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:264:    def _check_accuracy(self, func, x=None, tol=1e-6, alternate=False,
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:293:            print("_check_accuracy: abs(a-b):", abs(a - b))
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:307:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:310:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:315:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:319:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:334:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:337:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:393:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\tests\test_interpnd.py:396:            self._check_accuracy(
+AIDev\.venv\Lib\site-packages\scipy\interpolate\_fitpack2.py:2664:    values for ``s`` depend on the accuracy of the data values.  If the user
+AIDev\.venv\Lib\site-packages\scipy\interpolate\_fitpack_repro.py:310:        # satisfies accuracy criterion
+AIDev\.venv\Lib\site-packages\scipy\linalg\interpolative.py:333:This is often useful for checking the accuracy of a matrix approximation.
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_fblas.py:30:# decimal accuracy to require between Python and LAPACK/BLAS calculations
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_fblas.py:31:accuracy = 5
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:1863:    joba specifies several choices effecting the calculation's accuracy
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:1941:            # iwork[2] is non-zero if requested accuracy is not warranted for
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:2020:    # NAG manual provides accuracy up to 4 decimals
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:2469:    # the NAG manual has 4 decimals accuracy
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:3110:    # NAG manual provides accuracy up to 4 decimals
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_lapack.py:3262:    # NAG manual provides accuracy up to 4 and 2 decimals
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_solvers.py:231:         'Bad residual accuracy'),
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_solvers.py:265:         'Bad Residual Accuracy'),
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_solvers.py:298:         'Bad Residual Accuracy'),
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_solvers.py:303:         'Bad Residual Accuracy'),
+AIDev\.venv\Lib\site-packages\scipy\linalg\tests\test_solvers.py:306:         'Bad Residual Accuracy')
+AIDev\.venv\Lib\site-packages\scipy\linalg\_matfuncs_inv_ssq.py:86:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\linalg\_matfuncs_inv_ssq.py:419:    # because the diagonal will be replaced for improved numerical accuracy,
+AIDev\.venv\Lib\site-packages\scipy\linalg\_misc.py:14:    to fail conditions of the algorithm or loss of accuracy is expected.
+AIDev\.venv\Lib\site-packages\scipy\linalg\_solvers.py:426:    In order to improve the QZ decomposition accuracy, the pencil goes
+AIDev\.venv\Lib\site-packages\scipy\linalg\_solvers.py:640:    In order to improve the QZ decomposition accuracy, the pencil goes
+AIDev\.venv\Lib\site-packages\scipy\ndimage\tests\test_filters.py:920:        # expect more than 8 digits of accuracy, so use decimal=0 in this test.
+AIDev\.venv\Lib\site-packages\scipy\ndimage\tests\test_interpolation.py:85:    def test_boundary_spline_accuracy(self, mode, order, xp):
+AIDev\.venv\Lib\site-packages\scipy\ndimage\tests\test_interpolation.py:632:        # aliasing bug that caused accuracy loss for multi-channel images.
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_chandrupatla.py:630:        # PyTorch and CuPy don't solve to the same accuracy as NumPy - that's OK.
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_direct.py:49:        # test accuracy
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_direct.py:94:        # test accuracy
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_optimize.py:3001:# This test is about handling fixed variables, not the accuracy of the solvers
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_quadratic_assignment.py:58:    def test_accuracy_1(self):
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_quadratic_assignment.py:59:        # besides testing accuracy, check that A and B can be lists
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_quadratic_assignment.py:96:    def test_accuracy_2(self):
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_quadratic_assignment.py:126:    def test_accuracy_3(self):
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_trustregion.py:33:    def test_dogleg_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_trustregion.py:34:        # test the accuracy and the return_all option
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test_trustregion_exact.py:317:                    # Solve subproblem with very high accuracy
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:578:        accuracy = check_derivative(self.fun_vector_vector,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:580:        assert_(accuracy < 1e-9)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:581:        accuracy = check_derivative(self.fun_vector_vector,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:583:        assert_(accuracy < 1e-6)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:586:        accuracy = check_derivative(self.fun_zero_jacobian,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:588:        assert_(accuracy == 0)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:589:        accuracy = check_derivative(self.fun_zero_jacobian,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:591:        assert_(accuracy == 0)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:595:        accuracy = check_derivative(self.fun_vector_vector_with_arg,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:599:        assert_(accuracy < 1e-9)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:688:        accuracy = check_derivative(self.fun, jac, self.x0,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:690:        assert_(accuracy < 1e-9)
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:692:        accuracy = check_derivative(self.fun, jac, self.x0,
+AIDev\.venv\Lib\site-packages\scipy\optimize\tests\test__numdiff.py:694:        assert_(accuracy < 1e-9)
+AIDev\.venv\Lib\site-packages\scipy\optimize\_cobyla_py.py:51:        Final accuracy in the optimization (not precisely guaranteed). This
+AIDev\.venv\Lib\site-packages\scipy\optimize\_cobyla_py.py:200:        Final accuracy in the optimization (not precisely guaranteed).
+AIDev\.venv\Lib\site-packages\scipy\optimize\_cobyqa_py.py:40:        Final trust-region radius. It should indicate the accuracy required in
+AIDev\.venv\Lib\site-packages\scipy\optimize\_lbfgsb_py.py:128:        low accuracy; 1e7 for moderate accuracy; 10.0 for extremely
+AIDev\.venv\Lib\site-packages\scipy\optimize\_lbfgsb_py.py:129:        high accuracy. See Notes for relationship to `ftol`, which is exposed
+AIDev\.venv\Lib\site-packages\scipy\optimize\_linprog_doc.py:1023:    accuracy issues associated with the substitution approach to free
+AIDev\.venv\Lib\site-packages\scipy\optimize\_linprog_ip.py:1026:    accuracy issues associated with the substitution approach to free
+AIDev\.venv\Lib\site-packages\scipy\optimize\_lsq\dogbox.py:31:iteration (a required number of function evaluations might be high or accuracy
+AIDev\.venv\Lib\site-packages\scipy\optimize\_minimize.py:375:    used to solve the subproblems with increasing levels of accuracy
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:310:            - '2-point' - use the first order accuracy forward or backward
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:313:                          second order accuracy forward or backward difference
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:427:    and `x0`. If `rel_step` and `abs_step` are None, then the overall accuracy of
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:434:    points near the boundary. Both schemes have the second-order accuracy in
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:949:    accuracy : float
+AIDev\.venv\Lib\site-packages\scipy\optimize\_numdiff.py:952:        less or equal than 1. If `accuracy` is on the order of 1e-6 or lower,
+AIDev\.venv\Lib\site-packages\scipy\optimize\_qap.py:89:    speed and accuracy.
+AIDev\.venv\Lib\site-packages\scipy\optimize\_qap.py:167:    If accuracy is important, consider using  :ref:`'2opt' <optimize.qap-2opt>`
+AIDev\.venv\Lib\site-packages\scipy\optimize\_slsqp_py.py:125:        Requested accuracy.
+AIDev\.venv\Lib\site-packages\scipy\optimize\_slsqp_py.py:233:        controls the final accuracy for checking various optimality conditions;
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:92:             stepmx=0, accuracy=0, fmin=0, ftol=-1, xtol=-1, pgtol=-1,
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:161:    accuracy : float, optional
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:178:        If pgtol < 0.0, pgtol is set to 1e-2 * sqrt(accuracy).
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:272:            'accuracy': accuracy,
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:287:                  maxCGit=-1, eta=-1, stepmx=0, accuracy=0,
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:322:    accuracy : float
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:339:        If gtol < 0.0, gtol is set to 1e-2 * sqrt(accuracy).
+AIDev\.venv\Lib\site-packages\scipy\optimize\_tnc.py:428:        eta, stepmx, accuracy, fmin, ftol,
+AIDev\.venv\Lib\site-packages\scipy\optimize\_trustregion.py:143:            Accuracy to solve subproblems. If True requires less nonlinear
+AIDev\.venv\Lib\site-packages\scipy\optimize\_trustregion_krylov.py:18:        Accuracy to solve subproblems. If True requires less nonlinear
+AIDev\.venv\Lib\site-packages\scipy\optimize\_zeros_py.py:578:    highest level of accuracy. Larger values of `xtol` may be useful for saving
+AIDev\.venv\Lib\site-packages\scipy\optimize\_zeros_py.py:684:    highest level of accuracy. Larger values of `xtol` may be useful for saving
+AIDev\.venv\Lib\site-packages\scipy\optimize\_zeros_py.py:817:    highest level of accuracy. Larger values of `xtol` may be useful for saving
+AIDev\.venv\Lib\site-packages\scipy\optimize\_zeros_py.py:948:    highest level of accuracy. Larger values of `xtol` may be useful for saving
+AIDev\.venv\Lib\site-packages\scipy\optimize\_zeros_py.py:1433:    highest level of accuracy. Larger values of `xtol` may be useful for saving
+AIDev\.venv\Lib\site-packages\scipy\optimize\__init__.py:184:Bisection is the slowest of them all, adding one bit of accuracy for each
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_filter_design.py:2130:    @xfail_xp_backends("torch", reason="accuracy is bad")
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_filter_design.py:2146:    @xfail_xp_backends("torch", reason="accuracy is bad")
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_filter_design.py:2211:    @xfail_xp_backends("torch", reason="accuracy issues")
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_ltisys.py:418:    digits_accuracy = 7
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_ltisys.py:455:        assert_almost_equal(x, expected_x, decimal=self.digits_accuracy)
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_ltisys.py:456:        assert_almost_equal(y, expected_x, decimal=self.digits_accuracy)
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_ltisys.py:488:        assert_almost_equal(x, expected_x, decimal=self.digits_accuracy)
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_ltisys.py:489:        assert_almost_equal(y, expected_y, decimal=self.digits_accuracy)
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_spectral.py:1052:        # frequency is less than accuracy
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_spectral.py:1060:        # frequency is less than accuracy
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\test_splines.py:386:        # accuracy only. Implementation differences are twofold:
+AIDev\.venv\Lib\site-packages\scipy\signal\tests\_scipy_spectral_test_shim.py:274:      resolution was added to account for the low accuracy of float32 (Occurs
+AIDev\.venv\Lib\site-packages\scipy\signal\_czt.py:158:    For transforms that do lie on the unit circle, accuracy is better when
+AIDev\.venv\Lib\site-packages\scipy\signal\_filter_design.py:1083:    # Average out numerical inaccuracy in real vs imag parts of pairs
+AIDev\.venv\Lib\site-packages\scipy\signal\_filter_design.py:4082:    accuracy. Determining the right order can be a challenge. This function
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\tests\test_matfuncs.py:258:        # with accuracy estimate,
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\tests\test_matfuncs.py:458:        # Ward's algorithm has difficulty estimating the accuracy
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\tests\test_matfuncs.py:478:        # Ward's algorithm has difficulty estimating the accuracy
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\tests\test_propack.py:152:def test_shifts_accuracy():
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:155:         "accuracy.",
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:173:                      "accuracy.")
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:204:                      "accuracy.",
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:214:                      "accuracy.")
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:235:    -14: "DSAUPD  did not find any eigenvalues to sufficient accuracy.",
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:247:                      "to sufficient accuracy.")
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:1271:        Relative accuracy for eigenvalues (stopping criterion)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\arpack\arpack.py:1547:        Relative accuracy for eigenvalues (stopping criterion).
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\lobpcg.py:244:    now returns the block of iterative vectors with the best accuracy rather
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\lobpcg.py:1000:            f"Use iteration {bestIterationNumber} instead with accuracy \n"
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:527:    """Check lobpcg and eighs accuracy for the Sakurai example
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:539:    accuracy = max(abs(ee - el) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:540:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:544:    accuracy = max(abs(ee - ea) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:545:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:552:    """Check lobpcg and eighs accuracy for the sakurai_inverse example
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:566:    accuracy = max(abs(ee - 1. / el) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:567:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:571:    accuracy = max(abs(ee - np.sort(1. / ea)) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:572:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:580:    """Check lobpcg and eighs accuracy for the Mikota example
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:605:    accuracy = max(abs(ee - el) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:606:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:613:    accuracy = max(abs(ee - np.sort(1./ea)) / ee)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\lobpcg\tests\test_lobpcg.py:614:    assert_allclose(accuracy, 0., atol=tol)
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:313:        # check the effect of the `tol` parameter on solver accuracy by solving
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:342:        for tol, accuracy in zip(tols, accuracies[self.solver]):
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:344:            assert error < accuracy
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:384:        # achieve the desired accuracy and ARPACK often returns the same
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:553:    # Tests the accuracy of each solver for real and complex matrices provided
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\tests\test_svds.py:869:    # (e.g. accuracy, time), so no test of the parameter.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_eigen\_svds_doc.py:277:        The desired relative accuracy for computed singular values.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_expm_multiply.py:366:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_isolve\lsqr.py:200:    number of iterations required to reach a certain accuracy depends
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_isolve\minres.py:116:            ' Reasonable accuracy achieved, given eps           ',   # 3
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_matfuncs.py:266:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_matfuncs.py:305:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_onenormest.py:22:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_onenormest.py:233:        accuracy versus time and memory usage.
+AIDev\.venv\Lib\site-packages\scipy\sparse\linalg\_svdp.py:98:        The desired relative accuracy for computed singular values.
+AIDev\.venv\Lib\site-packages\scipy\spatial\tests\test_slerp.py:327:        # makes up accuracy ground elsewhere
+AIDev\.venv\Lib\site-packages\scipy\spatial\transform\tests\test_rotation.py:2512:        # Test accuracy
+AIDev\.venv\Lib\site-packages\scipy\spatial\transform\_rotation.py:2458:        measured with the same accuracy of 0.01 (`weights` must be all equal),
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:995:        # This tests the airy function to ensure 8 place accuracy in computation
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:1985:    @pytest.mark.xfail(reason="Insufficient accuracy on 32-bit")
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2496:    def test_factorial_accuracy(self, n):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2497:        # Compare exact=True vs False, i.e. that the accuracy of the
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2647:    def test_factorial2_accuracy(self, n):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2648:        # Compare exact=True vs False, i.e. that the accuracy of the
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2780:    def test_factorialk_accuracy(self, n, k):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:2781:        # Compare exact=True vs False, i.e. that the accuracy of the
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_basic.py:4619:    # Check accuracy of inputs which are very close
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_boost_ufuncs.py:40:        # platforms. This test is about dtype and accuracy, so let's avoid false
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_boost_ufuncs.py:50:    # accuracy is tested by Boost.
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_cdflib.py:694:    def test_nctdtr_accuracy(self, df, nc, x, expected, rtol):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_cdflib.py:914:    def test_accuracy(self, p, m, k):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_data.py:524:        # Also the accuracy on 32-bit builds with g++ may suffer from excess
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_data.py:541:        # The accuracy of R_G is primarily limited by R_D that is used
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_data.py:633:        # Also the GSL output has limited accuracy...
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_hypergeometric.py:57:        # This purpose of this test is to check the accuracy of results
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_mpmath.py:373:    # Make sure there isn't a big jump in accuracy when we move from
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_mpmath.py:478:    # Check that there isn't a jump in accuracy when we switch from
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_mpmath.py:1509:        # SciPy's hyp2f1 seems to have performance and accuracy problems
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_mpmath.py:2144:                       reason="Accuracy issues near z = -1 inherited from kv.")
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:75:# grid of rows [a, b, x, value, accuracy] that do not reach 1e-11 accuracy
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:103:    """Test cases of test_data that do not reach relative accuracy of 1e-11"""
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:108:    'a, b, x, phi, accuracy',
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:110:def test_wright_data_grid_less_accurate(a, b, x, phi, accuracy):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:111:    """Test cases of test_data that do not reach relative accuracy of 1e-11
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:113:    Here we test for reduced accuracy or even nan.
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:115:    if np.isnan(accuracy):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:118:        assert_allclose(wright_bessel(a, b, x), phi, rtol=accuracy)
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:162:# Note: accuracy = np.nan means log_wright_bessel returns nan.
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:164:    'a, b, x, phi, accuracy',
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:200:def test_log_wright_bessel(a, b, x, phi, accuracy):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:202:    if np.isnan(accuracy):
+AIDev\.venv\Lib\site-packages\scipy\special\tests\test_wright_bessel.py:205:        assert_allclose(log_wright_bessel(a, b, x), phi, rtol=accuracy)
+AIDev\.venv\Lib\site-packages\scipy\special\_add_newdocs.py:5384:    point accuracy.
+AIDev\.venv\Lib\site-packages\scipy\special\_basic.py:3289:        accuracy. See [2]_ for a description. Temme approximation is used for
+AIDev\.venv\Lib\site-packages\scipy\special\_precompute\wright_bessel_data.py:94:    # filter out known values that do not meet the required numerical accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\qmc.py:58:accuracy than :math:`n=64` if the method was designed for :math:`n=2^m`.
+AIDev\.venv\Lib\site-packages\scipy\stats\qmc.py:68:QMC points are deterministic. That makes it hard to estimate the accuracy of
+AIDev\.venv\Lib\site-packages\scipy\stats\qmc.py:134:levels of asymptotic accuracy given higher smoothness conditions on :math:`f`
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_axis_nan_policy.py:259:inaccuracy_messages = {"Precision loss occurred in moment calculation",
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_continuous_basic.py:793:    # Only check the length of the return; accuracy tested in test_fit.py
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_continuous_fit_censored.py:13:# In some tests, we'll use this optimizer for improved accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_discrete_basic.py:243:    if distname == 'skellam':    # ncx2 accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_discrete_distns.py:110:def test_nhypergeom_accuracy():
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_discrete_distns.py:597:        # has only three digits of accuracy (~ 2.1511e-14).
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:1275:    def test_gh23196_tails_cdf_sf_accuracy(self, x, a, b, ref):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:1276:        # Spot check the accuracy of the CDF/SF in the deep tails.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:1440:    def test_gompertz_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:1960:        # Check accuracy issues reported in gh-14753 and gh-155110
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:3885:            # Invgamme roundtrip on 32-bit systems has relative accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:5045:    # entropy accuracy was confirmed using the following mpmath function
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:5973:            # piecewise generally good accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:5994:            # for small alpha very slightly reduced accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:6003:            # fft accuracy reduces as alpha decreases
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:6097:            # piecewise generally good accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:6118:            # loses accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:6136:            # fft accuracy poor, very poor alpha < 1
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:6502:        # Test levy_stable.logpdf accuracy in the tails when beta=1 or beta=-1
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:7797:        #  with its PDF. As for accuracy, dweibull entropy should be just
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:7798:        #  as accurate as weibull_min entropy. Checks of accuracy against
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:8903:    # test the accuracy: d(logcdf)/dx = pdf / cdf \equiv exp(logpdf - logcdf)
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:9411:def test_lomax_accuracy():
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:9417:def test_truncexpon_accuracy():
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:9423:def test_rayleigh_accuracy():
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_distributions.py:9805:        # Extensive accuracy tests elsewhere, no need to test all methods
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_fit.py:773:    def test_mse_accuracy_1(self):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_fit.py:784:    def test_mse_accuracy_2(self):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\reference_distributions.py:10:    distribution accuracy and robustness.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\reference_distributions.py:15:    arithmetic is trusted for accuracy rather than making the method
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\reference_distributions.py:50:    inaccuracy of the reference values (e.g. due to numerical issues that
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\reference_distributions.py:291:        # Trust mpmath for the accuracy, and don't worry about speed. What's
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\reference_distribution_infrastructure_tests.py:31:    # as expected. The accuracy is what it is.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\studentized_range_mpmath_ref.py:6:# that is used to compare the accuracy of `studentized_range` functions against
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_generation\studentized_range_mpmath_ref.py:97:        # np assert can't handle mpf, so take the accuracy hit here.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_morestats.py:1070:        # here is limited by accuracy of `binom.cdf` for large inputs on
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_morestats.py:1977:    def test_accuracy_wilcoxon(self, xp):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_morestats.py:3457:    def test_circmean_accuracy_tiny_input(self, xp):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_morestats.py:3478:    def test_circmean_accuracy_huge_input(self, xp):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_morestats.py:3480:        # numerical accuracy by eagerly rotating the input.  This is detected
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_mstats_basic.py:445:        # Accuracy of the alternatives is tested in stats/tests/test_stats.py
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:1116:        # NB: ndim = 2, 3 has much poorer accuracy than ndim > 3 for many seeds.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:3082:                # Add a bit of noise to account for numeric accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:3575:        # Check accuracy against MVN randomly-generated cases
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:3580:        # Check accuracy against MVN for randomly-generated singular cases
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:3584:        # Check for accuracy in the limit that df -> oo and MVT -> MVN
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:4169:        # rough accuracy check
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:4536:    def test_pdf_accuracy(self, x, mu, kappa, reference):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:4578:    def test_logpdf_accuracy(self, x, mu, kappa, reference):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:4601:    def test_entropy_accuracy(self, dim, kappa, reference):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_multivariate.py:4643:    def test_fit_accuracy(self, dim, kappa, mu_tol, kappa_tol):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_resampling.py:1459:    # To get reasonable accuracy, these next three tests are somewhat slow.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:789:    inaccuracy of the hypergeom distribution (see #1218). Fixed now.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:853:        # tightened to fix gh4130. Accuracy checked against R fisher.test.
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:3601:    testcase_moment_accuracy = rng.random(42)
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:3736:    def test_moment_accuracy(self):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:3739:        tc_no_mean = (self.testcase_moment_accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:3740:                      - np.mean(self.testcase_moment_accuracy))
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:3742:                        stats.moment(self.testcase_moment_accuracy, 42))
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:9200:    def test_accuracy(self, L, p, ranked, method, data):
+AIDev\.venv\Lib\site-packages\scipy\stats\tests\test_stats.py:9228:    def test_accuracy2(self, L, p, ranked, method, data):
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:165:    Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:257:    Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:6359:    Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:6462:    Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:11193:    distribution function ``cdf`` up to floating point accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\_continuous_distns.py:12346:    Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:197:Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:335:Check accuracy of ``cdf`` and ``ppf``:
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:1774:    methods but for speed and/or accuracy you can over-ride::
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:1785:    The main reason would be to improve numerical accuracy: for example,
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:2977:        Likewise, the accuracy of results is not verified by the function.
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:3903:        slowly, the accuracy of the result may be rather low. For instance, for
+AIDev\.venv\Lib\site-packages\scipy\stats\_distn_infrastructure.py:3904:        ``zipf(4)``, accuracy for mean, variance in example is only 1e-5.
+AIDev\.venv\Lib\site-packages\scipy\stats\_distribution_infrastructure.py:68:#  Accuracy benchmark suite. Ideally, when all code is array API compatible and mparray
+AIDev\.venv\Lib\site-packages\scipy\stats\_distribution_infrastructure.py:78:# report accuracy estimates? How?
+AIDev\.venv\Lib\site-packages\scipy\stats\_distribution_infrastructure.py:1430:        more likely to meet the desired accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\_distribution_infrastructure.py:1750:        more likely to meet the desired accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\_distribution_infrastructure.py:4654:    # distribution parameters, so they could affect the accuracy of the
+AIDev\.venv\Lib\site-packages\scipy\stats\_entropy.py:288:    For several sample sizes between 5 and 1000, compare the accuracy of
+AIDev\.venv\Lib\site-packages\scipy\stats\_levy_stable\__init__.py:74:    """To improve DNI accuracy convert characteristic function in to real
+AIDev\.venv\Lib\site-packages\scipy\stats\_levy_stable\__init__.py:743:    To increase accuracy of FFT calculation one can specify
+AIDev\.venv\Lib\site-packages\scipy\stats\_levy_stable\__init__.py:761:    superior in accuracy, so FFT is disabled by default.
+AIDev\.venv\Lib\site-packages\scipy\stats\_morestats.py:4051:    was chosen as a compromise between execution time and accuracy under the
+AIDev\.venv\Lib\site-packages\scipy\stats\_morestats.py:4054:    ``n_resamples`` parameter to balance time constraints and accuracy
+AIDev\.venv\Lib\site-packages\scipy\stats\_mstats_basic.py:811:        method based on a trade-off between speed and accuracy.
+AIDev\.venv\Lib\site-packages\scipy\stats\_multivariate.py:5367:        # preserves ~12 digits accuracy up to at least `dim=1e5`. See gh-18465.
+AIDev\.venv\Lib\site-packages\scipy\stats\_resampling.py:2046:    from inaccuracy due to limited machine precision. Consider the following
+AIDev\.venv\Lib\site-packages\scipy\stats\_sampling.py:445:        of values to ensure that the numerical accuracy (see Notes) is
+AIDev\.venv\Lib\site-packages\scipy\stats\_sampling.py:500:    `rvs` relies on the accuracy of the numerical inversion. If very extreme
+AIDev\.venv\Lib\site-packages\scipy\stats\_sampling.py:507:    To check numerical accuracy, the method `evaluate_error` can be used.
+AIDev\.venv\Lib\site-packages\scipy\stats\_sampling.py:931:        Evaluate the numerical accuracy of the inversion (u- and x-error).
+AIDev\.venv\Lib\site-packages\scipy\stats\_stats_py.py:5611:          between speed and accuracy
+AIDev\.venv\Lib\site-packages\scipy\_external\cobyqa\main.py:135:                Final trust-region radius. It should indicate the accuracy
+AIDev\.venv\Lib\site-packages\scipy\_external\pyprima\cobyla\cobyla.py:151:      expected change to a variable, and RHOEND should indicate the accuracy that is
+AIDev\.venv\Lib\site-packages\sklearn\base.py:567:    - `score` method that default to :func:`~sklearn.metrics.accuracy_score`.
+AIDev\.venv\Lib\site-packages\sklearn\base.py:604:        Return :ref:`accuracy <accuracy_score>` on provided data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\base.py:606:        In multi-label classification, this is the subset accuracy
+AIDev\.venv\Lib\site-packages\sklearn\base.py:624:            Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+AIDev\.venv\Lib\site-packages\sklearn\base.py:626:        from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\base.py:628:        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+AIDev\.venv\Lib\site-packages\sklearn\cluster\_kmeans.py:996:            initialization (sometimes at the expense of accuracy).
+AIDev\.venv\Lib\site-packages\sklearn\cluster\_kmeans.py:1761:        initialization (sometimes at the expense of accuracy): the
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_elliptic_envelope.py:10:from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_elliptic_envelope.py:244:        """Return the mean accuracy on the given test data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_elliptic_envelope.py:246:        In multi-label classification, this is the subset accuracy
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_elliptic_envelope.py:264:            Mean accuracy of self.predict(X) w.r.t. y.
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_elliptic_envelope.py:266:        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_graph_lasso.py:277:        direction. This parameter controls the accuracy of the search direction
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_graph_lasso.py:433:        direction. This parameter controls the accuracy of the search direction
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_graph_lasso.py:634:        direction. This parameter controls the accuracy of the search direction
+AIDev\.venv\Lib\site-packages\sklearn\covariance\_graph_lasso.py:766:        direction. This parameter controls the accuracy of the search direction
+AIDev\.venv\Lib\site-packages\sklearn\decomposition\tests\test_pca.py:929:    """Check the accuracy of PCA's internal variance calculation"""
+AIDev\.venv\Lib\site-packages\sklearn\decomposition\_factor_analysis.py:88:        Accuracy can also be improved by setting higher values for
+AIDev\.venv\Lib\site-packages\sklearn\decomposition\_incremental_pca.py:62:        improve the predictive accuracy of the downstream estimators by
+AIDev\.venv\Lib\site-packages\sklearn\decomposition\_incremental_pca.py:73:        balance between approximation accuracy and memory consumption.
+AIDev\.venv\Lib\site-packages\sklearn\decomposition\_pca.py:172:        improve the predictive accuracy of the downstream estimators by
+AIDev\.venv\Lib\site-packages\sklearn\dummy.py:432:        """Return the mean accuracy on the given test data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\dummy.py:434:        In multi-label classification, this is the subset accuracy
+AIDev\.venv\Lib\site-packages\sklearn\dummy.py:454:            Mean accuracy of self.predict(X) w.r.t. y.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_forest.py:467:    "X, y, lower_bound_accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_forest.py:492:    ForestClassifier, X, y, X_type, lower_bound_accuracy, oob_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_forest.py:517:        assert classifier.oob_score_ >= lower_bound_accuracy
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_forest.py:1894:    # `forest_non_predictive`: meaningful for R2/accuracy, but robust in tests.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_voting.py:125:    scores = cross_val_score(eclf, X, y, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\tests\test_voting.py:150:    scores = cross_val_score(eclf, X_scaled, y, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_bagging.py:18:from sklearn.metrics import accuracy_score, r2_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_bagging.py:924:        oob_score = accuracy_score(y, np.argmax(predictions, axis=1))
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:58:from sklearn.metrics import accuracy_score, r2_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:537:            (accuracy score).
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:796:            Scoring function for OOB score. Defaults to `accuracy_score`.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:804:            scoring_function = accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:1180:    improve the predictive accuracy and control over-fitting.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:1297:        By default, :func:`~sklearn.metrics.accuracy_score` is used.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:1582:    improve the predictive accuracy and control over-fitting.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:1967:    of the dataset and uses averaging to improve the predictive accuracy
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:2078:        By default, :func:`~sklearn.metrics.accuracy_score` is used.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_forest.py:2355:    of the dataset and uses averaging to improve the predictive accuracy
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_gb.py:1434:        averaging to improve the predictive accuracy and control over-fitting.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\gradient_boosting.py:1933:        - `None`: :ref:`accuracy <accuracy_score>` is used.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\gradient_boosting.py:2017:        averaging to improve the predictive accuracy and control over-fitting.
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:11:from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:180:    acc_lightgbm = accuracy_score(y_train, pred_lightgbm)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:181:    acc_sklearn = accuracy_score(y_train, pred_sklearn)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:189:        acc_lightgbm = accuracy_score(y_test, pred_lightgbm)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:190:        acc_sklearn = accuracy_score(y_test, pred_sklearn)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:261:    acc_lightgbm = accuracy_score(y_train, pred_lightgbm)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:262:    acc_sklearn = accuracy_score(y_train, pred_sklearn)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:277:        acc_lightgbm = accuracy_score(y_test, pred_lightgbm)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_compare_lightgbm.py:278:        acc_sklearn = accuracy_score(y_test, pred_sklearn)
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_gradient_boosting.py:148:        ("accuracy", 0.1, True, 5, 1e-7),  # use scorer
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_gradient_boosting.py:149:        ("accuracy", None, True, 5, 1e-1),  # use scorer on training data
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_hist_gradient_boosting\tests\test_gradient_boosting.py:408:    # y == isnan(X), the gbdt is supposed to reach perfect accuracy on the
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_weight_boosting.py:36:from sklearn.metrics import accuracy_score, r2_score
+AIDev\.venv\Lib\site-packages\sklearn\ensemble\_weight_boosting.py:271:                yield accuracy_score(y, y_pred, sample_weight=sample_weight)
+AIDev\.venv\Lib\site-packages\sklearn\feature_extraction\tests\test_text.py:941:    # to 100% accuracy models
+AIDev\.venv\Lib\site-packages\sklearn\feature_extraction\tests\test_text.py:978:    # to 100% accuracy models
+AIDev\.venv\Lib\site-packages\sklearn\feature_selection\tests\test_rfe.py:221:    scorer = get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\feature_selection\tests\test_rfe.py:457:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\feature_selection\_rfe.py:1015:            scoring = "accuracy" if is_classifier(self.estimator) else "r2"
+AIDev\.venv\Lib\site-packages\sklearn\gaussian_process\tests\test_gpr.py:195:    # More digits accuracy would require many more samples
+AIDev\.venv\Lib\site-packages\sklearn\inspection\tests\test_permutation_importance.py:184:    # The maximum test accuracy is 2 / 5 == 0.4, each informative feature
+AIDev\.venv\Lib\site-packages\sklearn\inspection\tests\test_permutation_importance.py:185:    # contributing approximately a bit more than 0.2 of accuracy.
+AIDev\.venv\Lib\site-packages\sklearn\inspection\_permutation_importance.py:229:        the computational speed vs statistical accuracy trade-off of this method.
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_bayes.py:230:def test_ard_accuracy_on_easy_problem(global_random_seed, n_samples, n_features):
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_bayes.py:231:    # Check that ARD converges with reasonable accuracy on an easy problem
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_linear_loss.py:292:    # Use a trick to get central finite difference of accuracy 4 (five-point stencil)
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:550:        ("accuracy", [""]),
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:553:        # is the same as accuracy for f1, precision,
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:693:    # Test that for the iris data multinomial gives a better accuracy than OvR
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:780:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:782:    # We expect accuracy to be exactly 0 because train and test sets have
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:1711:    # Check accuracy consistency
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:2498:    scorer1 = get_scorer("accuracy").set_score_request(sample_weight=False)
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:2502:    scorer2 = get_scorer("accuracy").set_score_request(sample_weight=True)
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:2534:        scorer1 = get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:2543:        scorer2 = get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_logistic.py:2876:    assert lr._get_scorer()._score_func.__name__ == "accuracy_score"
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_omp.py:80:def test_unreachable_accuracy():
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_passive_aggressive.py:91:def test_classifier_accuracy(csr_container, fit_intercept, average):
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_perceptron.py:42:def test_perceptron_accuracy(container):
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_ridge.py:88:def _accuracy_callable(y_test, y_pred, **kwargs):
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_ridge.py:1364:@pytest.mark.parametrize("scoring", [None, "accuracy", _accuracy_callable])
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_ridge.py:1743:@pytest.mark.parametrize("scoring", [None, "accuracy", _accuracy_callable])
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\tests\test_sag.py:723:        # Note the very crude accuracy, i.e. high rtol.
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:775:        - `None`: :ref:`accuracy <accuracy_score>` is used.
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1731:        - `None`: :ref:`accuracy <accuracy_score>` is used.
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1734:           The default will change from None, i.e. accuracy, to 'neg_log_loss' in
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:2118:                "i.e. accuracy, to 'neg_log_loss' in version 1.11. To silence this "
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:2120:                "scoring='neg_log_loss' for the new, scoring='accuracy' or "
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:2555:        The default scoring method is `accuracy`.
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:2558:            return get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:2559:        scoring = self.scoring or "accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_ransac.py:100:        * `score(X, y)`: Returns the mean accuracy on the given test data,
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_ridge.py:1386:        return get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\linear_model\_ridge.py:2907:          :ref:`accuracy <accuracy_score>` otherwise.
+AIDev\.venv\Lib\site-packages\sklearn\manifold\_t_sne.py:238:        This is the trade-off between speed and accuracy for Barnes-Hut T-SNE.
+AIDev\.venv\Lib\site-packages\sklearn\manifold\_t_sne.py:683:        This is the trade-off between speed and accuracy for Barnes-Hut T-SNE.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\pairwise.py:328:    To achieve a better accuracy, `X_norm_squared` and `Y_norm_squared` may be
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:18:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:20:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:153:        "accuracy": 0.5333333333333333,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:173:        if key == "accuracy":
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:212:    WHen a superset, we expect to show the "accuracy" in the report while it should be
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:224:        assert "accuracy" not in report
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:225:    else:  # accuracy should be shown
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:226:        assert "accuracy" in report
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:230:def test_multilabel_accuracy_score_subset_accuracy():
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:235:    assert accuracy_score(y1, y2) == 0.5
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:236:    assert accuracy_score(y1, y1) == 1
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:237:    assert accuracy_score(y2, y2) == 1
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:238:    assert accuracy_score(y2, np.logical_not(y2)) == 0
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:239:    assert accuracy_score(y1, np.logical_not(y1)) == 0
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:240:    assert accuracy_score(y1, np.zeros(y1.shape)) == 0
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:241:    assert accuracy_score(y2, np.zeros(y1.shape)) == 0
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1376:    accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1399:    accuracy                           0.33         9
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1419:    accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1440:    accuracy                        0.53333        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1467:    accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1481:    accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1503:    accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:1525:                 accuracy                           0.53        75
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3149:def test_balanced_accuracy_score_unseen():
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3152:        balanced_accuracy_score([0, 0, 0], [0, 0, 1])
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3163:def test_balanced_accuracy_score(y_true, y_pred):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3168:        # Warnings are tested in test_balanced_accuracy_score_unseen
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3169:        balanced = balanced_accuracy_score(y_true, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3171:    adjusted = balanced_accuracy_score(y_true, y_pred, adjusted=True)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_classification.py:3172:    chance = balanced_accuracy_score(y_true, np.full_like(y_true, y_true[0]))
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:15:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:17:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:61:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:173:    "accuracy_score": accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:174:    "balanced_accuracy_score": balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:175:    "adjusted_balanced_accuracy_score": partial(balanced_accuracy_score, adjusted=True),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:176:    "unnormalized_accuracy_score": partial(accuracy_score, normalize=False),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:294:    "top_k_accuracy_score": top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:434:    "accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:436:    "top_k_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:465:    "accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:466:    "unnormalized_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:518:    "accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:519:    "unnormalized_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:535:    # P = R = F = accuracy in multiclass case
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:555:    "balanced_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:556:    "adjusted_balanced_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:607:    "unnormalized_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:628:    "accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:756:    sym = "accuracy_score"
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:1617:    # top_k_accuracy_score always lead to a perfect score for k > 1 in the
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:1619:    metric = partial(metric, k=1) if name == "top_k_accuracy_score" else metric
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:2477:    accuracy_score: [
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_common.py:2487:    balanced_accuracy_score: [
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:13:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:30:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:1084:        # it wrong, hence the average_precision_score is the accuracy at
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:1331:        top_k_accuracy_score(y_true, y_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2129:def test_top_k_accuracy_score(y_true, k, true_score):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2138:    score = top_k_accuracy_score(y_true, y_score, k=k)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2153:def test_top_k_accuracy_score_binary(y_score, k, true_score):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2159:    score = top_k_accuracy_score(y_true, y_score, k=k)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2160:    score_acc = accuracy_score(y_true, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2175:def test_top_k_accuracy_score_multiclass_with_labels(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2190:    score = top_k_accuracy_score(y_true, y_score, k=2, labels=labels)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2194:def test_top_k_accuracy_score_increasing():
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2207:            top_k_accuracy_score(y, clf.predict_proba(X), k=k) for k in range(2, 10)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2221:def test_top_k_accuracy_score_ties(y_true, k, true_score):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2231:    assert top_k_accuracy_score(y_true, y_score, k=k) == pytest.approx(true_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2241:def test_top_k_accuracy_score_warning(y_true, k):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2255:        score = top_k_accuracy_score(y_true, y_score, k=k)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2341:def test_top_k_accuracy_score_error(y_true, y_score, labels, msg):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2343:        top_k_accuracy_score(y_true, y_score, k=2, labels=labels)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2410:        accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2471:        y_true, y_score, accuracy_score, metric_params={"normalize": normalize}
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2477:        expected_values.append(accuracy_score(y_true, y_pred, normalize=normalize))
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2519:        y_true, y_score, accuracy_score, sample_weight=sample_weight
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2522:        y_true_perm, y_score_perm, accuracy_score, sample_weight=sample_weight_perm
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2545:    metric_1, thresh_1 = metric_at_thresholds(y_true_1, y_score, accuracy_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2546:    metric_2, thresh_2 = metric_at_thresholds(y_true_2, y_score, accuracy_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2556:        y_true_1, y_score, accuracy_score, sample_weight=sample_weight_1
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_ranking.py:2559:        y_true_1, y_score, accuracy_score, sample_weight=sample_weight_2
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:27:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:29:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:44:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:92:    "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:93:    "balanced_accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:96:    "top_k_accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:253:    scorer = scoring_validator(estimator, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:257:    scorer = scoring_validator(estimator, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:271:        ("accuracy",),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:273:        {"acc": "accuracy", "precision": "precision"},
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:274:        ("accuracy", "precision"),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:275:        ["precision", "accuracy"],
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:277:            "accuracy": make_scorer(accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:308:    if "accuracy" in scoring:
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:310:            scorers["accuracy"](estimator, [[1], [2], [3]], [1, 0, 0]), 2.0 / 3.0
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:322:            (make_scorer(precision_score), make_scorer(accuracy_score)),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:329:        ({4: "accuracy"}, "Non-string types were found in the keys"),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:394:        ("top_k_accuracy", top_k_accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:414:        ("accuracy", accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:415:        ("balanced_accuracy", balanced_accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:607:        if name == "top_k_accuracy":
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:733:                "a1": "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:734:                "a2": "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:744:        (["roc_auc", "accuracy"], 1, 0, 1),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:745:        (["neg_log_loss", "accuracy"], 1, 1, 0),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:855:        "a1": "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:856:        "a2": "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:875:        for name in ["accuracy", "neg_log_loss", "roc_auc"]
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1481:            get_scorer("accuracy"),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1482:            "make_scorer(accuracy_score, response_method='predict')",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1529:        "accuracy": accuracy_score(y_test, y_pred),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1533:        scoring = check_scoring_(scoring=container(["r2", "roc_auc", "accuracy"]))
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1540:    def double_accuracy(y_true, y_pred):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1541:        return 2 * accuracy_score(y_true, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1543:    custom_scorer = make_scorer(double_accuracy, response_method="predict")
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1550:            "double_accuracy": custom_scorer,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1557:    assert dict_result["double_accuracy"] == pytest.approx(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1558:        2 * expected_results["accuracy"]
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1564:    multi_metric_scorer = check_scoring(scoring=["accuracy", "r2"])
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1566:    assert str(multi_metric_scorer) == 'MultiMetricScorer("accuracy", "r2")'
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1583:        "accuracy": make_scorer(accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1607:    multimetric_scorer = _MultimetricScorer(scorers={"acc": get_scorer("accuracy")})
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1617:        balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1631:    # balanced accuracy should be between 0.5 and 1 when it is not adjusted
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1636:        balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1644:    # balanced accuracy should be between 0.5 and 1 when it is not adjusted
+AIDev\.venv\Lib\site-packages\sklearn\metrics\tests\test_score_objects.py:1649:        balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:340:def accuracy_score(y_true, y_pred, *, normalize=True, sample_weight=None):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:341:    """Accuracy classification score.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:343:    In multilabel classification, this function computes subset accuracy:
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:347:    Read more in the :ref:`User Guide <accuracy_score>`.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:377:    balanced_accuracy_score : Compute the balanced accuracy to deal with
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:387:    >>> from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:390:    >>> accuracy_score(y_true, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:392:    >>> accuracy_score(y_true, y_pred, normalize=False)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:398:    >>> accuracy_score(np.array([[0, 1], [1, 1]]), np.ones((2, 2)))
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:403:    # Compute accuracy for each possible representation
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:431:    """Compute confusion matrix to evaluate the accuracy of a classification.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:644:    confusion matrix to evaluate the accuracy of a classification, and output
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:692:    confusion_matrix : Compute confusion matrix to evaluate the accuracy of a
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1152:    accuracy_score : Function for calculating the accuracy score.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1293:       accuracy of prediction algorithms for classification: an overview.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1385:    accuracy_score : Compute the accuracy score. By default, the function will
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1415:    score = accuracy_score(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1536:            :func:`accuracy_score`).
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:1741:            :func:`accuracy_score`).
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2056:            :func:`accuracy_score`).
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2579:            :func:`accuracy_score`).
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2757:            is equal to accuracy.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2761:            :func:`accuracy_score`).
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2790:    balanced_accuracy_score : Compute balanced accuracy to deal with imbalanced
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2855:def balanced_accuracy_score(y_true, y_pred, *, sample_weight=None, adjusted=False):
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2856:    """Compute the balanced accuracy.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2858:    The balanced accuracy in binary and multiclass classification problems to
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2864:    Read more in the :ref:`User Guide <balanced_accuracy_score>`.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2886:    balanced_accuracy : float
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2887:        Balanced accuracy score.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2900:    Some literature promotes alternative definitions of balanced accuracy. Our
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2901:    definition is equivalent to :func:`accuracy_score` with class-balanced
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2903:    See the :ref:`User Guide <balanced_accuracy_score>`.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2908:           The balanced accuracy and its posterior distribution.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2918:    >>> from sklearn.metrics import balanced_accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:2921:    >>> balanced_accuracy_score(y_true, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3038:        with a subset of classes, because it corresponds to accuracy
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3051:    confusion_matrix: Compute confusion matrix to evaluate the accuracy of a
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3068:        accuracy                           0.60         5
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3100:    micro_is_accuracy = (y_type == "multiclass" or y_type == "binary") and (
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3155:        if average.startswith("micro") and micro_is_accuracy:
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3156:            line_heading = "accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3174:            if line_heading == "accuracy":
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3175:                row_fmt_accuracy = (
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3181:                report += row_fmt_accuracy.format(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3188:        if "accuracy" in report_dict.keys():
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3189:            report_dict["accuracy"] = report_dict["accuracy"]["precision"]
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_classification.py:3233:    accuracy_score : Compute the accuracy score. By default, the function will
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_plot\confusion_matrix.py:55:    confusion_matrix : Compute Confusion Matrix to evaluate the accuracy of a
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:982:    confusion_matrix : Compute classification matrix to evaluate the accuracy of a
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2080:def top_k_accuracy_score(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2083:    """Top-k Accuracy classification score.
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2089:    Read more in the :ref:`User Guide <top_k_accuracy_score>`
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2127:        The top-k accuracy score. The best performance is 1 with
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2133:    accuracy_score : Compute the accuracy score. By default, the function will
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2147:    >>> from sklearn.metrics import top_k_accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2153:    >>> top_k_accuracy_score(y_true, y_score, k=2)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2156:    >>> top_k_accuracy_score(y_true, y_score, k=2, normalize=False)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2320:    >>> from sklearn.metrics import accuracy_score, metric_at_thresholds
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_ranking.py:2324:    ...     y_true, y_score, accuracy_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:31:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:33:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:58:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:510:    >>> accuracy = get_scorer("accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:511:    >>> accuracy(classifier, X, y)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:774:accuracy_scorer = make_scorer(accuracy_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:775:balanced_accuracy_scorer = make_scorer(balanced_accuracy_score)
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:793:top_k_accuracy_scorer = make_scorer(
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:794:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:867:    accuracy=accuracy_scorer,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:868:    top_k_accuracy=top_k_accuracy_scorer,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:874:    balanced_accuracy=balanced_accuracy_scorer,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:911:    ['accuracy', 'adjusted_mutual_info_score', 'adjusted_rand_score']
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:1003:    >>> scorer = check_scoring(classifier, scoring='accuracy')
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:1007:    >>> from sklearn.metrics import make_scorer, accuracy_score, mean_squared_log_error
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:1012:    ...     "accuracy": make_scorer(accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\metrics\_scorer.py:1018:    {'accuracy': 1.0, 'mean_squared_log_error': 'Traceback ...'}
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:8:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:9:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:50:    top_k_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:112:    "accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:117:    "balanced_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\metrics\__init__.py:189:    "top_k_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\mixture\tests\test_gaussian_mixture.py:669:            # the accuracy depends on the number of data and randomness, rng
+AIDev\.venv\Lib\site-packages\sklearn\mixture\_gaussian_mixture.py:352:            " The numerical accuracy can also be improved by passing float64"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:17:    balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:52:        score_func=balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:86:        score_func=balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:122:        score_func=balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:170:        score_func=balanced_accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:272:    # make the problem completely imbalanced such that the balanced accuracy is low
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:284:        scoring="balanced_accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:289:    score_optimized = balanced_accuracy_score(y, model.fit(X, y).predict(X))
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:290:    score_baseline = balanced_accuracy_score(y, lr.predict(X))
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:323:        make_scorer(balanced_accuracy_score),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:366:        scoring=get_scorer("balanced_accuracy").set_score_request(sample_weight=True),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:382:        scoring=get_scorer("balanced_accuracy").set_score_request(sample_weight=True),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:397:        scoring=get_scorer("balanced_accuracy").set_score_request(sample_weight=True),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_classification_threshold.py:448:        scoring=get_scorer("balanced_accuracy").set_score_request(sample_weight=True),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_plot.py:168:    "score_name, ylabel", [(None, "Score"), ("Accuracy", "Accuracy")]
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:47:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:294:    grid_search = GridSearchCV(clf, {"C": Cs}, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:297:    grid_search_no_score = GridSearchCV(clf_no_score, {"C": Cs}, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:318:    search_accuracy = GridSearchCV(clf, grid, scoring="accuracy").fit(X, y)
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:327:    score_accuracy = search_accuracy.score(X, y)
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:333:    assert score_accuracy < 1.0
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:334:    assert score_auc != score_accuracy
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:336:    assert_almost_equal(score_accuracy, score_no_scoring)
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:411:    for scoring in [None, ["accuracy", "precision"]]:
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:444:    for refit in [True, "recall", "accuracy"]:
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:447:                clf, {}, refit=refit, scoring={"acc": "accuracy", "prec": "precision"}
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:761:    scoring = {"Accuracy": make_scorer(accuracy_score), "prec": "precision"}
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1201:        {"accuracy": make_scorer(accuracy_score), "recall": make_scorer(recall_score)},
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1202:        "accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1223:        for scoring in (("accuracy", "recall"), "accuracy", "recall"):
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1224:            # If True, for multi-metric pass refit='accuracy'
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1226:                refit = "accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1251:    assert_array_equal(sorted(search_multi.scorer_), ("accuracy", "recall"))
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1255:        re.sub("_score$", "_accuracy", k): v for k, v in search_acc.cv_results_.items()
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1288:        assert search_multi.refit == "accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1354:        scoring=dict(fake=fake_scorer, accuracy="accuracy"), refit=False
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1735:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1770:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:1833:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2245:            "accuracy": accuracy_score(y, y_pred),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2254:        est, {"C": [0.1, 1]}, scoring=["recall", "accuracy"], refit="recall"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2577:        assert search.score(X, y) == pytest.approx(accuracy_score(y, y_pred))
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2594:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2625:    gs = SearchCV(pipe, refit=True, cv=2, scoring="accuracy", **param_grid_search).fit(
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2722:    scoring = dict(my_scorer=scorer, accuracy="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:2723:    SearchCV(est, refit="accuracy", cv=2, scoring=scoring, **param_grid_search).fit(
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:3015:    _searchcv_callback_test_cases(NoCallbackEstimator, "accuracy"),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_search.py:3101:        MaxIterEstimator(), {"max_iter": [1, 2, 3]}, cv=2, scoring="accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_split.py:627:    # estimates a much higher accuracy (around 0.93) than that the non
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:36:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:355:            scoring=(make_scorer(precision_score), make_scorer(accuracy_score)),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:759:    # Default score (should be the accuracy score)
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:765:    zo_scores = cross_val_score(clf, iris.data, iris.target, scoring="accuracy")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:808:        svm, X, y, n_permutations=30, cv=cv, scoring="accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:819:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:835:        scoring="accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:858:        svm, X, y, n_permutations=30, cv=cv, scoring="accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\tests\test_validation.py:2590:        cross_validate: dict(scoring=dict(my_scorer=scorer, accuracy="accuracy")),
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_classification_threshold.py:518:    scoring : str or callable, default="balanced_accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_classification_threshold.py:640:        accuracy                           0.93       250
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_classification_threshold.py:645:    ...     classifier, scoring="balanced_accuracy"
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_classification_threshold.py:657:        accuracy                           0.92       250
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_classification_threshold.py:686:        scoring="balanced_accuracy",
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1964:    ...     print(f"The average train accuracy is {cv_train_scores.mean():.2f}")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1965:    ...     print(f"The average test accuracy is {cv_test_scores.mean():.2f}")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1967:    The average train accuracy is 1.00
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1968:    The average test accuracy is 0.85
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1970:    The average train accuracy is 1.00
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1971:    The average test accuracy is 0.90
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1973:    The average train accuracy is 1.00
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:1974:    The average test accuracy is 0.93
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:2436:    >>> print(f"The average train accuracy is {train_scores.mean():.2f}")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:2437:    The average train accuracy is 0.81
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:2438:    >>> print(f"The average test accuracy is {test_scores.mean():.2f}")
+AIDev\.venv\Lib\site-packages\sklearn\model_selection\_validation.py:2439:    The average test accuracy is 0.81
+AIDev\.venv\Lib\site-packages\sklearn\multiclass.py:11:multiclass estimators in the hope that their accuracy or runtime performance
+AIDev\.venv\Lib\site-packages\sklearn\multioutput.py:584:        """Return the mean accuracy on the given test data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\multioutput.py:597:            Mean accuracy of predicted target versus true target.
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\tests\test_neighbors.py:2488:    # accuracy value than leaving out each data point in turn because the
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:423:        Return the mean accuracy on the given test data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:425:        In multi-label classification, this is the subset accuracy
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:448:            Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:891:        Return the mean accuracy on the given test data and labels.
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:893:        In multi-label classification, this is the subset accuracy
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_classification.py:916:            Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+AIDev\.venv\Lib\site-packages\sklearn\neighbors\_nca.py:41:    to improve the classification accuracy of a stochastic nearest neighbors
+AIDev\.venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:22:from sklearn.metrics import accuracy_score, r2_score
+AIDev\.venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:1067:        reported is the accuracy score. Only available if `early_stopping=True`,
+AIDev\.venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:1071:        The best validation score (i.e. accuracy score) that triggered the
+AIDev\.venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:1294:            X, y, sample_weight=sample_weight, score_function=accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\preprocessing\tests\test_polynomial.py:410:    # accuracy.
+AIDev\.venv\Lib\site-packages\sklearn\random_projection.py:5:of accuracy (as additional variance) for faster processing times and
+AIDev\.venv\Lib\site-packages\sklearn\semi_supervised\tests\test_self_training.py:13:from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\semi_supervised\tests\test_self_training.py:128:    score_supervised = accuracy_score(estimator.predict(X_test), y_test)
+AIDev\.venv\Lib\site-packages\sklearn\semi_supervised\tests\test_self_training.py:129:    score_self_training = accuracy_score(st.predict(X_test), y_test)
+AIDev\.venv\Lib\site-packages\sklearn\svm\_base.py:1199:        better accuracy and is more expensive to compute.
+AIDev\.venv\Lib\site-packages\sklearn\svm\_classes.py:104:        to better accuracy and is more expensive to compute.
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_base.py:1086:        (None, get_scorer("accuracy")),
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_calibration.py:32:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_calibration.py:280:    # Check that the accuracy of the calibrated model is never degraded
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_calibration.py:471:        # Accuracy score is invariant under temperature scaling
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_calibration.py:474:        assert accuracy_score(y_cal, y_pred_cal) == accuracy_score(y_cal, y_pred)
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_docstring_parameters_consistency.py:95:                :func:`accuracy_score`\)\."""
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_naive_bayes.py:907:def test_check_accuracy_on_digits():
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_pipeline.py:45:from sklearn.metrics import accuracy_score, r2_score
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_pipeline.py:1849:        assert model.score(X, y) == pytest.approx(accuracy_score(y, y_pred))
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_public_functions.py:214:    "sklearn.metrics.accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_public_functions.py:217:    "sklearn.metrics.balanced_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\tests\test_public_functions.py:305:    "sklearn.metrics.top_k_accuracy_score",
+AIDev\.venv\Lib\site-packages\sklearn\tree\tests\test_tree.py:24:    accuracy_score,
+AIDev\.venv\Lib\site-packages\sklearn\tree\tests\test_tree.py:320:        score = accuracy_score(clf.predict(iris.data), iris.target)
+AIDev\.venv\Lib\site-packages\sklearn\tree\tests\test_tree.py:327:        score = accuracy_score(clf.predict(iris.data), iris.target)
+AIDev\.venv\Lib\site-packages\sklearn\utils\discovery.py:225:    'accuracy_score'
+AIDev\.venv\Lib\site-packages\sklearn\utils\estimator_checks.py:56:from sklearn.metrics import accuracy_score, adjusted_rand_score, f1_score
+AIDev\.venv\Lib\site-packages\sklearn\utils\estimator_checks.py:3038:            assert accuracy_score(y, y_pred) > 0.83
+AIDev\.venv\Lib\site-packages\sklearn\utils\extmath.py:262:        but can lose slightly in accuracy). The 'auto' mode applies no
+AIDev\.venv\Lib\site-packages\sklearn\utils\extmath.py:441:        slowly decaying spectrums, or to increase precision accuracy. See [1]_
+AIDev\.venv\Lib\site-packages\sklearn\utils\extmath.py:463:        but can lose slightly in accuracy). The 'auto' mode applies no
+AIDev\.venv\Lib\site-packages\sklearn\utils\extmath.py:673:        slowly decaying spectrums, or to increase precision accuracy. See Halko
+AIDev\.venv\Lib\site-packages\sklearn\utils\extmath.py:693:        but can lose slightly in accuracy). The 'auto' mode applies no
+AIDev\.venv\Lib\site-packages\sklearn\utils\tests\test_extmath.py:298:    reconstructed with good accuracy using it.
+AIDev\.venv\Lib\site-packages\sklearn\utils\tests\test_plotting.py:397:        ("accuracy", None, False, "accuracy"),  # do not transform the name
+AIDev\.venv\Lib\site-packages\sklearn\utils\tests\test_plotting.py:398:        (None, "accuracy", False, "Accuracy"),  # capitalize the name
+AIDev\.venv\Lib\site-packages\sklearn\utils\tests\test_plotting.py:399:        (None, "accuracy", True, "Negative accuracy"),  # add "Negative"
+AIDev\.venv\Lib\site-packages\sklearn\utils\_tags.py:143:        score, which currently for classification is an accuracy of
+AIDev\.venv\Lib\site-packages\sklearn\utils\_testing.py:828:    >>> from sklearn.metrics import (accuracy_score, classification_report,
+AIDev\.venv\Lib\site-packages\sklearn\utils\_testing.py:836:    >>> assert_docstring_consistency([accuracy_score, classification_report],
+AIDev\.venv\Lib\site-packages\sklearn\utils\_testing.py:1202:        from sklearn.metrics import accuracy_score
+AIDev\.venv\Lib\site-packages\sklearn\utils\_testing.py:1204:        return accuracy_score(y, self.predict(X))
+AIDev\.venv\Lib\site-packages\sklearn\_loss\tests\test_loss.py:128:    # We use central finite differences of accuracy 4.
+AIDev\aidev\evaluation\eval_content_own.py:103:    """Recall, false-positive rate, precision and accuracy when a page is flagged at prob >= threshold."""
+AIDev\aidev\evaluation\eval_content_own.py:111:            "accuracy": float((flagged == pos).mean())}
+AIDev\aidev\evaluation\eval_content_own.py:179:        for key in ("recall", "fpr", "precision", "accuracy"):
+AIDev\aidev\evaluation\eval_content_own.py:183:        for key in ("recall", "fpr", "precision", "accuracy"):
+AIDev\aidev\evaluation\summarize_runs.py:8:rate, accuracy at probability 0.5 and its false-positive rate; (calibrated, threshold fixed on validation): recall and
+AIDev\aidev\evaluation\summarize_runs.py:22:           ("t0.5_accuracy", "raw", "accuracy @0.5"), ("t0.5_fpr", "raw", "FPR @0.5"),
+AIDev\aidev\pipeline\train.py:17:from sklearn.metrics import (accuracy_score, f1_score, precision_score,
+AIDev\aidev\pipeline\train.py:65:        "accuracy": float(accuracy_score(y[te], pred)),
+AIDev\aidev\pipeline\train.py:98:    for k in ("accuracy", "precision", "recall", "f1", "roc_auc", "false_positive_rate", "fpr_at_0.7"):
+AIDev\aidev\pipeline\train_content.py:34:from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+AIDev\aidev\pipeline\train_content.py:114:    m = {"accuracy": accuracy_score(y_te, pred), "precision": precision_score(y_te, pred, zero_division=0),
+AIDev\aidev\pipeline_own2\train_content2.py:266:    for k, nm in (("t0.5_accuracy", "accuracy"), ("t0.5_recall", "recall"), ("t0.5_fpr", "false-positive rate"), ("t0.5_precision", "precision")):
+AIDev\aidev\pipeline_own2\train_content2.py:285:        for k in ("pr_auc", "roc_auc", "recall@fpr1%", "t0.5_accuracy", "t0.5_recall", "t0.5_fpr"):
+AIDev\aidev\pipeline_own2\train_content2.py:327:    print("  " + "  ".join(f"{k} {w['point'][k]:.3f}" for k in ("pr_auc", "roc_auc", "recall@fpr1%", "t0.5_accuracy", "t0.5_recall", "t0.5_fpr")))
+AIDev\aidev\pipeline_own2\train_content2.py:351:    heldout = {"accuracy": p["fixed_accuracy"], "precision": p["fixed_precision"], "recall": p["fixed_recall"], "auc": p["roc_auc"]}
+AIDev\aidev\samples\ai2\make_samples.py:14:        "the behaviour; it is not an accuracy measurement.")
+AIDev\aidev\tools\testai.py:5:    python -m aidev.tools.testai --file urls.txt        # one URL per line; add ",1" (phishing) or ",0" (benign) to get an accuracy summary
+AIDev\aidev\tools\testai.py:214:    print(f"ACCURACY on {len(lab)} labelled URLs ({n1} phishing, {len(lab) - n1} benign). Flagged = score >= {thr:.0%}, or status Suspicious/Malicious")
+AIDev\aidev\tools\test_samples.py:10:This checks that the pipeline WORKS (extraction -> model -> reasons). It does not measure accuracy: for that use the
+AIDev\data\benign_labeled.csv:54152:https://www.accuracyproject.org
+AIDev\data\dataset.csv:10809:https://www.accuracyproject.org,0,accuracyproject.org
+AIDev\data\dataset_own.csv:43600:https://raw.githubusercontent.com/888abd8888/privacy-vault-/refs/heads/main/accuracy/privacy-vault-v2.2-alpha.2.zip,1,githubusercontent.com,feed,phish_on_service,,0,0
+AIDev\data\dataset_own.csv:242197:https://www.accuracyproject.org/document/d/iivlc71ty_ljlplpxbtcufrxrtmv-qlzu/edit,0,accuracyproject.org,phiusiil_benign,benign,,1,1
+AIDev\data\raw\PhiUSIIL_Phishing_URL_Dataset.csv:93460:154249.txt,https://www.accuracyproject.org,30,www.accuracyproject.org,23,0,org,100,1,0.0799628,0.062711156,3,1,0,0,0,17,0.567,0,0,0,0,0,1,0.033,1,902,9912,1,accuracyproject,100,100,0,1,1,0,0,1,0,2,0,1,0,0,0,0,0,0,1,2,4,37,19,0,4,1
+AIDev\docs\content_model_results.md:22:Accuracy at probability 0.5 (the operating point of the first, uncorrected report), campaign split: accuracy 0.877 [0.858, 0.893],
+AIDev\docs\content_model_results.md:23:recall 0.802, false-positive rate 6.7%, precision 0.900. Own pages only: accuracy 0.810, recall 0.569, false-positive rate 11.5%,
+AIDev\docs\content_model_results.md:131:| run | PR-AUC | ROC-AUC | recall at 1% FPR | accuracy / recall / FPR at probability 0.5 | recall / FPR at validation threshold |
+AIDev\docs\content_model_results.md:139:keeps the false-positive rate at 0.5% (target 1%) and recall at 0.11. For comparison with the first, uncorrected report: accuracy
+AIDev\docs\content_model_results.md:148:  | test | phishing pages removed | PR-AUC | ROC-AUC | recall at 1% FPR | accuracy at 0.5 |
+AIDev\docs\ML_HANDOFF.md:81:| accuracy | 0.8255 |
+AIDev\docs\ML_HANDOFF.md:169:  crawl_pages.py remains for your own fresh/benign pages. Still no real accuracy number until the user runs it.
+AIDev\experiments\m2_v3_final2_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8765 | [0.8577, 0.8933] |
+AIDev\experiments\m2_v3_final2_report.md:51:| t0.5_accuracy | 0.8884 | [0.8715, 0.9030] |
+AIDev\experiments\m2_v3_final_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8765 | [0.8577, 0.8933] |
+AIDev\experiments\m2_v3_final_report.md:51:| t0.5_accuracy | 0.8765 | [0.8574, 0.8929] |
+AIDev\experiments\m2_v3_own_final2_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8095 | [0.7776, 0.8400] |
+AIDev\experiments\m2_v3_own_final2_report.md:52:| t0.5_accuracy | 0.8426 | [0.8117, 0.8696] |
+AIDev\experiments\m2_v3_own_final_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8095 | [0.7776, 0.8400] |
+AIDev\experiments\m2_v3_own_final_report.md:52:| t0.5_accuracy | 0.8095 | [0.7766, 0.8415] |
+AIDev\experiments\own_w1_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8095 | [0.7776, 0.8400] |
+AIDev\experiments\own_w3_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8176 | [0.7839, 0.8475] |
+AIDev\experiments\own_w3_vo_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8176 | [0.7839, 0.8475] |
+AIDev\experiments\own_w6_report.md:18:| accuracy at probability 0.5 (comparable with the old reports) | 0.8158 | [0.7833, 0.8459] |
+AIDev\tests\test_clone_pipeline.py:4:accuracy on real pages. All pages are generated here with a FICTIONAL brand on .test domains (reserved for testing),
+AIDev\tests\test_content_analysis.py:109:                p.write_text(json.dumps({"eval_mode": "m", "test_raw": {"point": {"pr_auc": v, "roc_auc": v, "recall@fpr1%": v, "t0.5_accuracy": v, "t0.5_fpr": 0.1}},
+AIDev\tests\test_train_content2.py:102:    def test_accuracy_at_half_is_reported(self):
+AIDev\tests\test_train_content2.py:107:        for k in ("accuracy", "recall", "fpr", "precision"):
+AIDev\tests\test_train_content2.py:110:        self.assertAlmostEqual(r["point"]["t0.5_accuracy"], ev.at_threshold(y, p, 0.5)["accuracy"])
