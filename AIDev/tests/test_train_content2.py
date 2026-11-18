@@ -15,7 +15,7 @@ from sklearn.isotonic import IsotonicRegression
 
 from aidev.detection import content_features as cf
 from aidev.evaluation import eval_content_own as ev
-from aidev.pipeline_own2 import train_content2 as t2
+from aidev.pipeline import train_content as t2
 
 
 def _df(n=1200, seed=0):
