@@ -31,3 +31,5 @@ DesktopApp/.vite/deps/_metadata.json
 DesktopApp/.vite/deps/package.json
 Extension/ui/package-lock.json
 AIDev/models/model.joblib.bad
+
+AIDev/render_io/out/

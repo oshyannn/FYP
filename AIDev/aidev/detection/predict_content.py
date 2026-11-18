@@ -37,6 +37,7 @@ import joblib
 from aidev.detection import content_features as cf
 from aidev.detection import page_signals
 from aidev.detection import pagefetch
+from aidev.detection.docker import render_rescore
 from aidev.core.common import CONTENT_MODEL_PATH
 
 log = logging.getLogger(__name__)
@@ -209,10 +210,13 @@ def _predict(url: str) -> dict | None:
                     flagged = (p_cal >= thr) if thr is not None else None
         if p is None and not auto and f is None:
             return None
-        return {"probability": p, "signals": sigs, "final_url": page.url, "download": auto,
-                "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f,
-                "page_signals": page_signals.extract(page.html, page.url),
-                "probability_calibrated": p_cal, "threshold": thr, "flagged": flagged}
+        res = {"probability": p, "signals": sigs, "final_url": page.url, "download": auto,
+               "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f,
+               "page_signals": page_signals.extract(page.html, page.url),
+               "probability_calibrated": p_cal, "threshold": thr, "flagged": flagged}
+        if f is not None:
+            res.update(render_rescore.rescore(page.url, res))
+        return res
     except Exception as exc:
         log.warning("content check failed: %s", exc)
         return None

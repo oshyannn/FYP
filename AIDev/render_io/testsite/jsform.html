@@ -1,0 +1,15 @@
+
+<!doctype html>
+<html><head><meta charset="utf-8"><title>JS form test</title></head>
+<body>
+<h1>Test login</h1>
+<div id="root"></div>
+<script>
+  var f = document.createElement("form");
+  f.action = "https://example.com/login";
+  f.method = "post";
+  f.innerHTML = '<input type="text" name="user"><input type="password" name="pw">';
+  document.getElementById("root").appendChild(f);
+</script>
+</body></html>
+<!-- Set-Content -Encoding utf8 AIDev\render_io\testsite\jsform.html -->
