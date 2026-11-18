@@ -14,6 +14,13 @@ Returned dict:
                    "auto"   = the HTML page tries to start the download by itself (meta refresh, script, hidden iframe)
     features       the raw page features (content_features.extract) when the page text was read, else None.
                    page_threats.assess() turns them into per-kind percentages (fake login, fake bank, downloads ...).
+    probability_calibrated   (added with feature version 3) the raw forest probability mapped through isotonic
+                   calibration, so 0.8 means "about 80% of pages scored like this were phishing"; None when the model
+                   file has no calibrator. `probability` itself is unchanged (raw forest output).
+    threshold      (added) decision threshold for probability_calibrated, chosen so that at most 1% of benign
+                   validation pages are flagged. Read from the Supabase setting `content_threshold` when present
+                   (list_store.setting), else the value stored in the model file; None when there is no calibrator.
+    flagged        (added) probability_calibrated >= threshold, or None when either is missing.
 None = no opinion (page unreachable / not HTML / JavaScript-only and no download): never 0 / safe.
 predict() never raises. Results are cached for 10 minutes. CONTENT_CHECK=0 in the environment switches it off.
 """
@@ -92,6 +99,20 @@ def available() -> bool:
     return enabled() and _load() is not None
 
 
+def _threshold(bundle: dict) -> float | None:
+    """Decision threshold for the calibrated probability: Supabase setting `content_threshold` if set, else the value
+    stored in the model file. None when the model has no calibrator (the threshold only makes sense with one)."""
+    if bundle.get("calibrator") is None:
+        return None
+    stored = bundle.get("threshold")
+    try:
+        from aidev.core import list_store
+        live = list_store.setting("content_threshold", stored)
+        return float(live) if live is not None else (float(stored) if stored is not None else None)
+    except Exception:
+        return float(stored) if stored is not None else None
+
+
 def signals(f: dict) -> list[str]:
     """Plain-language reasons taken from the raw features (what a human reviewer would notice)."""
     out = []
@@ -167,12 +188,14 @@ def _predict(url: str) -> dict | None:
         ms = lambda: round((time.perf_counter() - t0) * 1000, 1)
         if page.download:                                   # the address itself is a program file; nothing to read
             return {"probability": None, "signals": [], "final_url": page.url, "download": page.download,
-                    "download_kind": "direct", "model_version": None, "latency_ms": ms(), "features": None, "page_signals": None}
+                    "download_kind": "direct", "model_version": None, "latency_ms": ms(), "features": None, "page_signals": None,
+                    "probability_calibrated": None, "threshold": None, "flagged": None}
         if not page.ok or not page.html:
             log.info("content check skipped for %s: %s", url, page.error)
             return None
         auto = auto_download(page.html, page.url)
         p, sigs, version, f = None, [], None, None
+        p_cal, thr, flagged = None, None, None
         b = _load()
         if len(page.html) >= 200:
             f = cf.extract(page.html, page.url, page.redirects, page.tls_invalid)     # features are rule-based: no model needed
@@ -180,11 +203,16 @@ def _predict(url: str) -> dict | None:
             if b is not None:
                 p = float(b["model"].predict_proba([[f[n] for n in b["feature_names"]]])[0][1])
                 version = b.get("version")
+                if b.get("calibrator") is not None:
+                    p_cal = float(b["calibrator"].predict([p])[0])
+                    thr = _threshold(b)
+                    flagged = (p_cal >= thr) if thr is not None else None
         if p is None and not auto and f is None:
             return None
         return {"probability": p, "signals": sigs, "final_url": page.url, "download": auto,
                 "download_kind": "auto" if auto else None, "model_version": version, "latency_ms": ms(), "features": f,
-                "page_signals": page_signals.extract(page.html, page.url)}
+                "page_signals": page_signals.extract(page.html, page.url),
+                "probability_calibrated": p_cal, "threshold": thr, "flagged": flagged}
     except Exception as exc:
         log.warning("content check failed: %s", exc)
         return None
