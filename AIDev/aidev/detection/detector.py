@@ -433,14 +433,22 @@ def _list_api_text(checks: list[dict]) -> str:
     return text + (" Not used: " + "; ".join(unused) + "." if unused else "")
 
 
-def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb: dict, notes: list[str]) -> dict:
+def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb: dict, notes: list[str],
+                 *, trusted: bool = False, trust_discount: int = 0, bonus: int = 0) -> dict:
     api_text = _list_api_text(checks)
     head = "No final verdict: not enough evidence from any source." if score is None else f"Final risk {int(round(score))}/100 ({status})."
     summary = " ".join([head, "Lists / APIs: " + api_text, "AI models: " + ai_comb["description"]]
                        + (["Combined: " + " ".join(notes)] if notes else []))
-    return {"status": status, "score": score, "list_api": {"score": list_api_score, "text": api_text},
-            "ai": {"score": ai_comb.get("score"), "text": ai_comb["description"]}, "notes": list(notes), "method": FINAL_METHOD,
-            "summary": summary}
+    return {
+        "status": status,
+        "score": score,
+        "list_api": {"score": list_api_score, "text": api_text, "trusted": trusted, "trust_discount": trust_discount},
+        "ai": {"score": ai_comb.get("score"), "text": ai_comb["description"]},
+        "bonus": bonus,
+        "notes": list(notes),
+        "method": FINAL_METHOD,
+        "summary": summary,
+    }
 
 
 def _checked_reasons(checks: list[dict], existing: list[str]) -> list[str]:
@@ -534,7 +542,8 @@ def _by_list(url, status, score, source, reasons, ck: _Checks, why: str, categor
         extra = _ai_off(why)
     checks = ck.as_list()
     extra["checks"] = checks
-    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], notes)
+    is_trusted = any(c["group"] == "list" and c["state"] == "match" and c["effect"] == "trust" for c in checks)
+    extra["final"] = _final_block(status, score, checks, score, extra["ai_combined"], notes, trusted=is_trusted)
     r = _result(url, status, score, source, reasons, None, extra)
     if category:
         r["category"] = category
@@ -821,6 +830,7 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     list_api_score = max(api_parts, default=None)
     ai_score = ai_comb.get("score")
     hard_api_scores = [x for x in (pt_score, sb_score) if x is not None and x >= THRESHOLD_MALICIOUS]
+    bonus = 0
 
     if hard_api_scores:
         score = max(hard_api_scores + ([ai_score] if ai_score is not None else []))
@@ -849,7 +859,10 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         checks = ck.as_list()
         reasons.extend(_checked_reasons(checks, reasons))
         extra = {"checks": checks, "ai1": ai1, "ai2": ai2, "ai_combined": ai_comb,
-                 "final": _final_block(status, final_score, checks, list_api_score, ai_comb, notes)}
+                 "final": _final_block(
+                     status, final_score, checks, list_api_score, ai_comb, notes,
+                     trusted=trusted_source is not None, trust_discount=trust_discount, bonus=bonus,
+                 )}
         return _result(raw_url, status, final_score, source, reasons, pt_for_result, extra)
 
     if score is None:

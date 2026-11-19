@@ -47,8 +47,9 @@ export interface FinalResult {
   assessment?: Assessment;
   status: string;
   score: number | null;
-  list_api: { score: number | null; text: string };
+  list_api: { score: number | null; text: string; trusted?: boolean; trust_discount?: number };
   ai: { score: number | null; text: string };
+  bonus?: number;
   notes: string[];
   method: string;
   summary: string;
@@ -297,6 +298,94 @@ export function threatTone(level: ThreatCategory["level"]): { bar: string; text:
 
 export const pctText = (p: number | null | undefined): string => (p == null ? "No opinion" : `${Math.round(p)}%`);
 export const scoreOrDash = (s: number | null | undefined): string => (s == null ? "—" : `${Math.round(s)}/100`);
+
+export interface ScoreContribution {
+  label: string;
+  badge: string;
+  tone: "trust" | "risk" | "neutral";
+  deltaText: string;
+  note: string;
+}
+
+/** Clear +/- score breakdown (Trusted / Untrusted / Risk + AI contribution), replacing confusing bar charts. */
+export function scoreBreakdown(rec: ScanRecord): ScoreContribution[] {
+  const f = rec.analysis?.final;
+  if (!f) return [];
+  const checks = rec.analysis?.checks ?? [];
+  const isTrusted =
+    f.list_api.trusted === true ||
+    checks.some((c) => c.group === "list" && c.state === "match" && c.effect === "trust");
+  const trustDiscount = f.list_api.trust_discount ?? (isTrusted ? 25 : 0);
+  const listRisk = f.list_api.score;
+  const aiScore = f.ai.score;
+  const bonus = f.bonus ?? 0;
+
+  const rows: ScoreContribution[] = [];
+
+  if (listRisk != null && listRisk >= 30) {
+    rows.push({
+      label: "Lists / APIs / Rules",
+      badge: listRisk >= 70 ? "Malicious Match" : "Risk Found",
+      tone: "risk",
+      deltaText: `+${Math.round(listRisk)}`,
+      note: "Risk signal from threat lists, APIs, or domain rules (45% weight unless hard-blocked)",
+    });
+  } else if (isTrusted) {
+    rows.push({
+      label: "Lists / APIs / Rules",
+      badge: "Trusted",
+      tone: "trust",
+      deltaText: trustDiscount > 0 ? `-${trustDiscount}` : "Trusted",
+      note: trustDiscount > 0 ? "Domain is on a trusted list (reduces risk score)" : "Domain is on a trusted list",
+    });
+  } else if (listRisk != null && listRisk > 0) {
+    rows.push({
+      label: "Lists / APIs / Rules",
+      badge: "Untrusted",
+      tone: "neutral",
+      deltaText: `+${Math.round(listRisk)}`,
+      note: "Not on a trusted list; minor rule signal applied",
+    });
+  } else {
+    rows.push({
+      label: "Lists / APIs / Rules",
+      badge: "Untrusted",
+      tone: "neutral",
+      deltaText: trustDiscount > 0 ? `-${trustDiscount}` : "0",
+      note: trustDiscount > 0 ? "Not on a trusted list, but established domain age reduces risk" : "Not on any trusted or threat list",
+    });
+  }
+
+  if (aiScore != null) {
+    rows.push({
+      label: "AI Models (30% AI 1 + 70% AI 2)",
+      badge: aiScore >= 70 ? "High Risk" : aiScore >= 30 ? "Suspicious" : "Low Risk",
+      tone: aiScore >= 30 ? "risk" : "trust",
+      deltaText: `+${Math.round(aiScore)}`,
+      note: listRisk != null && listRisk > 0 ? "Combined AI score (55% weight)" : "Combined AI score",
+    });
+  } else {
+    rows.push({
+      label: "AI Models (30% AI 1 + 70% AI 2)",
+      badge: "No Opinion",
+      tone: "neutral",
+      deltaText: "—",
+      note: "AI models were skipped or could not score this page",
+    });
+  }
+
+  if (bonus > 0) {
+    rows.push({
+      label: "Agreement Bonus",
+      badge: "2+ Signals",
+      tone: "risk",
+      deltaText: `+${bonus}`,
+      note: "Added because both AI models and Reputation/Rules flagged this site",
+    });
+  }
+
+  return rows;
+}
 
 export interface BreakdownBar { label: string; score: number | null; note: string }
 

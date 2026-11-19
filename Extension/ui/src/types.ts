@@ -46,8 +46,9 @@ export interface FinalResult {
   assessment?: Assessment;
   status: string;
   score: number | null;
-  list_api: { score: number | null; text: string };
+  list_api: { score: number | null; text: string; trusted?: boolean; trust_discount?: number };
   ai: { score: number | null; text: string };
+  bonus?: number;
   notes: string[];
   method: string;
   summary: string;

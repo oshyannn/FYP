@@ -150,16 +150,72 @@ export function AssessmentBlock({ v }: { v: Verdict }) {
   );
 }
 
-/** The three numbers that explain a verdict. Also used on the scan result screen. */
+/** Clear +/- score breakdown (Trusted / Untrusted / Risk + AI contribution), replacing confusing bars. */
 export function Breakdown({ v }: { v: Verdict }) {
   const f = v.final;
   if (!f) return null;
-  const finalTone: Tone = v.status === "malicious" ? { bar: "bg-red-600", text: "text-red-600" } : v.status === "suspicious" ? { bar: "bg-orange-500", text: "text-orange-500" } : v.status === "safe" ? { bar: "bg-green-500", text: "text-green-600" } : { bar: "bg-gray-400", text: "text-gray-500" };
+  const checks = v.checks ?? [];
+  const isTrusted =
+    f.list_api.trusted === true ||
+    checks.some((c) => c.group === "list" && c.state === "match" && c.effect === "trust");
+  const trustDiscount = f.list_api.trust_discount ?? (isTrusted ? 25 : 0);
+  const listRisk = f.list_api.score;
+  const aiScore = f.ai.score;
+  const bonus = f.bonus ?? 0;
+  const finalScore = f.score ?? (v.status === "unknown" ? null : v.score);
+
+  const listBadge =
+    listRisk != null && listRisk >= 30
+      ? { label: listRisk >= 70 ? "Malicious" : "Risk", cls: "bg-red-50 text-red-700 border-red-200", delta: `+${Math.round(listRisk)}`, dcls: "text-red-600" }
+      : isTrusted
+        ? { label: "Trusted", cls: "bg-green-50 text-green-700 border-green-200", delta: trustDiscount > 0 ? `-${trustDiscount}` : "Trusted", dcls: "text-green-600" }
+        : listRisk != null && listRisk > 0
+          ? { label: "Untrusted", cls: "bg-gray-100 text-gray-600 border-gray-200", delta: `+${Math.round(listRisk)}`, dcls: "text-gray-700" }
+          : { label: "Untrusted", cls: "bg-gray-100 text-gray-600 border-gray-200", delta: trustDiscount > 0 ? `-${trustDiscount}` : "0", dcls: trustDiscount > 0 ? "text-green-600" : "text-gray-600" };
+
+  const aiToneCls =
+    aiScore == null
+      ? "text-gray-400"
+      : aiScore >= 30
+        ? "text-red-600"
+        : "text-green-600";
+
+  const finalCls =
+    v.status === "malicious"
+      ? "text-red-600"
+      : v.status === "suspicious"
+        ? "text-orange-500"
+        : v.status === "safe"
+          ? "text-green-600"
+          : "text-gray-500";
+
   return (
-    <div className="space-y-2">
-      <MiniBar label="Lists / APIs" value={f.list_api.score} display={score100(f.list_api.score)} tone={riskTone(f.list_api.score)} />
-      <MiniBar label="AI models (AI 1 + AI 2)" value={f.ai.score} display={score100(f.ai.score)} tone={riskTone(f.ai.score)} />
-      <MiniBar label="Final risk" value={v.status === "unknown" ? null : v.score} display={v.status === "unknown" ? "—" : score100(v.score)} tone={finalTone} />
+    <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden bg-white">
+      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[10px] font-medium text-gray-700">Lists / APIs</span>
+          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${listBadge.cls}`}>{listBadge.label}</span>
+        </div>
+        <span className={`text-[11px] font-bold font-mono shrink-0 ${listBadge.dcls}`}>{listBadge.delta}</span>
+      </div>
+      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[10px] font-medium text-gray-700">AI (30% AI1 + 70% AI2)</span>
+        </div>
+        <span className={`text-[11px] font-bold font-mono shrink-0 ${aiToneCls}`}>
+          {aiScore == null ? "—" : `+${Math.round(aiScore)}`}
+        </span>
+      </div>
+      {bonus > 0 && (
+        <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-medium text-gray-700">Agreement bonus</span>
+          <span className="text-[11px] font-bold font-mono text-red-600 shrink-0">+{bonus}</span>
+        </div>
+      )}
+      <div className="px-2.5 py-2 bg-gray-50 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold text-gray-800">Final risk</span>
+        <span className={`text-[11px] font-bold font-mono shrink-0 ${finalCls}`}>{score100(finalScore)}</span>
+      </div>
     </div>
   );
 }

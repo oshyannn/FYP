@@ -1,5 +1,6 @@
 import RiskBar from "../../../components/RiskBar";
-import { CONFIDENCE_TEXT, LEVEL_STYLE, assessmentOf, breakdownBars, riskTone, scoreOrDash, summaryCards } from "../../../lib/analysis";
+import ScoreBreakdown from "../../../components/ScoreBreakdown";
+import { CONFIDENCE_TEXT, LEVEL_STYLE, assessmentOf, breakdownBars, summaryCards } from "../../../lib/analysis";
 import type { ScanRecord } from "../../../lib/analysis";
 
 interface Props {
@@ -78,20 +79,8 @@ export default function ScanResult({ scan, onBack, onDetails, onDashboard, onRep
       {breakdownBars(scan).length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <p className="text-sm font-semibold text-slate-800 mb-1">How this score was reached</p>
-          <p className="text-xs text-slate-500 mb-4">Lists and APIs and the two AI models are combined into one final risk.</p>
-          <div className="space-y-4">
-            {breakdownBars(scan).map((b) => (
-              <RiskBar
-                key={b.label}
-                label={b.label}
-                value={b.score}
-                display={scoreOrDash(b.score)}
-                tone={b.label === "Final risk" ? { bar: c.bar, text: c.text } : riskTone(b.score)}
-                note={b.note}
-                small
-              />
-            ))}
-          </div>
+          <p className="text-xs text-slate-500 mb-4">Lists/APIs trust status and AI model contributions combined into the final risk score.</p>
+          <ScoreBreakdown scan={scan} />
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { api, problem } from "../../../api";
 import RiskBar from "../../../components/RiskBar";
+import ScoreBreakdown from "../../../components/ScoreBreakdown";
 import DynamicScanCard from "../../../components/DynamicScanCard";
 import StatusBadge from "../../../components/StatusBadge";
 import { Alert } from "../../../components/ui";
@@ -278,18 +279,9 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport, on
 
       {/* final: lists / APIs + AI together */}
       <Card title={structured ? "7. Final Result: lists / APIs + AI" : "4. Final Result"}>
-        {structured && (
-          <div className="space-y-4 mb-5">
-            {breakdownBars(scan).map((b) => (
-              <RiskBar
-                key={b.label}
-                label={b.label}
-                value={b.score}
-                display={scoreOrDash(b.score)}
-                tone={b.label === "Final risk" ? { bar: c.bar, text: c.text } : riskTone(b.score)}
-                note={b.note}
-              />
-            ))}
+        {structured && breakdownBars(scan).length > 0 && (
+          <div className="mb-5">
+            <ScoreBreakdown scan={scan} />
           </div>
         )}
         <div className="flex items-center gap-4">
