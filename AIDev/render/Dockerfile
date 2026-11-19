@@ -1,6 +1,6 @@
-FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
+FROM mcr.microsoft.com/playwright/python:v1.65.2-jammy
 
-RUN python -m pip install --no-cache-dir playwright==1.47.0 \
+RUN python -m pip install --no-cache-dir playwright==1.65.2 \
  && useradd -m -u 10001 renderer
 
 WORKDIR /app

@@ -121,7 +121,9 @@ def main(argv=None) -> int:
         wl.writeheader()
         for i, r in enumerate(rows, 1):
             res = render_one(browser, r["url"])
-            good = bool(res["html"])
+            good = bool(res["html"]) and res["status"] != "" and int(res["status"]) < 400
+            if res["html"] and not good and not res["error"]:
+                res["error"] = "http_%s" % res["status"]
             wl.writerow({"url": r["url"], "ok": int(good), "error": res["error"], "final_url": res["final_url"],
                          "status": res["status"]})
             if good:
