@@ -501,9 +501,7 @@ def _ai_for_list(url: str, ck: _Checks) -> dict:
     ml = ml_predict(f"https://{host}/" if shared else url)          # None = no opinion
     ml_score = None if ml is None else _ml_to_score(ml["probability"])
     content, content_score, skip = None, None, None
-    if shared:
-        skip = "Skipped: this is a public hosting platform, and the page model was not trained on such pages."
-    elif not predict_content.enabled():
+    if not predict_content.enabled():
         skip = "Switched off (CONTENT_CHECK=0)."
     else:
         content = predict_content.predict(url)
@@ -765,9 +763,9 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     download_score = None
     download_direct = None
     ai2_skip = None
-    if shared:
+    if shared and not use_ai:
         ai2_skip = "Skipped: this is a public hosting platform, and the page model was not trained on such pages."
-    elif max([x for x in (pt_score, sb_score) if x is not None], default=0) >= 70:
+    elif not use_ai and max([x for x in (pt_score, sb_score) if x is not None], default=0) >= 70:
         ai2_skip = "Skipped: a list or API already says this URL is malicious, so the page was not downloaded."
     elif not predict_content.enabled():
         ai2_skip = "Switched off (CONTENT_CHECK=0)."

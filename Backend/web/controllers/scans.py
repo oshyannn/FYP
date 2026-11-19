@@ -21,9 +21,10 @@ from flask import Blueprint, g, jsonify, request
 from aidev.core.features import get_host, normalize
 from aidev.detection.detector import analyze
 from web.controllers.common import body, err, s
-from web.db_models import scans, whitelist
+from web.db_models import dynamic_scans, scans, whitelist
 from web.extensions import limiter
 from web.guards import auth_required
+from web.services import dynamic_scanner
 
 log = logging.getLogger(__name__)
 bp = Blueprint("scans", __name__, url_prefix="/api")
@@ -184,3 +185,47 @@ def set_scan_action(scan_id):
     if not scans.set_action(g.user["id"], scan_id, action):
         return err("not_found", "Record not found.", 404)
     return jsonify({"id": str(scan_id), "user_action": action})
+
+
+def _dynamic_json(r) -> dict:
+    return {
+        "id": str(r["id"]),
+        "history_id": str(r["history_id"]),
+        "url": r["url"],
+        "status": r["status"],
+        "evidence": r["evidence"] or {},
+        "ai2_dynamic": r["ai2_dynamic"],
+        "error": r["error"],
+        "duration_ms": r["duration_ms"],
+        "created_at": r["created_at"].isoformat(),
+        "updated_at": r["updated_at"].isoformat(),
+    }
+
+
+@bp.post("/scans/<uuid:scan_id>/dynamic")
+@limiter.limit("10 per minute; 60 per hour")
+@auth_required("user", "extension")
+def start_dynamic_scan(scan_id):
+    r = scans.get_one(g.user["id"], scan_id)
+    if not r:
+        return err("not_found", "Record not found.", 404)
+    existing = dynamic_scans.latest_for_history(g.user["id"], scan_id)
+    if existing and existing["status"] in ("queued", "running"):
+        return jsonify({"dynamic": _dynamic_json(existing)}), 202
+    if dynamic_scans.count_active_for_user(g.user["id"]) >= dynamic_scanner.MAX_USER_ACTIVE:
+        return err("rate_limit", "Too many dynamic scans running. Wait for a scan to finish.", 429)
+    ok, msg = dynamic_scanner.validate_public_url(r["url"])
+    if not ok:
+        return err("validation", msg, 400)
+    job = dynamic_scanner.enqueue(scan_id, g.user["id"], r["url"])
+    return jsonify({"dynamic": _dynamic_json(job)}), 202
+
+
+@bp.get("/scans/<uuid:scan_id>/dynamic")
+@auth_required("user", "extension")
+def get_dynamic_scan(scan_id):
+    r = scans.get_one(g.user["id"], scan_id)
+    if not r:
+        return err("not_found", "Record not found.", 404)
+    job = dynamic_scans.latest_for_history(g.user["id"], scan_id)
+    return jsonify({"dynamic": _dynamic_json(job) if job else None})

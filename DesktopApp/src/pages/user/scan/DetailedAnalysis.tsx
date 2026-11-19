@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { api, problem } from "../../../api";
 import RiskBar from "../../../components/RiskBar";
+import DynamicScanCard from "../../../components/DynamicScanCard";
 import StatusBadge from "../../../components/StatusBadge";
 import { Alert } from "../../../components/ui";
 import {
@@ -350,6 +351,8 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport, on
           </div>
         )}
       </Card>
+
+      <DynamicScanCard scanId={scan.id} onSessionEnd={onSessionEnd} />
 
       <div className="flex flex-wrap gap-3">
         <button onClick={onReport} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
