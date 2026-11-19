@@ -12,8 +12,9 @@ interface Props {
 
 export default function ScanResult({ scan, onBack, onDetails, onDashboard, onReport }: Props) {
   const c = LEVEL_STYLE[scan.risk_level];
-  const unknown = scan.risk_level === "unknown";
-  const score = Math.round(scan.risk_score);
+  const finalScore = scan.analysis?.final?.score;
+  const unknown = scan.risk_level === "unknown" && finalScore == null;
+  const score = Math.round(finalScore ?? scan.risk_score);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

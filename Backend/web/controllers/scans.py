@@ -29,7 +29,7 @@ from web.services import dynamic_scanner
 log = logging.getLogger(__name__)
 bp = Blueprint("scans", __name__, url_prefix="/api")
 
-LEVELS = {"safe": "safe", "suspicious": "suspicious", "malicious": "malicious", "unknown": "unknown"}
+LEVELS = {"safe": "safe", "suspicious": "suspicious", "malicious": "malicious", "restricted": "malicious", "unknown": "unknown"}
 SCAN_TYPES = ("auto", "manual", "redirect")
 THREAT_TYPES = ("none", "phishing", "malware", "spam", "defacement", "scam", "unwanted_software", "unknown")
 MAX_BULK = 100

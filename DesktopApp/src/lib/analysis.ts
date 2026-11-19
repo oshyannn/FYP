@@ -98,8 +98,10 @@ export function scanTypeLabel(t: ScanType | string): string {
   return t === "auto" ? "Automatic" : t === "manual" ? "Manual" : t === "redirect" ? "Redirect" : String(t);
 }
 
-export function scoreText(rec: Pick<ScanRecord, "risk_level" | "risk_score">): string {
-  return rec.risk_level === "unknown" ? "—" : `${Math.round(rec.risk_score)}/100`;
+export function scoreText(rec: Pick<ScanRecord, "risk_level" | "risk_score" | "analysis">): string {
+  const finalScore = rec.analysis?.final?.score;
+  if (rec.risk_level === "unknown" && finalScore == null) return "—";
+  return `${Math.round(finalScore ?? rec.risk_score)}/100`;
 }
 
 export function reasonsOf(a?: Analysis): string[] {
@@ -302,10 +304,11 @@ export interface BreakdownBar { label: string; score: number | null; note: strin
 export function breakdownBars(rec: ScanRecord): BreakdownBar[] {
   const f = rec.analysis?.final;
   if (!f) return [];
+  const finalScore = f.score ?? (rec.risk_level === "unknown" ? null : rec.risk_score);
   return [
     { label: "Lists / APIs", score: f.list_api.score, note: f.list_api.score == null ? "No evidence from lists or APIs" : "Highest score from lists, PhishTank, Google Safe Browsing and domain rules" },
     { label: "AI models (AI 1 + AI 2)", score: f.ai.score, note: f.ai.score == null ? "No AI result" : "Both AI models combined" },
-    { label: "Final risk", score: rec.risk_level === "unknown" ? null : rec.risk_score, note: "Lists / APIs and AI together" },
+    { label: "Final risk", score: finalScore, note: "Lists / APIs and AI together" },
   ];
 }
 
