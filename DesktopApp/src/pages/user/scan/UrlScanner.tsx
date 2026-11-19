@@ -79,10 +79,15 @@ export default function UrlScanner({ onScanned, onSessionEnd }: Props) {
               scan();
             }
           }}
-          placeholder="Paste website URL here, e.g. https://example.com"
+          placeholder="Paste website URL or domain, e.g. youtube.com or https://example.com"
           rows={3}
           className="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/10 transition-colors resize-none font-mono"
         />
+        {url.trim() && !url.trim().includes("://") && validateUrlInput(url).valid && (
+          <p className="mt-1.5 text-xs text-slate-500">
+            No protocol entered — will scan <span className="font-mono text-slate-700">https://{url.trim()}</span> by default (plain HTTP is not scanned).
+          </p>
+        )}
 
         {/* added: optional, off by default */}
         <label htmlFor="scan-use-ai" className="mt-4 flex items-start gap-3 cursor-pointer select-none">

@@ -32,8 +32,10 @@ interface Ai2Dynamic {
   probability?: number;
   percent?: number;
   probability_calibrated?: number | null;
+  calibrated_percent?: number | null;
   threshold?: number | null;
   flagged?: boolean | null;
+  risk_tier?: "flagged" | "suspicious" | "low";
   signals?: string[];
   note?: string;
 }
@@ -55,6 +57,125 @@ const STATUS_TONE: Record<DynamicJob["status"], "green" | "amber" | "red" | "blu
   failed: "red",
   timed_out: "amber",
 };
+
+const BAR_TONE: Record<"flagged" | "suspicious" | "low", { bar: string; text: string }> = {
+  flagged: { bar: "bg-red-500", text: "text-red-600" },
+  suspicious: { bar: "bg-amber-500", text: "text-amber-600" },
+  low: { bar: "bg-green-500", text: "text-green-600" },
+};
+
+type RiskTier = "flagged" | "suspicious" | "low";
+
+function resolveAi2State(ai2d: Ai2Dynamic | null) {
+  if (!ai2d) return null;
+  const calPct =
+    ai2d.calibrated_percent ??
+    (ai2d.probability_calibrated != null ? Math.round(ai2d.probability_calibrated * 1000) / 10 : null);
+  const displayPct = calPct ?? ai2d.percent ?? 0;
+  const thrPct = ai2d.threshold != null ? Math.round(ai2d.threshold * 1000) / 10 : null;
+  const isFlagged = ai2d.flagged === true || (calPct != null && thrPct != null && calPct >= thrPct);
+  const tier: RiskTier = ai2d.risk_tier ?? (isFlagged ? "flagged" : displayPct >= 50 ? "suspicious" : "low");
+  return { calPct, displayPct, thrPct, isFlagged, tier };
+}
+
+function buildFriendlySummary(
+  job: DynamicJob,
+  ev: DynamicEvidence,
+  ai2State: ReturnType<typeof resolveAi2State>,
+): { tone: "red" | "amber" | "green"; headline: string; body: string; points: string[] } {
+  const redirects = ev.navigation?.redirect_count ?? 0;
+  const forms = ev.dom?.form_count ?? 0;
+  const passwords = ev.dom?.password_field_count ?? 0;
+  const extForms = ev.dom?.external_form_actions ?? [];
+  const downloads = ev.behaviour?.download_attempt_count ?? 0;
+  const popups = ev.behaviour?.popup_count ?? 0;
+  const blockedSsrf = ev.network?.blocked_ssrf_count ?? 0;
+  const extDomains = ev.network?.external_domains?.length ?? 0;
+  const extScripts = ev.scripts?.external_script_count ?? 0;
+
+  const hasHighRiskBehaviour = downloads > 0 || extForms.length > 0 || blockedSsrf > 0;
+
+  let tone: "red" | "amber" | "green" = "green";
+  let headline = "No major warning signs found during the live visit";
+  let body =
+    "We safely opened this website in an isolated virtual browser and it behaved normally. Still, always double-check the web address before typing any personal details.";
+
+  if (ai2State?.tier === "flagged") {
+    tone = "red";
+    headline = "High risk — avoid entering personal information on this page";
+    body =
+      "After loading the live webpage in a safe isolated browser, our AI detected strong signs of a phishing or deceptive site. Do not enter passwords, card numbers, or personal details here.";
+  } else if (ai2State?.tier === "suspicious" || hasHighRiskBehaviour) {
+    tone = "amber";
+    headline = "Use caution — this page showed some unusual behaviour";
+    body =
+      ai2State?.tier === "suspicious"
+        ? "Parts of the live webpage look suspicious, even though it did not cross our highest alert level. Verify the website address carefully before logging in or sharing any information."
+        : "Although the page content itself did not trigger a high AI alert, we noticed unusual activity while it loaded. Review the highlights below before trusting this site.";
+  } else if (job.status === "timed_out" || job.status === "partial") {
+    tone = "amber";
+    headline = "Partial result — the website did not finish loading in time";
+    body =
+      "The site was slow or blocked some automated loading, so this summary only reflects what happened before the time limit.";
+  } else if (!ai2State) {
+    tone = "amber";
+    headline = "Live behaviour recorded (AI page check unavailable)";
+    body =
+      "We opened the page in a safe isolated browser, but there was not enough visible page content for our AI to score it. Review the activity below.";
+  }
+
+  const points: string[] = [];
+
+  if (redirects === 0) {
+    points.push("Stayed on the same web address without redirecting you elsewhere.");
+  } else {
+    points.push(
+      `Automatically redirected ${redirects} ${redirects === 1 ? "time" : "times"}${ev.final_url ? ` before landing on ${ev.final_url}` : ""}.`,
+    );
+  }
+
+  if (passwords > 0 && extForms.length > 0) {
+    points.push(
+      `Warning: Asks for a password (${passwords} field${passwords === 1 ? "" : "s"}) and sends form data to a different website (${extForms.join(", ")}). Legitimate login pages rarely send passwords to another domain.`,
+    );
+  } else if (passwords > 0) {
+    points.push(
+      `Contains a login or password input (${passwords} password field${passwords === 1 ? "" : "s"} across ${forms} form${forms === 1 ? "" : "s"}). Make sure you trust this website before signing in.`,
+    );
+  } else if (extForms.length > 0) {
+    points.push(
+      `Contains a form that submits information to a different website (${extForms.join(", ")}).`,
+    );
+  } else if (forms > 0) {
+    points.push(`Contains ${forms} input form${forms === 1 ? "" : "s"}, with no password fields detected.`);
+  } else {
+    points.push("No login or data-entry forms were found on the page.");
+  }
+
+  if (downloads > 0) {
+    points.push(
+      `Warning: Tried to start ${downloads} automatic file download${downloads === 1 ? "" : "s"} as soon as the page opened.`,
+    );
+  }
+
+  if (popups > 0) {
+    points.push(`Tried to open ${popups} pop-up window${popups === 1 ? "" : "s"}.`);
+  }
+
+  if (blockedSsrf > 0) {
+    points.push(
+      `Warning: Tried to reach a private or local network address (${blockedSsrf} blocked attempt${blockedSsrf === 1 ? "" : "s"}), which normal public websites should not do.`,
+    );
+  }
+
+  if (extDomains > 0 || extScripts > 0) {
+    points.push(
+      `Loaded resources from ${extDomains} external website${extDomains === 1 ? "" : "s"} and ran ${extScripts} external script${extScripts === 1 ? "" : "s"} (common on modern websites for images, fonts, or analytics).`,
+    );
+  }
+
+  return { tone, headline, body, points };
+}
 
 export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: string; onSessionEnd?: () => void }) {
   const [job, setJob] = useState<DynamicJob | null>(null);
@@ -103,7 +224,14 @@ export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: stri
 
   const ev = job?.evidence ?? {};
   const ai2d = job?.ai2_dynamic ?? null;
+  const ai2State = resolveAi2State(ai2d);
   const active = job?.status === "queued" || job?.status === "running";
+
+  const summaryToneCls = {
+    red: "bg-red-50 border-red-200 text-red-900",
+    amber: "bg-amber-50 border-amber-200 text-amber-900",
+    green: "bg-green-50 border-green-200 text-green-900",
+  };
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
@@ -114,7 +242,7 @@ export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: stri
             {job && <Badge tone={STATUS_TONE[job.status]}>{job.status.replace("_", " ")}</Badge>}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Executes the page in a disposable Chromium container to observe runtime redirects, scripts, DOM changes, and evaluate AI 2 on rendered HTML.
+            Safely opens the website inside an isolated virtual browser to watch what it actually does (redirects, login forms, pop-ups, downloads) and checks the live page with AI.
           </p>
         </div>
         <button
@@ -136,37 +264,62 @@ export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: stri
         </p>
       )}
 
-      {job && (job.status === "completed" || job.status === "partial" || job.status === "timed_out") && (
+      {job && (job.status === "completed" || job.status === "partial" || job.status === "timed_out") && (() => {
+        const summary = buildFriendlySummary(job, ev, ai2State);
+        return (
         <div className="space-y-4">
-          {ai2d && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-700">AI 2 — Rendered DOM Prediction</span>
-                {ai2d.flagged !== null && ai2d.flagged !== undefined && (
-                  <Badge tone={ai2d.flagged ? "red" : "green"}>{ai2d.flagged ? "Flagged" : "Below threshold"}</Badge>
-                )}
-              </div>
-              <RiskBar
-                label="Rendered-DOM phishing probability"
-                value={ai2d.percent ?? 0}
-                display={`${ai2d.percent ?? 0}%`}
-                tone={ai2d.flagged ? "red" : "green"}
-                note={
-                  ai2d.probability_calibrated != null && ai2d.threshold != null
-                    ? `Calibrated: ${(ai2d.probability_calibrated * 100).toFixed(1)}% (threshold ${(ai2d.threshold * 100).toFixed(1)}%) · ${ai2d.model_version ?? ""}`
-                    : ai2d.model_version
-                }
-              />
-              {ai2d.signals && ai2d.signals.length > 0 && (
-                <ul className="list-disc pl-5 text-xs text-slate-600 space-y-0.5 pt-1">
-                  {ai2d.signals.map((s, i) => (
-                    <li key={i}>{s}</li>
+          <div className={`rounded-lg border p-4 space-y-2 ${summaryToneCls[summary.tone]}`}>
+            <div className="text-sm font-semibold">{summary.headline}</div>
+            <p className="text-xs leading-relaxed opacity-90">{summary.body}</p>
+            {summary.points.length > 0 && (
+              <div className="pt-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wide opacity-75 mb-1">
+                  What happened when we opened the page
+                </div>
+                <ul className="list-disc pl-5 text-xs space-y-1 opacity-90">
+                  {summary.points.map((pt, i) => (
+                    <li key={i} className="break-words">{pt}</li>
                   ))}
                 </ul>
-              )}
-              <p className="text-[11px] text-slate-400">{ai2d.note}</p>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+
+          {ai2d && ai2State && (() => {
+            const { calPct, displayPct, thrPct, tier } = ai2State;
+            const badgeTone = tier === "flagged" ? "red" : tier === "suspicious" ? "amber" : "green";
+            const badgeLabel = tier === "flagged" ? "Flagged" : tier === "suspicious" ? "Suspicious" : "Low risk";
+            return (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-700">AI 2 — Live Page Risk Score</span>
+                  <Badge tone={badgeTone}>{badgeLabel}</Badge>
+                </div>
+                <RiskBar
+                  label={calPct != null ? "Calibrated phishing probability" : "Rendered-DOM phishing probability"}
+                  value={displayPct}
+                  display={`${displayPct}%`}
+                  tone={BAR_TONE[tier]}
+                  note={
+                    thrPct != null
+                      ? `Alert threshold: ${thrPct}%${ai2d.percent != null ? ` · Raw model: ${ai2d.percent}%` : ""} · ${ai2d.model_version ?? ""}`
+                      : ai2d.model_version
+                  }
+                />
+                {ai2d.signals && ai2d.signals.length > 0 && (
+                  <div className="pt-1">
+                    <div className="text-[11px] font-semibold text-slate-600 mb-0.5">Key signs detected by AI:</div>
+                    <ul className="list-disc pl-5 text-xs text-slate-600 space-y-0.5">
+                      {ai2d.signals.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-400">{ai2d.note}</p>
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="rounded-lg border border-slate-200 p-3">
@@ -222,7 +375,8 @@ export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: stri
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

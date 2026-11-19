@@ -5,6 +5,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -40,9 +41,21 @@ def is_public_ip(ip_str: str) -> bool:
         return False
 
 
+_NON_HTTP_SCHEME_RE = re.compile(r"^(javascript|data|file|mailto|tel|blob|about|vbscript):", re.IGNORECASE)
+
+
+def normalize_scan_url(raw_url: str) -> tuple[str, bool]:
+    """Prepends https:// when no scheme is provided. Returns (url, defaulted_https)."""
+    cleaned = (raw_url or "").strip()
+    if cleaned and "://" not in cleaned and not _NON_HTTP_SCHEME_RE.match(cleaned):
+        return f"https://{cleaned}", True
+    return cleaned, False
+
+
 def validate_public_url(raw_url: str, allow_private: bool = False) -> tuple[bool, str]:
+    normalized, _ = normalize_scan_url(raw_url)
     try:
-        parts = urlsplit(raw_url.strip())
+        parts = urlsplit(normalized)
     except ValueError:
         return False, "Invalid URL."
     if parts.scheme.lower() not in ("http", "https"):
@@ -84,7 +97,9 @@ def _evaluate_ai2_on_rendered_dom(rendered_html: str, final_url: str, redirects:
         if bundle.get("calibrator") is not None:
             p_cal = float(bundle["calibrator"].predict([p])[0])
             thr = predict_content._threshold(bundle)
-            flagged = (p_cal >= thr) if thr is not None else None
+            flagged = (p_cal + 1e-6 >= thr) if thr is not None else None
+        score_ref = p_cal if p_cal is not None else p
+        risk_tier = "flagged" if flagged else ("suspicious" if score_ref >= 0.5 else "low")
         sigs = predict_content.signals(feats)
         cats = page_threats.assess(feats, None)
         return {
@@ -92,8 +107,10 @@ def _evaluate_ai2_on_rendered_dom(rendered_html: str, final_url: str, redirects:
             "probability": round(p, 4),
             "percent": round(p * 100, 1),
             "probability_calibrated": round(p_cal, 4) if p_cal is not None else None,
+            "calibrated_percent": round(p_cal * 100, 1) if p_cal is not None else None,
             "threshold": round(float(thr), 4) if thr is not None else None,
             "flagged": flagged,
+            "risk_tier": risk_tier,
             "signals": sigs[:10],
             "categories": cats,
             "note": "AI 2 evaluated on browser-rendered DOM (post-JavaScript execution).",
@@ -157,6 +174,7 @@ def _normalize_evidence(raw: dict) -> tuple[dict, str, list[str]]:
 def run_container_scan(url: str, scan_id: str, allow_private: bool = False) -> tuple[str, dict, dict | None, str | None, int]:
     """Runs one disposable hardened Docker container and returns (status, evidence, ai2_dynamic, error, duration_ms)."""
     t0 = time.monotonic()
+    url, defaulted_https = normalize_scan_url(url)
     ok, err_msg = validate_public_url(url, allow_private=allow_private)
     if not ok:
         return "failed", {}, None, err_msg, round((time.monotonic() - t0) * 1000)
@@ -196,6 +214,8 @@ def run_container_scan(url: str, scan_id: str, allow_private: bool = False) -> t
             return "failed", {}, None, "Malformed worker output.", round((time.monotonic() - t0) * 1000)
         status = data.get("status") if data.get("status") in ALLOWED_STATUSES else "failed"
         evidence, rendered_html, redirects = _normalize_evidence(data)
+        if defaulted_https:
+            evidence.setdefault("limitations", []).append("Scanned using HTTPS by default (plain HTTP was not scanned).")
         ai2_dyn = _evaluate_ai2_on_rendered_dom(rendered_html, evidence["final_url"] or url, redirects)
         dur = int(data.get("duration_ms") or round((time.monotonic() - t0) * 1000))
         return status, evidence, ai2_dyn, data.get("error"), dur

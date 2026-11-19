@@ -93,6 +93,7 @@ def create_scan():
     url = s(data, "url", 2048)
     if not url or any(ord(ch) < 32 for ch in url):
         return err("validation", "Enter a website address to scan.", 400, {"url": "Enter a website address to scan."})
+    url, defaulted_https = dynamic_scanner.normalize_scan_url(url)
     try:
         normalized = normalize(url)
         host = get_host(normalized)
@@ -119,6 +120,10 @@ def create_scan():
         scan_type = "manual"                            # the desktop app only ever scans by hand
 
     analysis = dict(result)
+    if defaulted_https:
+        reasons = list(analysis.get("reasons") or [])
+        reasons.append("Scanned using HTTPS by default (plain HTTP was not scanned).")
+        analysis["reasons"] = reasons
     if len(json.dumps(analysis, default=str)) > 20000:  # keep one row small whatever the detector returns
         analysis["reasons"] = list(analysis.get("reasons", []))[:50]
     saved = scans.record_scan(user_id=g.user["id"], url=url, canon=canon, domain=host, scan_type=scan_type,
