@@ -206,11 +206,8 @@ _result_cache: dict[str, tuple[float, dict]] = {}
 
 
 def _ml_to_score(p: float) -> int:
-    """0..ML_SUSPICIOUS_PROB -> 0..THRESHOLD_SUSPICIOUS-1;  ML_SUSPICIOUS_PROB..1 -> THRESHOLD_SUSPICIOUS..THRESHOLD_MALICIOUS-1."""
-    if p < ML_SUSPICIOUS_PROB:
-        return int(p / ML_SUSPICIOUS_PROB * (THRESHOLD_SUSPICIOUS - 1))
-    frac = (p - ML_SUSPICIOUS_PROB) / (1 - ML_SUSPICIOUS_PROB)
-    return int(THRESHOLD_SUSPICIOUS + frac * (THRESHOLD_MALICIOUS - 1 - THRESHOLD_SUSPICIOUS))
+    """Direct 0..100 probability mapping, capped at 75 alone so URL text alone cannot exceed Suspicious without corroboration."""
+    return max(0, min(75, int(round(p * 100))))
 
 
 _sb_cache: dict[str, tuple[float, safebrowsing.SafeBrowsingVerdict]] = {}
@@ -255,11 +252,8 @@ def _refine_lookalike(la: dict, reg: str) -> tuple[int, list[str], bool]:
 
 
 def _content_to_score(p: float) -> int:
-    """0..CONTENT_SUSPICIOUS_PROB -> 0..29;  CONTENT_SUSPICIOUS_PROB..1 -> 30..CONTENT_MAX_ALONE."""
-    if p < CONTENT_SUSPICIOUS_PROB:
-        return int(p / CONTENT_SUSPICIOUS_PROB * (THRESHOLD_SUSPICIOUS - 1))
-    frac = (p - CONTENT_SUSPICIOUS_PROB) / (1 - CONTENT_SUSPICIOUS_PROB)
-    return int(THRESHOLD_SUSPICIOUS + frac * (CONTENT_MAX_ALONE - THRESHOLD_SUSPICIOUS))
+    """Direct 0..100 probability mapping for AI 2 page content model."""
+    return max(0, min(100, int(round(p * 100))))
 
 
 def _status(score: float) -> str:
@@ -300,9 +294,9 @@ AI2_NAME = "AI 2: page content model"
 AI_COMBINED_NAME = "AI combined (AI 1 + AI 2)"
 AI2_BASE = ("Downloads the page and reads it: forms, password and card fields, page title versus domain, hidden frames, scripts "
             "and downloads that start by themselves.")
-FINAL_METHOD = ("The final score is the highest score of the lists / APIs and the AI models. When two independent signals agree "
-                "(for example a PhishTank record and the URL model, or both AI models) it is raised to the Malicious level (70). "
-                "A site is only called Safe when a trusted list vouches for it; otherwise 'nothing found' stays Unknown.")
+FINAL_METHOD = ("Final score combines AI (30% AI 1 + 70% AI 2) and Lists/APIs/Rules using weighted scoring "
+                "(55% AI + 45% Reputation/Rules, +15 agreement bonus when both flag, minus trust discounts). "
+                "Confirmed blacklist/API hits remain a hard Malicious floor.")
 
 
 class _Checks:
@@ -399,31 +393,27 @@ def _ai2_block(content: dict | None, ai2_score: int | None, skipped_why: str | N
 
 
 def _ai_combined(s1: int | None, s2: int | None) -> dict:
-    """AI 1 + AI 2 as the detector treats them: the higher score counts, and when BOTH raise a warning they are
-    independent evidence and the combined result is Malicious level."""
-    parts = [s for s in (s1, s2) if s is not None]
+    """Combines AI 1 (30% weight) and AI 2 (70% weight), with an agreement boost when both >= 50."""
     base = {"name": AI_COMBINED_NAME}
-    if not parts:
+    if s1 is None and s2 is None:
         return {**base, "state": "no_opinion", "score": None, "percent": None, "level": "none",
                 "description": "Neither AI model could score this site, so there is no AI result. That is not a sign that the site is safe."}
-    score = max(parts)
     names = {1: "AI 1 (URL model)", 2: "AI 2 (page content)"}
     if s1 is not None and s2 is not None:
-        if s1 >= THRESHOLD_SUSPICIOUS and s2 >= THRESHOLD_SUSPICIOUS:
-            score = max(score, THRESHOLD_MALICIOUS)
-            text = (f"AI 1 and AI 2 both raise a warning (risk {s1} and {s2}). Two independent models agreeing is strong evidence, "
-                    "so the combined AI risk is raised to the Malicious level.")
+        score = int(round(0.30 * s1 + 0.70 * s2))
+        if s1 >= 50 and s2 >= 50:
+            score = min(100, max(score + 10, THRESHOLD_MALICIOUS))
+            text = (f"Weighted AI score: 30% AI 1 ({s1}) + 70% AI 2 ({s2}) + 10 agreement bonus = {score}/100. "
+                    "Both models flagged the site.")
         elif score >= THRESHOLD_SUSPICIOUS:
-            who = names[1] if s1 >= THRESHOLD_SUSPICIOUS else names[2]
-            text = f"Only {who} raises a warning (risk {score}); the other model sees no strong sign. One model alone is not trusted to call a site malicious, so the combined AI risk stays at the Suspicious level."
+            text = f"Weighted AI score: 30% AI 1 ({s1}) + 70% AI 2 ({s2}) = {score}/100 (Suspicious range)."
         else:
-            text = f"Neither AI model sees a strong warning sign (risk {s1} and {s2}). That is not a guarantee that the site is safe."
+            text = f"Weighted AI score: 30% AI 1 ({s1}) + 70% AI 2 ({s2}) = {score}/100 (Low risk)."
     else:
         only = names[1] if s1 is not None else names[2]
         other = names[2] if s1 is not None else names[1]
-        text = (f"Only {only} produced a result ({other} had no opinion), so the combined AI risk is {score}. "
-                + ("A single model can raise Suspicious but never Malicious on its own." if score >= THRESHOLD_SUSPICIOUS
-                   else "No strong warning sign, but that is not a guarantee that the site is safe."))
+        score = s1 if s1 is not None else s2
+        text = (f"Only {only} produced a result ({other} had no opinion), so the AI risk is {score}/100.")
     return {**base, "state": "ok", "score": score, "percent": score, "level": _ai_level(score), "description": text}
 
 
@@ -621,26 +611,40 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         ck.add("adult", "clear", "Not on the adult-site list")
 
     # 2. Whitelist (shared hosting platforms are excluded on purpose)
+    # When use_ai=False, fast-return Safe so automatic browsing stays instant.
+    # When use_ai=True, apply a -25 trust discount and still evaluate APIs + AI models together.
+    trust_discount = 0
+    trusted_source = None
     if reg in WHITELIST and not is_shared(host):
         d = f"{reg} is a known trusted domain"
         ck.add("whitelist", "match", d, 5, "trust")
-        return by_list(raw_url, "Safe", 5, "whitelist", [d], ck, "Not needed: the site is on a trusted list.")
-
-    # 2a. Endings only verified institutions can register (edu.my, gov.my ...)
-    if TRUSTED_SUFFIXES and not is_shared(host) and ("." + reg).endswith(TRUSTED_SUFFIXES):
+        if not use_ai:
+            return by_list(raw_url, "Safe", 5, "whitelist", [d], ck, "Not needed: the site is on a trusted list.")
+        trust_discount = 25
+        trusted_source = "whitelist"
+        reasons_pre = [d]
+    elif TRUSTED_SUFFIXES and not is_shared(host) and ("." + reg).endswith(TRUSTED_SUFFIXES):
         d = f"{reg} uses a restricted institutional domain ending"
         ck.add("whitelist", "match", d, 10, "trust")
-        return by_list(raw_url, "Safe", 10, "trusted-suffix", [d], ck, "Not needed: the site uses a restricted institutional domain ending.")
-
-    # 2b. Trusted application paths on shared hosts (e.g. your own Google Drive UI)
-    if TRUSTED_PREFIXES and _key(url).startswith(TRUSTED_PREFIXES):
+        if not use_ai:
+            return by_list(raw_url, "Safe", 10, "trusted-suffix", [d], ck, "Not needed: the site uses a restricted institutional domain ending.")
+        trust_discount = 25
+        trusted_source = "trusted-suffix"
+        reasons_pre = [d]
+    elif TRUSTED_PREFIXES and _key(url).startswith(TRUSTED_PREFIXES):
         ck.add("whitelist", "match", "Trusted application path", 5, "trust")
-        return by_list(raw_url, "Safe", 5, "whitelist", ["Trusted application path"], ck, "Not needed: the address is a trusted application path.")
-    ck.add("whitelist", "clear", "Not on the trusted list" + (" (public hosting platforms are never trusted by domain)" if is_shared(host) else ""))
+        if not use_ai:
+            return by_list(raw_url, "Safe", 5, "whitelist", ["Trusted application path"], ck, "Not needed: the address is a trusted application path.")
+        trust_discount = 25
+        trusted_source = "whitelist"
+        reasons_pre = ["Trusted application path"]
+    else:
+        ck.add("whitelist", "clear", "Not on the trusted list" + (" (public hosting platforms are never trusted by domain)" if is_shared(host) else ""))
+        reasons_pre = []
 
     # 3. PhishTank + Safe Browsing + look-alike + domain age + AI 1 + AI 2
     scores: list[float] = []
-    reasons: list[str] = []
+    reasons: list[str] = list(reasons_pre)
     pt = None
 
     shared = is_shared(host)
@@ -720,30 +724,27 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         if max(scores, default=0) < 60:               # no confirmed evidence: explain the mild warning
             reasons.append("Hosted on a public platform where anyone can publish. "
                            "This alone does not mean the page is malicious.")
-        scores.append(THRESHOLD_SUSPICIOUS)          # mild warning floor, far below Malicious
-        non_ml.append(THRESHOLD_SUSPICIOUS)
-        api_parts.append(THRESHOLD_SUSPICIOUS)
+        scores.append(20)
+        non_ml.append(20)
+        api_parts.append(20)
 
     score = max(scores, default=None)
 
-    # Domain age for every site that no list knows about. Phishing domains are mostly days old, whatever
-    # their name looks like, so this works where the URL text (model) and look-alike rules see nothing.
-    # Old domain + only a weak model suspicion -> relax. Lookup failure (or a ccTLD without RDAP) changes nothing.
+    # Domain age for every site that no list knows about.
     age_new = False
-    if not non_ml and not shared:
+    if not non_ml and not shared and trust_discount == 0:
         info = rdap.lookup(reg)
         age = info.age_days if info.succeeded else None
         if age is not None and age < 30:
             age_new = True
-            score = max(score or 0, 55 if (ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS) else 45)
-            non_ml.append(45)
-            api_parts.append(45)
+            non_ml.append(40)
+            api_parts.append(40)
             reasons.append(f"Domain was registered only {age} days ago and is on no list (new domains are common in phishing)")
-            ck.add("domain_age", "match", f"Registered only {age} days ago and on no list (new domains are common in phishing)", 45, "risk")
-        elif age is not None and age >= 730 and score is not None and score >= THRESHOLD_SUSPICIOUS:
-            score = THRESHOLD_SUSPICIOUS - 1
-            reasons.append(f"Domain is {age // 365} years old, which outweighs the model's weak suspicion")
-            ck.add("domain_age", "clear", f"Domain is {age // 365} years old, which outweighs the model's weak suspicion")
+            ck.add("domain_age", "match", f"Registered only {age} days ago and on no list (new domains are common in phishing)", 40, "risk")
+        elif age is not None and age >= 730:
+            trust_discount += 10
+            reasons.append(f"Domain is {age // 365} years old (-10 risk trust credit)")
+            ck.add("domain_age", "clear", f"Domain is {age // 365} years old (established domain)")
         elif age is not None:
             ck.add("domain_age", "clear", f"Registered {_age_text(age)} ago")
         else:
@@ -808,41 +809,41 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
     else:
         ck.add("ai2", ai2["state"], ai2["description"].replace(AI2_BASE + " ", ""))
 
-    notes: list[str] = []                                  # which "independent signals agree" rules fired, for the summary
+    notes: list[str] = []
 
     def agree(text: str) -> None:
         reasons.append(text)
         notes.append(text)
 
-    # Two independent sources agreeing is stronger than either one: a PhishTank record that is not yet
-    # voted on (60) plus a model that also finds the URL suspicious is treated as Malicious.
-    if pt_score is not None and pt_score >= 60 and ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS:
-        score = max(score, THRESHOLD_MALICIOUS)
-        agree("PhishTank record and ML model agree")
+    if download_score is not None:
+        api_parts.append(download_score)
 
-    # A look-alike name that the model also finds suspicious: two independent weak signals agree.
-    if content_score is not None and content_score >= THRESHOLD_SUSPICIOUS and (
-            age_new or la_score is not None or (ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS)
-            or (pt_score is not None and pt_score >= 60)):
-        score = max(score, THRESHOLD_MALICIOUS)
-        agree("Page content and another independent signal agree")
+    list_api_score = max(api_parts, default=None)
+    ai_score = ai_comb.get("score")
+    hard_api_scores = [x for x in (pt_score, sb_score) if x is not None and x >= THRESHOLD_MALICIOUS]
 
-    if la_score is not None and ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS:
-        score = max(score, THRESHOLD_MALICIOUS)
-        agree("Look-alike domain and ML model agree")
+    if hard_api_scores:
+        score = max(hard_api_scores + ([ai_score] if ai_score is not None else []))
+        agree("Confirmed by threat API (hard Malicious floor applied)")
+    elif ai_score is not None and list_api_score is not None:
+        bonus = 15 if (ai_score >= 50 and list_api_score >= 40) else 0
+        score = max(0, min(100, int(round(0.55 * ai_score + 0.45 * list_api_score + bonus - trust_discount))))
+        if bonus:
+            agree("Both AI models and Reputation/Rules flagged this site (+15 agreement bonus)")
+    elif ai_score is not None:
+        score = max(0, min(100, int(round(ai_score - trust_discount))))
+    elif list_api_score is not None:
+        score = max(0, min(100, int(round(list_api_score - trust_discount))))
+    elif trust_discount > 0:
+        score = 5
+    else:
+        score = None
 
-    # Downloads: a program file pushed by the page, or served straight from the address, together with another warning sign.
+    # Direct program-file download paired with another warning sign still escalates to Malicious
     strong_other = age_new or la_score is not None or (pt_score is not None and pt_score >= 60)
     if download_direct and strong_other:
         score = max(score or 0, THRESHOLD_MALICIOUS)
         agree("Program-file download from a site that also shows another warning sign")
-    if download_score is not None and (strong_other
-                                       or (content_score is not None and content_score >= THRESHOLD_SUSPICIOUS)
-                                       or (ml_score is not None and ml_score >= THRESHOLD_SUSPICIOUS)):
-        score = max(score, THRESHOLD_MALICIOUS)
-        agree("Automatic download and another independent signal agree")
-
-    list_api_score = max(api_parts, default=None)
 
     def finish(status: str, final_score, source: str, pt_for_result=None) -> dict:
         checks = ck.as_list()
@@ -855,14 +856,12 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         reasons[:] = reasons or ["No data from any source"]
         return finish("Unknown", None, "none")
 
-    # "Safe" must rest on evidence of safety. A model that merely sees nothing suspicious cannot
-    # vouch for a site (e.g. a phishing page on a normal-looking domain), so that case is Unknown.
-    if _status(score) == "Safe" and not non_ml:
-        reasons.append("No strong phishing signal from the model. This is not a guarantee that the site is safe.")
-        return finish("Unknown", None, "model")
-
-    source = "+".join(n for n, on in (("phishtank", pt is not None), ("safebrowsing", sb_score is not None),
-                                      ("lookalike", la_score is not None), ("domain-age", age_new), ("content", content_score is not None),
-                                      ("download", download_score is not None or download_direct is not None),
-                                      ("model", ml is not None)) if on) or "shared-host"
+    source_parts = [n for n, on in (
+        ("whitelist", trusted_source is not None),
+        ("phishtank", pt is not None), ("safebrowsing", sb_score is not None),
+        ("lookalike", la_score is not None), ("domain-age", age_new), ("content", content_score is not None),
+        ("download", download_score is not None or download_direct is not None),
+        ("model", ml is not None),
+    ) if on]
+    source = "+".join(source_parts) or "shared-host"
     return finish(_status(score), score, source, pt)
