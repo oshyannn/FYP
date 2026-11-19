@@ -48,6 +48,7 @@ export interface FinalResult {
   score: number | null;
   list_api: { score: number | null; text: string; trusted?: boolean; trust_discount?: number };
   ai: { score: number | null; text: string };
+  page_rules_score?: number;
   bonus?: number;
   notes: string[];
   method: string;

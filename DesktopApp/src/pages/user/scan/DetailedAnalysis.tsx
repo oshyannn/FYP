@@ -344,7 +344,15 @@ export default function DetailedAnalysis({ scan, backLabel, onBack, onReport, on
         )}
       </Card>
 
-      <DynamicScanCard scanId={scan.id} onSessionEnd={onSessionEnd} />
+      <DynamicScanCard
+        scanId={scan.id}
+        onSessionEnd={onSessionEnd}
+        onCompleted={async () => {
+          const res = await api.get(`/api/scans/${scan.id}`);
+          if (res.status === 401) return onSessionEnd?.();
+          if (res.status === 200 && res.data?.scan) onRescanned?.(res.data.scan as ScanRecord);
+        }}
+      />
 
       <div className="flex flex-wrap gap-3">
         <button onClick={onReport} className="border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">

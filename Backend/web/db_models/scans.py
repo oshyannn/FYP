@@ -100,3 +100,14 @@ def set_action(user_id, scan_id, action: str) -> bool:
     row = db.one("UPDATE public.detection_history SET user_action = %s::public.user_action "
                  "WHERE id = %s AND user_id = %s AND is_deleted = false RETURNING id", (action, scan_id, user_id))
     return row is not None
+
+
+def update_scan_result(user_id, scan_id, *, level: str, score: float, analysis: dict) -> bool:
+    """Updates risk_level, risk_score, and analysis JSON on an existing scan after dynamic AI 2 scan completes."""
+    row = db.one(
+        "UPDATE public.detection_history "
+        "SET risk_level = %s::public.risk_level, risk_score = %s, analysis = %s "
+        "WHERE id = %s AND user_id = %s AND is_deleted = false RETURNING id",
+        (level, score, Jsonb(analysis), scan_id, user_id),
+    )
+    return row is not None

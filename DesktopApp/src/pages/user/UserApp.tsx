@@ -108,6 +108,8 @@ export default function UserApp({ session, onLogout }: Props) {
         }
         onBack={() => setPage(cameFrom === "result" ? "result" : cameFrom === "dashboard" ? "dashboard" : "history")}
         onReport={() => report(scan)}
+        onRescanned={setScan}
+        onSessionEnd={onLogout}
       />
     );
   } else if (page === "profile") {

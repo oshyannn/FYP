@@ -49,6 +49,7 @@ export interface FinalResult {
   score: number | null;
   list_api: { score: number | null; text: string; trusted?: boolean; trust_discount?: number };
   ai: { score: number | null; text: string };
+  page_rules_score?: number;
   bonus?: number;
   notes: string[];
   method: string;
@@ -318,6 +319,7 @@ export function scoreBreakdown(rec: ScanRecord): ScoreContribution[] {
   const trustDiscount = f.list_api.trust_discount ?? (isTrusted ? 25 : 0);
   const listRisk = f.list_api.score;
   const aiScore = f.ai.score;
+  const pageRules = f.page_rules_score ?? 0;
   const bonus = f.bonus ?? 0;
 
   const rows: ScoreContribution[] = [];
@@ -371,6 +373,24 @@ export function scoreBreakdown(rec: ScanRecord): ScoreContribution[] {
       tone: "neutral",
       deltaText: "—",
       note: "AI models were skipped or could not score this page",
+    });
+  }
+
+  if (pageRules > 0) {
+    rows.push({
+      label: "Rule-based Page Checks",
+      badge: pageRules >= 25 ? "Strong Signs" : "Some Signs",
+      tone: "risk",
+      deltaText: `+${pageRules}`,
+      note: "Added from triggered page-content threat rules (fake login, bank/payment, auto-download, obfuscation)",
+    });
+  } else if ((rec.analysis?.ai2?.categories?.length ?? 0) > 0) {
+    rows.push({
+      label: "Rule-based Page Checks",
+      badge: "Clear",
+      tone: "neutral",
+      deltaText: "0",
+      note: "No rule-based page threat reached the warning level",
     });
   }
 

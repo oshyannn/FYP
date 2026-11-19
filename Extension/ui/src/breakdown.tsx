@@ -161,6 +161,7 @@ export function Breakdown({ v }: { v: Verdict }) {
   const trustDiscount = f.list_api.trust_discount ?? (isTrusted ? 25 : 0);
   const listRisk = f.list_api.score;
   const aiScore = f.ai.score;
+  const pageRules = f.page_rules_score ?? 0;
   const bonus = f.bonus ?? 0;
   const finalScore = f.score ?? (v.status === "unknown" ? null : v.score);
 
@@ -206,6 +207,17 @@ export function Breakdown({ v }: { v: Verdict }) {
           {aiScore == null ? "—" : `+${Math.round(aiScore)}`}
         </span>
       </div>
+      {pageRules > 0 && (
+        <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[10px] font-medium text-gray-700">Page threat rules</span>
+            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-200 shrink-0">
+              {pageRules >= 25 ? "Strong" : "Triggered"}
+            </span>
+          </div>
+          <span className="text-[11px] font-bold font-mono text-red-600 shrink-0">+{pageRules}</span>
+        </div>
+      )}
       {bonus > 0 && (
         <div className="px-2.5 py-2 flex items-center justify-between gap-2">
           <span className="text-[10px] font-medium text-gray-700">Agreement bonus</span>

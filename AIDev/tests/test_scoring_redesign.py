@@ -29,6 +29,19 @@ class ScoringHelpersTests(unittest.TestCase):
         self.assertEqual(res_both["score"], 84)
         self.assertEqual(res_both["level"], "high")
 
+    def test_page_rules_bonus_tiers(self):
+        # Normal login page (15% < 40%) adds 0
+        self.assertEqual(detector._page_rules_bonus([{"percent": 15, "triggered": False}]), 0)
+        # Single triggered 45% -> +10; 55% -> +15; 75% -> +25
+        self.assertEqual(detector._page_rules_bonus([{"percent": 45, "triggered": True}]), 10)
+        self.assertEqual(detector._page_rules_bonus([{"percent": 55, "triggered": True}]), 15)
+        self.assertEqual(detector._page_rules_bonus([{"percent": 75, "triggered": True}]), 25)
+        # Two triggered categories add +5 (capped at 30)
+        self.assertEqual(
+            detector._page_rules_bonus([{"percent": 75, "triggered": True}, {"percent": 45, "triggered": True}]),
+            30,
+        )
+
 
 class WeightedAnalyzeTests(unittest.TestCase):
     def _mock_clean_env(self, *, pt=None, sb=None, la=None, age=None, ml=None, content=None):

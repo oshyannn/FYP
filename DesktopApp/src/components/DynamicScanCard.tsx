@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, problem } from "../api";
 import Badge from "./Badge";
 import RiskBar from "./RiskBar";
@@ -177,11 +177,20 @@ function buildFriendlySummary(
   return { tone, headline, body, points };
 }
 
-export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: string; onSessionEnd?: () => void }) {
+export default function DynamicScanCard({
+  scanId,
+  onSessionEnd,
+  onCompleted,
+}: {
+  scanId: string;
+  onSessionEnd?: () => void;
+  onCompleted?: () => void;
+}) {
   const [job, setJob] = useState<DynamicJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState("");
+  const wasActiveRef = useRef(false);
 
   const fetchStatus = useCallback(async () => {
     const res = await api.get(`/api/scans/${scanId}/dynamic`);
@@ -191,9 +200,15 @@ export default function DynamicScanCard({ scanId, onSessionEnd }: { scanId: stri
       return;
     }
     if (res.status === 200) {
-      setJob((res.data.dynamic as DynamicJob) ?? null);
+      const next = (res.data.dynamic as DynamicJob) ?? null;
+      const isActive = next?.status === "queued" || next?.status === "running";
+      if (wasActiveRef.current && !isActive && next && (next.status === "completed" || next.status === "partial")) {
+        onCompleted?.();
+      }
+      wasActiveRef.current = isActive;
+      setJob(next);
     }
-  }, [scanId, onSessionEnd]);
+  }, [scanId, onSessionEnd, onCompleted]);
 
   useEffect(() => {
     fetchStatus();

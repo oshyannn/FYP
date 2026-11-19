@@ -433,8 +433,24 @@ def _list_api_text(checks: list[dict]) -> str:
     return text + (" Not used: " + "; ".join(unused) + "." if unused else "")
 
 
+def _page_rules_bonus(categories: list[dict] | None) -> int:
+    """Computes risk points (+0..+30) from rule-based page threat checks (page_threats.assess).
+
+    Normal login pages score ~15% (< 40%) and contribute 0. Triggered checks (>= 40%) add +10 to +25
+    (plus +5 if multiple independent rule categories trigger).
+    """
+    if not categories:
+        return 0
+    max_pct = max((int(c.get("percent") or 0) for c in categories), default=0)
+    triggered = sum(1 for c in categories if c.get("triggered"))
+    pts = 25 if max_pct >= 70 else 15 if max_pct >= 50 else 10 if max_pct >= 40 else 0
+    if triggered >= 2 and pts > 0:
+        pts = min(30, pts + 5)
+    return pts
+
+
 def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb: dict, notes: list[str],
-                 *, trusted: bool = False, trust_discount: int = 0, bonus: int = 0) -> dict:
+                 *, trusted: bool = False, trust_discount: int = 0, bonus: int = 0, page_rules_score: int = 0) -> dict:
     api_text = _list_api_text(checks)
     head = "No final verdict: not enough evidence from any source." if score is None else f"Final risk {int(round(score))}/100 ({status})."
     summary = " ".join([head, "Lists / APIs: " + api_text, "AI models: " + ai_comb["description"]]
@@ -444,6 +460,7 @@ def _final_block(status: str, score, checks: list[dict], list_api_score, ai_comb
         "score": score,
         "list_api": {"score": list_api_score, "text": api_text, "trusted": trusted, "trust_discount": trust_discount},
         "ai": {"score": ai_comb.get("score"), "text": ai_comb["description"]},
+        "page_rules_score": page_rules_score,
         "bonus": bonus,
         "notes": list(notes),
         "method": FINAL_METHOD,
@@ -829,6 +846,7 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
 
     list_api_score = max(api_parts, default=None)
     ai_score = ai_comb.get("score")
+    page_rules_score = _page_rules_bonus(ai2.get("categories"))
     hard_api_scores = [x for x in (pt_score, sb_score) if x is not None and x >= THRESHOLD_MALICIOUS]
     bonus = 0
 
@@ -837,17 +855,22 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         agree("Confirmed by threat API (hard Malicious floor applied)")
     elif ai_score is not None and list_api_score is not None:
         bonus = 15 if (ai_score >= 50 and list_api_score >= 40) else 0
-        score = max(0, min(100, int(round(0.55 * ai_score + 0.45 * list_api_score + bonus - trust_discount))))
+        score = max(0, min(100, int(round(0.55 * ai_score + 0.45 * list_api_score + page_rules_score + bonus - trust_discount))))
         if bonus:
             agree("Both AI models and Reputation/Rules flagged this site (+15 agreement bonus)")
     elif ai_score is not None:
-        score = max(0, min(100, int(round(ai_score - trust_discount))))
+        score = max(0, min(100, int(round(ai_score + page_rules_score - trust_discount))))
     elif list_api_score is not None:
-        score = max(0, min(100, int(round(list_api_score - trust_discount))))
+        score = max(0, min(100, int(round(list_api_score + page_rules_score - trust_discount))))
+    elif page_rules_score > 0:
+        score = max(0, min(100, page_rules_score - trust_discount))
     elif trust_discount > 0:
         score = 5
     else:
         score = None
+
+    if page_rules_score > 0:
+        agree(f"Rule-based page checks triggered (+{page_rules_score} risk points)")
 
     # Direct program-file download paired with another warning sign still escalates to Malicious
     strong_other = age_new or la_score is not None or (pt_score is not None and pt_score >= 60)
@@ -861,7 +884,8 @@ def _analyze(raw_url: str, use_ai: bool = False) -> dict:
         extra = {"checks": checks, "ai1": ai1, "ai2": ai2, "ai_combined": ai_comb,
                  "final": _final_block(
                      status, final_score, checks, list_api_score, ai_comb, notes,
-                     trusted=trusted_source is not None, trust_discount=trust_discount, bonus=bonus,
+                     trusted=trusted_source is not None, trust_discount=trust_discount,
+                     bonus=bonus, page_rules_score=page_rules_score,
                  )}
         return _result(raw_url, status, final_score, source, reasons, pt_for_result, extra)
 

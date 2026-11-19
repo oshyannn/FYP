@@ -136,6 +136,42 @@ class EvidenceAndAi2Tests(unittest.TestCase):
         self.assertFalse(res_low["flagged"])
         self.assertEqual(res_low["risk_tier"], "low")
 
+    def test_merge_dynamic_ai2_replaces_static_and_recalculates_final_score(self):
+        base_analysis = {
+            "status": "Safe",
+            "risk_score": 16,
+            "source": "model+content",
+            "ai1": {"name": "AI 1", "state": "ok", "percent": 20, "score": 20, "level": "low", "description": "low"},
+            "ai2": {"name": "AI 2", "state": "ok", "percent": 15, "score": 15, "level": "low", "description": "static"},
+            "ai_combined": {"name": "AI combined", "state": "ok", "percent": 16, "score": 16, "level": "low", "description": "old"},
+            "checks": [{"id": "ai2", "name": "AI 2", "group": "ai", "state": "clear", "detail": "static", "score": 15, "effect": "none"}],
+            "final": {
+                "status": "Safe", "score": 16,
+                "list_api": {"score": None, "text": "none", "trusted": False, "trust_discount": 0},
+                "ai": {"score": 16, "text": "old"}, "page_rules_score": 0, "bonus": 0, "notes": [], "method": "", "summary": "",
+            },
+            "reasons": [],
+        }
+        ai2_dyn = {
+            "probability": 0.90,
+            "percent": 90.0,
+            "probability_calibrated": 0.85,
+            "calibrated_percent": 85.0,
+            "threshold": 0.8235,
+            "flagged": True,
+            "risk_tier": "flagged",
+            "signals": ["Password field detected"],
+            "categories": [{"id": "fake_login", "label": "Fake login", "percent": 50, "level": "high", "triggered": True}],
+        }
+        # 30% * 20 + 70% * 85 = 6 + 59.5 = 66; +15 page rules = 81 -> Malicious
+        new_level, new_score, updated = ds.merge_dynamic_ai2_into_analysis(base_analysis, ai2_dyn, "safe", 16.0)
+        self.assertEqual(updated["ai2"]["source"], "docker_dynamic")
+        self.assertEqual(updated["ai2"]["score"], 85)
+        self.assertEqual(updated["ai_combined"]["score"], 66)
+        self.assertEqual(updated["final"]["page_rules_score"], 15)
+        self.assertEqual(new_score, 81.0)
+        self.assertEqual(new_level, "malicious")
+
 
 if __name__ == "__main__":
     unittest.main()
